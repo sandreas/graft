@@ -8,6 +8,7 @@ import (
 	//"container/list"
 	//"io"
 	"strings"
+	"regexp"
 )
 
 //var wordPtr = flag.String("word", "foo", "a string")
@@ -29,20 +30,23 @@ type TransferSource struct {
 
 
 func parseSourcePattern(sourcePattern string) (string, string) {
-	path := sourcePattern
+	path := sourcePattern;
 	pattern := ""
 	pathExists := false
 	for {
 		if _, err := os.Stat(path); err == nil {
 			pattern = strings.Replace(sourcePattern, path, "", 1)
+			if len(pattern) > 0 {
+				pattern = pattern[1:]
+			}
 			pathExists = true
 			break
 		}
-		lastSlashIndex := strings.Index(path, "/")
+		normalizedDirectorySeparatorPath := strings.Replace(path, "\\", "/", -1)
+		lastSlashIndex := strings.LastIndex(normalizedDirectorySeparatorPath, "/")
 		if lastSlashIndex == -1 {
 			break
 		}
-
 		path = path[0:lastSlashIndex]
 	}
 
@@ -95,6 +99,7 @@ if _, err := os.Stat("/path/to/whatever"); err == nil {
 	if len(flagArgs) > 0 {
 		sourcePattern = flagArgs[0]
 	}
+	fmt.Println("sourcePattern:", sourcePattern)
 
 	//if len(flagArgs) > 1 {
 	//	destinationPattern = flagArgs[1]
@@ -103,7 +108,44 @@ if _, err := os.Stat("/path/to/whatever"); err == nil {
 
 	src := TransferSource{path, pattern}
 
-	fmt.Println("src:", src)
+	fmt.Println("src-path:", src.path)
+	fmt.Println("src-pattern:", src.pattern)
+
+
+	foundFile := "fixtures/global/Iron Man (2010)/Iron Man (2010).txt"
+
+	preparedPath := strings.Replace(src.path, "\\", "/", -1)
+	preparedPattern := strings.Replace(src.pattern, "*", ".*", -1)
+	// todo: check if pattern contains groups => (*group1)(*group2), if not, treat whole pattern as group
+	// preparedPattern = "(" + preparedPattern + ")"
+
+	preparedPatternToCompile := regexp.QuoteMeta(preparedPath) + "/" + preparedPattern
+	fmt.Println("pattern to compile:", preparedPatternToCompile)
+
+	compiledPattern := regexp.MustCompile(preparedPatternToCompile)
+
+	if compiledPattern.MatchString(foundFile) {
+		fmt.Println("match: " + foundFile + " => " + preparedPatternToCompile)
+	} else {
+		fmt.Println("no match: " + foundFile + " => " + preparedPatternToCompile)
+	}
+
+	//res := compiledPattern.FindStringSubmatch(foundFile)
+	//fmt.Printf("%v", res)
+
+	// input := `bla bla b:foo="hop" blablabla b:bar="hu?"`
+	//r := regexp.MustCompile(`(\bb:\w+=")([^"]+)`)
+	fmt.Println(compiledPattern.ReplaceAllStringFunc(foundFile, func(m string) string {
+		parts := compiledPattern.FindStringSubmatch(m)
+		// return parts[1] + complexFunc(parts[2])
+		// fmt.Println(m)
+		fmt.Println("0: " + parts[0])
+		fmt.Println("1: " + parts[1])
+		//fmt.Println("2: " + parts[2])
+		return m
+	}))
+
+
 
 	// var sourcePattern = [0]
 	// var sourcePattern = flag.Args()[0]
