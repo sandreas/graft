@@ -113,9 +113,6 @@ if _, err := os.Stat("/path/to/whatever"); err == nil {
 	//fmt.Println("src-path:", src.path)
 	//fmt.Println("src-pattern:", src.pattern)
 
-
-	// foundFile := "fixtures/global/Iron Man (2010)/Iron Man (2010).txt"
-
 	preparedPath := strings.Replace(path, "\\", "/", -1)
 	preparedPattern := pattern //strings.Replace(pattern, "*", ".*", -1)
 	// todo: check if pattern contains groups => (*group1)(*group2), if not, treat whole pattern as group
