@@ -9,6 +9,7 @@ import (
 	//"io"
 	"strings"
 	"regexp"
+	"path/filepath"
 )
 
 //var wordPtr = flag.String("word", "foo", "a string")
@@ -18,14 +19,16 @@ import (
 
 // var mapping = list.New()
 
+
+
+//type TransferSource struct {
+//	path string
+//	pattern string
+//}
+
 type TransferPair struct {
 	from string
 	to string
-}
-
-type TransferSource struct {
-	path string
-	pattern string
 }
 
 
@@ -63,7 +66,6 @@ func parseSourcePattern(sourcePattern string) (string, string) {
 //	mapping.PushBack(TransferPair{path, path})
 //	return nil
 //}
-
 
 
 func main() {
@@ -106,44 +108,105 @@ if _, err := os.Stat("/path/to/whatever"); err == nil {
 	//}
 	path, pattern := parseSourcePattern(sourcePattern)
 
-	src := TransferSource{path, pattern}
+	//src := TransferSource{path, pattern}
+	//
+	//fmt.Println("src-path:", src.path)
+	//fmt.Println("src-pattern:", src.pattern)
 
-	fmt.Println("src-path:", src.path)
-	fmt.Println("src-pattern:", src.pattern)
 
+	// foundFile := "fixtures/global/Iron Man (2010)/Iron Man (2010).txt"
 
-	foundFile := "fixtures/global/Iron Man (2010)/Iron Man (2010).txt"
-
-	preparedPath := strings.Replace(src.path, "\\", "/", -1)
-	preparedPattern := strings.Replace(src.pattern, "*", ".*", -1)
+	preparedPath := strings.Replace(path, "\\", "/", -1)
+	preparedPattern := pattern //strings.Replace(pattern, "*", ".*", -1)
 	// todo: check if pattern contains groups => (*group1)(*group2), if not, treat whole pattern as group
 	// preparedPattern = "(" + preparedPattern + ")"
 
 	preparedPatternToCompile := regexp.QuoteMeta(preparedPath) + "/" + preparedPattern
 	fmt.Println("pattern to compile:", preparedPatternToCompile)
 
-	compiledPattern := regexp.MustCompile(preparedPatternToCompile)
+	compiledPattern, err := regexp.Compile(preparedPatternToCompile)
 
-	if compiledPattern.MatchString(foundFile) {
-		fmt.Println("match: " + foundFile + " => " + preparedPatternToCompile)
-	} else {
-		fmt.Println("no match: " + foundFile + " => " + preparedPatternToCompile)
+	if(err != nil) {
+		fmt.Println("invalid source pattern - could not compile")
+		return;
 	}
+
+	// list := make([]string, 0, 10)
+
+	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		fmt.Println("===================================")
+		fmt.Println("path: " + path)
+
+		normalizedPath := strings.Replace(path, "\\", "/", -1)
+
+		fmt.Println("normalized: " + normalizedPath)
+
+		if ! compiledPattern.MatchString(normalizedPath) {
+			fmt.Println("match: no")
+			return nil
+		}
+		fmt.Println("match: yes")
+		//compiledPattern.ReplaceAllStringFunc(foundFile, func(m string) string {
+		//	parts := compiledPattern.FindStringSubmatch(m)
+		//	// return parts[1] + complexFunc(parts[2])
+		//	// fmt.Println(m)
+		//	fmt.Println("0: " + parts[0])
+		//	fmt.Println("1: " + parts[1])
+		//	//fmt.Println("2: " + parts[2])
+		//	return m
+		//})
+
+
+		compiledPattern.ReplaceAllStringFunc(normalizedPath, func(m string) string {
+			parts := compiledPattern.FindStringSubmatch(m)
+			// return parts[1] + complexFunc(parts[2])
+			// fmt.Println(m)
+			// fmt.Println("0: " + parts[0])
+
+			i := 0
+			for range parts {
+				// index is the index where we are
+				// element is the element from someSlice for where we are
+				fmt.Println("    match: " + parts[i])
+				i++
+			}
+
+			//fmt.Println("2: " + parts[2])
+			return m
+		})
+		//if info.IsDir() {
+		//	return nil
+		//}
+		//if filepath.Ext(path) == ".sh" {
+		//	list = append(list, path)
+		//}
+		return nil
+	})
+	if err != nil {
+		fmt.Printf("walk error [%v]\n", err)
+		return;
+	}
+
+	//if compiledPattern.MatchString(foundFile) {
+	//	fmt.Println("match: " + foundFile + " => " + preparedPatternToCompile)
+	//} else {
+	//	fmt.Println("no match: " + foundFile + " => " + preparedPatternToCompile)
+	//}
 
 	//res := compiledPattern.FindStringSubmatch(foundFile)
 	//fmt.Printf("%v", res)
 
 	// input := `bla bla b:foo="hop" blablabla b:bar="hu?"`
 	//r := regexp.MustCompile(`(\bb:\w+=")([^"]+)`)
-	fmt.Println(compiledPattern.ReplaceAllStringFunc(foundFile, func(m string) string {
-		parts := compiledPattern.FindStringSubmatch(m)
-		// return parts[1] + complexFunc(parts[2])
-		// fmt.Println(m)
-		fmt.Println("0: " + parts[0])
-		fmt.Println("1: " + parts[1])
-		//fmt.Println("2: " + parts[2])
-		return m
-	}))
+	//fmt.Println(compiledPattern.ReplaceAllStringFunc(foundFile, func(m string) string {
+	//	parts := compiledPattern.FindStringSubmatch(m)
+	//	// return parts[1] + complexFunc(parts[2])
+	//	// fmt.Println(m)
+	//	fmt.Println("0: " + parts[0])
+	//	fmt.Println("1: " + parts[1])
+	//	//fmt.Println("2: " + parts[2])
+	//	return m
+	//}))
 
 
 
