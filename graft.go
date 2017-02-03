@@ -2,33 +2,30 @@ package main
 import "fmt"
 import (
 	"flag"
-//	"os"
-//	"path/filepath"
 	"os"
-	//"container/list"
-	//"io"
 	"strings"
 	"regexp"
 	"path/filepath"
 )
 
+const ERR_NO_SOURCE_PATTERN = 1
+const ERR_COULD_NOT_COMPILE_SOURCE_PATTERN = 2
+
 //var wordPtr = flag.String("word", "foo", "a string")
 //var numbPtr = flag.Int("numb", 42, "an int")
-//var boolPtr = flag.Bool("fork", false, "a bool")
 //var svar string
-
-// var mapping = list.New()
-
+var debug = flag.Bool("debug", true, "enable debug messages")
 
 
-//type TransferSource struct {
-//	path string
-//	pattern string
-//}
+func dbg(a ...interface{}) {
+	if(*debug) {
+		 fmt.Println(a...)
+	}
+}
 
-type TransferPair struct {
-	from string
-	to string
+func exitWithError(message string, code int) {
+	fmt.Println(message)
+	os.Exit(code)
 }
 
 
@@ -61,30 +58,20 @@ func parseSourcePattern(sourcePattern string) (string, string) {
 }
 
 
-//func fileWalkCallback(path string, f os.FileInfo, err error) error {
-//	fmt.Printf("Visited: %s\n", path)
-//	mapping.PushBack(TransferPair{path, path})
-//	return nil
-//}
 
+func compilePattern(path string, pattern string) (*regexp.Regexp, error) {
+	preparedPath := strings.Replace(path, "\\", "/", -1)
+	preparedPattern := pattern //strings.Replace(pattern, "*", ".*", -1)
+	// todo: check if pattern contains groups => (*group1)(*group2), if not, treat whole pattern as group
+	// preparedPattern = "(" + preparedPattern + ")"
+
+	preparedPatternToCompile := regexp.QuoteMeta(preparedPath) + "/" + preparedPattern
+	dbg("pattern to compile:", preparedPatternToCompile)
+
+	return regexp.Compile(preparedPatternToCompile)
+}
 
 func main() {
-	//flag.StringVar(&svar, "svar", "bar", "a string var")
-
-	/*
-if _, err := os.Stat("/path/to/whatever"); os.IsNotExist(err) {
-  // path/to/whatever does not exist
-}
-In the above example we are not checking if err != nil because os.IsNotExist(nil) == false.
-
-To check if a file exists, equivalent to Python's if os.path.exists(filename):
-
-if _, err := os.Stat("/path/to/whatever"); err == nil {
-  // path/to/whatever exists
-}
-
-	 */
-
 	flag.Parse()
 
 	//fmt.Println("word:", *wordPtr)
@@ -96,37 +83,31 @@ if _, err := os.Stat("/path/to/whatever"); err == nil {
 
 	flagArgs := flag.Args();
 	sourcePattern := ""
-	// destinationPattern := ""
-
-	if len(flagArgs) > 0 {
-		sourcePattern = flagArgs[0]
+	if len(flagArgs) < 1 {
+		exitWithError("Please specify a valid source pattern", ERR_NO_SOURCE_PATTERN)
 	}
-	fmt.Println("sourcePattern:", sourcePattern)
-
-	//if len(flagArgs) > 1 {
-	//	destinationPattern = flagArgs[1]
-	//}
+	sourcePattern = flagArgs[0]
 	path, pattern := parseSourcePattern(sourcePattern)
 
-	//src := TransferSource{path, pattern}
-	//
-	//fmt.Println("src-path:", src.path)
-	//fmt.Println("src-pattern:", src.pattern)
+	dbg("src - parameter:", sourcePattern)
+	dbg("src - parsedPath: ", path)
+	dbg("src - pattern: ", pattern)
 
-	preparedPath := strings.Replace(path, "\\", "/", -1)
-	preparedPattern := pattern //strings.Replace(pattern, "*", ".*", -1)
-	// todo: check if pattern contains groups => (*group1)(*group2), if not, treat whole pattern as group
-	// preparedPattern = "(" + preparedPattern + ")"
-
-	preparedPatternToCompile := regexp.QuoteMeta(preparedPath) + "/" + preparedPattern
-	fmt.Println("pattern to compile:", preparedPatternToCompile)
-
-	compiledPattern, err := regexp.Compile(preparedPatternToCompile)
-
-	if(err != nil) {
-		fmt.Println("invalid source pattern - could not compile")
-		return;
+	destinationPattern := ""
+	if len(flagArgs) > 1 {
+		destinationPattern = flagArgs[1]
 	}
+	dbg("dst - parameter:", destinationPattern)
+
+
+
+	compiledPattern, err := compilePattern(path, pattern)
+	if(err != nil) {
+		exitWithError("could not compile source pattern: " + err.Error(), ERR_COULD_NOT_COMPILE_SOURCE_PATTERN)
+	}
+
+
+
 
 	// list := make([]string, 0, 10)
 
@@ -179,9 +160,9 @@ if _, err := os.Stat("/path/to/whatever"); err == nil {
 		//}
 		return nil
 	})
+
 	if err != nil {
-		fmt.Printf("walk error [%v]\n", err)
-		return;
+		exitWithError("walk error", err)
 	}
 
 	//if compiledPattern.MatchString(foundFile) {
