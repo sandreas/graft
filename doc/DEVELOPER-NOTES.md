@@ -1,5 +1,8 @@
 # Technology links
 
+## big list of different libraries
+https://github.com/avelino/awesome-go#command-line
+
 ## command line parser
 cli-app: https://github.com/urfave/cli
 further info: https://nathanleclaire.com/blog/2014/08/31/why-codegangstas-cli-package-is-the-bomb-and-you-should-use-it/
