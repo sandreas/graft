@@ -16,6 +16,7 @@
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/io" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/testing" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/compress" />
+      <root url="file://$PROJECT_DIR$/../.." />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/image" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/text" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/net" />
@@ -24,7 +25,6 @@
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/path" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/reflect" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/fmt" />
-      <root url="file://$PROJECT_DIR$/../../../src/github.com" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/mime" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/container" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/cmd" />
@@ -63,6 +63,7 @@
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/io" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/testing" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/compress" />
+      <root url="file://$PROJECT_DIR$/../.." />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/image" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/text" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/net" />
@@ -71,7 +72,6 @@
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/path" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/reflect" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/fmt" />
-      <root url="file://$PROJECT_DIR$/../../../src/github.com" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/mime" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/container" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/cmd" />

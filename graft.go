@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"bytes"
 	"io"
+	"github.com/urfave/cli"
 )
 
 type TransferSource struct {
@@ -27,8 +28,6 @@ var useRegex = flag.Bool("use-regex", false, "use real regex instead of glob pat
 var simulate = flag.Bool("simulate", false, "simulation - just show preview, do not really transfer")
 var times = flag.Bool("times", false, "keep times")
 var move = flag.Bool("move", false, "move files instead of copying")
-
-
 
 func dbg(a ...interface{}) {
 	if (*debug) {
@@ -168,41 +167,181 @@ func GlobToRegex(glob string) (string) {
 	return buffer.String()
 }
 
+
+
+//var debug = flag.Bool("debug", false, "enable debug messages")
+//var help = flag.Bool("help", false, "show help")
+//var useRegex = flag.Bool("use-regex", false, "use real regex instead of glob patterns")
+//var simulate = flag.Bool("simulate", false, "simulation - just show preview, do not really transfer")
+//var times = flag.Bool("times", false, "keep times")
+//var move = flag.Bool("move", false, "move files instead of copying")
+//
+
+
 func main() {
+
+	// default values for args
+	app := cli.NewApp()
+	app.Name = "graft"
+	app.Usage = "find and copy files via command line"
+	app.Version = "0.0.1"
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "dry-run",
+			Usage: "perform a dry-run without transferring files",
+		},
+	}
+	//app.Flags = []cli.Flag{
+	//	cli.StringFlag{
+	//		Name:  "p, project-name",
+	//		Usage: "Specify an alternate project name (default: directory name)",
+	//	},
+	//}
+
+
+
+	//app.PositionalArgs = []cli.StringArg{
+	//	Name: "branch",
+	//	Optional: true,
+	//	Value: &x
+	//}
+	// global level flags
+	//app.Flags = []gangstaCli.Flag{
+	//	gangstaCli.BoolFlag{
+	//		Name:  "verbose",
+	//		Usage: "Show more output",
+	//	},
+	//	gangstaCli.StringFlag{
+	//		Name:  "f, file",
+	//		Usage: "Specify an alternate fig file (default: fig.yml)",
+	//	},
+	//	gangstaCli.StringFlag{
+	//		Name:  "p, project-name",
+	//		Usage: "Specify an alternate project name (default: directory name)",
+	//	},
+	//}
+	//
+	//// Commands
+	//app.Commands = []gangstaCli.Command{
+	//	{
+	//		Name: "build",
+	//		Flags: []gangstaCli.Flag{
+	//			gangstaCli.BoolFlag{
+	//				Name:  "no-cache",
+	//				Usage: "Do not use cache when building the image.",
+	//			},
+	//		},
+	//		Usage:  "Build or rebuild services",
+	//		Action: CmdBuild,
+	//	},
+	//	// etc...
+	//	{
+	//		Name: "run",
+	//		Flags: []gangstaCli.Flag{
+	//			gangstaCli.BoolFlag{
+	//				Name:  "d",
+	//				Usage: "Detached mode: Run container in the background, print new container name.",
+	//			},
+	//			gangstaCli.BoolFlag{
+	//				Name:  "T",
+	//				Usage: "Disables psuedo-tty allocation. By default `fig run` allocates a TTY.",
+	//			},
+	//			gangstaCli.BoolFlag{
+	//				Name:  "rm",
+	//				Usage: "Remove container after run.  Ignored in detached mode.",
+	//			},
+	//			gangstaCli.BoolFlag{
+	//				Name:  "no-deps",
+	//				Usage: "Don't start linked services.",
+	//			},
+	//		},
+	//		Usage:  "Run a one-off command",
+	//		Action: CmdRm,
+	//	},
+	//
+	//	{
+	//		Name: "up",
+	//		Flags: []gangstaCli.Flag{
+	//			gangstaCli.BoolFlag{
+	//				Name:  "watch",
+	//				Usage: "Watch build directory for changes and auto-rebuild/restart",
+	//			},
+	//			gangstaCli.BoolFlag{
+	//				Name:  "d",
+	//				Usage: "Detached mode: Run containers in the background, print new container names.",
+	//			},
+	//			gangstaCli.BoolFlag{
+	//				Name:  "k,kill",
+	//				Usage: "Kill instead of stop on terminal stignal",
+	//			},
+	//			gangstaCli.BoolFlag{
+	//				Name:  "no-clean",
+	//				Usage: "Don't remove containers after termination signal interrupt (CTRL+C)",
+	//			},
+	//			gangstaCli.BoolFlag{
+	//				Name:  "no-deps",
+	//				Usage: "Don't start linked services.",
+	//			},
+	//			gangstaCli.BoolFlag{
+	//				Name:  "no-recreate",
+	//				Usage: "If containers already exist, don't recreate them.",
+	//			},
+	//		},
+	//		Usage:  "Create and start containers",
+	//		Action: CmdUp,
+	//	},
+	//}
+
+
+	app.Action = func(c *cli.Context) error {
+
+
+		appCommand(c)
+
+
+		//fmt.Println("src: ", sourcePattern)
+		//fmt.Println("dst: ", destinationPattern)
+
+		//if language == "spanish" {
+		//	fmt.Println("Hola", name)
+		//} else {
+		//	fmt.Println("Hello", name)
+		//}
+		return nil
+	}
+
+	app.Run(os.Args)
+	os.Exit(0)
+
+
+}
+
+func appCommand(c *cli.Context) {
 	//patt, err := compilePattern("fixtures", "(?i)(.*)")
 	//x := patt.ReplaceAllString("fixtures/global/textfile.txt", "test/$1")
 	//dbg(x)
 	//os.Exit(0)
-
-
-	flag.Parse()
-
-	//fmt.Println("word:", *wordPtr)
-	//fmt.Println("numb:", *numbPtr)
-	//fmt.Println("fork:", *boolPtr)
-	//fmt.Println("svar:", svar)
-	//fmt.Println("tail:", flag.Args())
-
-
-	flagArgs := flag.Args();
-
-
 	sourcePattern := ""
-	if *help || len(flagArgs) < 1 {
-		exitWithHelp("Please specify at least valid source pattern")
-
+	if c.NArg() < 1 {
+		fmt.Println("missing required parameter source-pattern, use --help parameter for usage instructions")
+		return nil
 	}
-	sourcePattern = flagArgs[0]
+
+	sourcePattern = c.Args().Get(0)
+	destinationPattern := ""
+	if c.NArg() > 1{
+		destinationPattern = c.Args().Get(1)
+	}
+
+
+
+
+
 	path, pattern := parseSourcePattern(sourcePattern)
 
 	dbg("src - parameter:", sourcePattern)
 	dbg("src - parsedPath: ", path)
 	dbg("src - pattern: ", pattern)
-
-	destinationPattern := ""
-	if len(flagArgs) > 1 {
-		destinationPattern = flagArgs[1]
-	}
 	dbg("dst - parameter:", destinationPattern)
 
 	dbg("regex preparation - before: " + pattern)
@@ -390,9 +529,9 @@ func transferFile(src string, dst string) {
 	}
 
 	if *move && !dstExists {
-		renameErr :=  os.Rename(src, dst)
+		renameErr := os.Rename(src, dst)
 		if renameErr != nil {
-			printlnWrapper("could not rename " + src+": " + renameErr.Error())
+			printlnWrapper("could not rename " + src + ": " + renameErr.Error())
 		} else {
 			os.Remove(srcDir)
 			return
@@ -426,8 +565,6 @@ func transferFile(src string, dst string) {
 		return
 	}
 
-
-
 	if srcSize == 0 {
 		return
 	}
@@ -446,9 +583,9 @@ func transferFile(src string, dst string) {
 				return
 			}
 
-			renameErr :=  os.Rename(src, dst)
+			renameErr := os.Rename(src, dst)
 			if renameErr != nil {
-				printlnWrapper("could not rename " + src+": " + renameErr.Error())
+				printlnWrapper("could not rename " + src + ": " + renameErr.Error())
 			} else {
 				os.Remove(srcDir)
 				return
@@ -490,7 +627,7 @@ func transferFile(src string, dst string) {
 		os.Chtimes(dst, inStats.ModTime(), inStats.ModTime())
 	}
 
-	if(*move) {
+	if (*move) {
 		os.Remove(src)
 		os.Remove(srcDir)
 	}

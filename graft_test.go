@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"testing"
+	"github.com/stretchr/testify/assert"
+)
 
 
 
@@ -23,14 +26,10 @@ import "testing"
 // if no sub-pattern / group is given, the pattern is treated as single group
 // => /tmp/*.jpg => /tmp/(.*\.jpg)
 
-func expectHelper(expected string, actual string, t *testing.T) {
-	if(actual != expected) {
-		t.Error("expected " + expected + ", got " + actual)
-	}
-}
 
 func TestGlobToRegex(t *testing.T) {
-	expectHelper(".*\\.jpg", GlobToRegex("*.jpg"), t)
-	expectHelper("star-file-\\*\\.jpg", GlobToRegex("star-file-\\*.jpg"), t)
-	expectHelper("test\\.(jpg|png)", GlobToRegex("test.{jpg,png}"), t)
+	assert := assert.New(t)
+	assert.Equal(".*\\.jpg", GlobToRegex("*.jpg"))
+	assert.Equal("star-file-\\*\\.jpg", GlobToRegex("star-file-\\*.jpg"))
+	assert.Equal("test\\.(jpg|png)", GlobToRegex("test.{jpg,png}"))
 }
