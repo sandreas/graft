@@ -24,9 +24,9 @@ const ERR_COULD_NOT_COMPILE_SOURCE_PATTERN = 2
 var debug = flag.Bool("debug", false, "enable debug messages")
 var help = flag.Bool("help", false, "show help")
 var useRegex = flag.Bool("use-regex", false, "use real regex instead of glob patterns")
-var dryRun = flag.Bool("dry-run", false, "simulation - just show preview, do not really transfer")
+var simulate = flag.Bool("simulate", false, "simulation - just show preview, do not really transfer")
 var times = flag.Bool("times", false, "keep times")
-// var move = flag.Bool("move", false, "move files instead of copying")
+var move = flag.Bool("move", false, "move files instead of copying")
 
 
 
@@ -275,7 +275,12 @@ func main() {
 	}
 
 	printlnWrapper("===================================")
-	printlnWrapper("copy files: " + sourcePattern + " => " + destinationPattern)
+	if *move {
+		printlnWrapper("move files: " + sourcePattern + " => " + destinationPattern)
+	} else {
+		printlnWrapper("copy files: " + sourcePattern + " => " + destinationPattern)
+	}
+
 	printlnWrapper("===================================")
 	transferFiles(list, compiledPattern, destinationPattern)
 
@@ -338,7 +343,7 @@ func transferFiles(paths []string, sourcePattern *regexp.Regexp, replacement str
 }
 func transferFile(src string, dst string) {
 	printlnWrapper(src + " => " + dst)
-	if *dryRun {
+	if *simulate {
 		return
 	}
 
@@ -347,8 +352,9 @@ func transferFile(src string, dst string) {
 	inDirStats = inStats
 	var srcSize int64 = 0
 
+	var srcDir string
 	if !inStats.IsDir() {
-		srcDir := filepath.Dir(src)
+		srcDir = filepath.Dir(src)
 		inDirStats, err = os.Stat(srcDir)
 		srcSize = inStats.Size()
 	}
@@ -383,6 +389,16 @@ func transferFile(src string, dst string) {
 		return
 	}
 
+	if *move && !dstExists {
+		renameErr :=  os.Rename(src, dst)
+		if renameErr != nil {
+			printlnWrapper("could not rename " + src+": " + renameErr.Error())
+		} else {
+			os.Remove(srcDir)
+			return
+		}
+	}
+
 	fi, inError := os.Open(src)
 	defer fi.Close()
 	if inError != nil {
@@ -410,6 +426,8 @@ func transferFile(src string, dst string) {
 		return
 	}
 
+
+
 	if srcSize == 0 {
 		return
 	}
@@ -419,6 +437,22 @@ func transferFile(src string, dst string) {
 		if (!areFilesEqual(fi, fo, srcSize, dstSize)) {
 			printlnWrapper("source and destination are not equal " + src + " != " + dst)
 			return
+		}
+
+		if *move {
+			removeErr := os.Remove(dst)
+			if removeErr != nil {
+				printlnWrapper("Could not remove existing file before moving")
+				return
+			}
+
+			renameErr :=  os.Rename(src, dst)
+			if renameErr != nil {
+				printlnWrapper("could not rename " + src+": " + renameErr.Error())
+			} else {
+				os.Remove(srcDir)
+				return
+			}
 		}
 
 		_, fiErr := fi.Seek(dstSize, 0)
@@ -456,6 +490,10 @@ func transferFile(src string, dst string) {
 		os.Chtimes(dst, inStats.ModTime(), inStats.ModTime())
 	}
 
+	if(*move) {
+		os.Remove(src)
+		os.Remove(srcDir)
+	}
 
 	//var fo os.File
 	//
