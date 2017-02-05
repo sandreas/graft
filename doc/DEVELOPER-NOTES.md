@@ -1,8 +1,5 @@
 # Technology links
 
-## Unit Testing
-https://medium.com/@matryer/5-simple-tips-and-tricks-for-writing-unit-tests-in-golang-619653f90742#.mco6oq8iu
-
 ## command line parser
 cli-app: https://github.com/urfave/cli
 further info: https://nathanleclaire.com/blog/2014/08/31/why-codegangstas-cli-package-is-the-bomb-and-you-should-use-it/
@@ -20,10 +17,18 @@ http://stackoverflow.com/questions/38631982/golang-file-seek-and-file-writeat-no
 http://stackoverflow.com/questions/20875336/how-can-i-get-a-files-ctime-atime-mtime-and-change-them-using-golang
 
 ## Globbing
-
 https://www.reddit.com/r/golang/comments/41ulfq/glob_for_go_works_much_faster_than_regexp_on/
 
 # Tutorials
 
+## Organize project structure
+https://talks.golang.org/2014/organizeio.slide#22
+
+## Unit Testing
+https://medium.com/@matryer/5-simple-tips-and-tricks-for-writing-unit-tests-in-golang-619653f90742#.mco6oq8iu
+
 ## Regex
 https://github.com/StefanSchroeder/Golang-Regex-Tutorial/blob/master/01-chapter2.markdown
+
+## State of go
+https://talks.golang.org/2017/state-of-go.slide#21
