@@ -4,7 +4,29 @@ import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/sandreas/graft/file"
+	"regexp"
 )
+
+
+func TestWalkPathByPattern(t *testing.T) {
+	assert := assert.New(t)
+
+	allPattern, _ := regexp.Compile("(.*)")
+	txtPattern, _ := regexp.Compile("(.*)\\.txt")
+	allFiles, _ := file.WalkPathByPattern("../data/fixtures/file/WalkPathByPattern", allPattern)
+	txtFiles, _ := file.WalkPathByPattern("../data/fixtures/file/WalkPathByPattern", txtPattern)
+
+	assert.Len(allFiles, 9)
+	assert.Len(txtFiles, 4)
+}
+
+func TestCopyResumed(t *testing.T) {
+	assert := assert.New(t)
+
+
+
+	assert.True(true)
+}
 
 func TestFilesEqualQuick(t *testing.T) {
 	assert := assert.New(t)

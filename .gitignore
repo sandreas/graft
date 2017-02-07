@@ -22,3 +22,8 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+
+/.idea/libraries
+/data/tmp
+!/data/tmp/.gitkeep

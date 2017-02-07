@@ -3,10 +3,78 @@ package file
 import (
 	"os"
 	"bytes"
+	"path/filepath"
+	"github.com/sandreas/graft/pattern"
+	"regexp"
+	"fmt"
+	"io"
+	"errors"
 )
 
 //import "os"
 
+func WalkPathByPattern(path string, compiledPattern *regexp.Regexp)([]string, error) {
+	list := make([]string, 0)
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		normalizedPath := pattern.NormalizeDirSep(path)
+		if ! compiledPattern.MatchString(normalizedPath) {
+			return nil
+		}
+		list = append(list, path)
+		return nil
+	})
+	return list, err
+}
+/*
+func CopyResumed(src, dst *os.File, progressHandler func(bytesTransferred, size int64) int64) (error) {
+	srcStats, err := (*src).Stat()
+	if err != nil {
+		return err
+	}
+
+	dstStats, err := (*dst).Stat()
+	if err != nil {
+		return err
+	}
+
+	srcSize := srcStats.Size()
+	dstSize := dstStats.Size()
+
+	if(dstSize > srcSize) {
+		return errors.New("File cannot be resumed, destination is larger than source")
+	}
+
+	if(srcSize == dstSize) {
+		return nil
+	}
+	src.Seek(dstSize, 0)
+	dst.Seek(dstSize, 0)
+
+	bufferSize := 1024
+	buf := make([]byte, bufferSize)
+	for {
+		// read a chunk
+		n, err := src.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+
+		// write a chunk
+		if _, err := dst.Write(buf[:n]); err != nil {
+			return err
+		}
+		newBufferSize := progressHandler(srcSize)
+		if(newBufferSize != bufferSize) {
+			bufferSize = newBufferSize
+			buf = make([]byte, bufferSize)
+		}
+	}
+	return nil
+}
+*/
 
 func FilesEqualQuick(inFile, outFile string, bufSize int64) (bool, error) {
 	inStats, err := os.Stat(inFile)
