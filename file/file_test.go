@@ -145,3 +145,25 @@ func TestFilesEqualQuick(t *testing.T) {
 	expect.True(file.FileContentsEqualQuick(file1, file2, 5))
 	expect.False(file.FileContentsEqualQuick(file1, file3, 5))
 }
+
+//func TestHumanReadableSize(t *testing.T) {
+//	expect := assert.New(t)
+//
+//
+//	expect.Equal("0 B", file.HumanReadableSize(0, true))
+//	//SI     BINARY
+//	//
+//	//0:        0 B        0 B
+//	//27:       27 B       27 B
+//	//999:      999 B      999 B
+//	//1000:     1.0 kB     1000 B
+//	//1023:     1.0 kB     1023 B
+//	//1024:     1.0 kB    1.0 KiB
+//	//1728:     1.7 kB    1.7 KiB
+//	//110592:   110.6 kB  108.0 KiB
+//	//7077888:     7.1 MB    6.8 MiB
+//	//452984832:   453.0 MB  432.0 MiB
+//	//28991029248:    29.0 GB   27.0 GiB
+//	//1855425871872:     1.9 TB    1.7 TiB
+//	//9223372036854775807:     9.2 EB    8.0 EiB   (Long.MAX_VALUE)
+//}

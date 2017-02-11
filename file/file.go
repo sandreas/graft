@@ -9,7 +9,7 @@ import (
 	"errors"
 	"io"
 )
-
+// Todo add progress callback parameter
 func WalkPathByPattern(path string, compiledPattern *regexp.Regexp)([]string, error) {
 	list := make([]string, 0)
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
@@ -229,6 +229,7 @@ func CopyResumed(src, dst *os.File, progressHandler func(bytesTransferred, size,
 	}
 	return nil
 }
+
 
 
 //func TransferFileBuffer(fi, fo *os.File, offset int64, progressHandler func(bytesTransferred, size int64) int64) (error) {
