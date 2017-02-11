@@ -6,12 +6,9 @@ import (
 	"path/filepath"
 	"github.com/sandreas/graft/pattern"
 	"regexp"
-	"fmt"
-	"io"
 	"errors"
+	"io"
 )
-
-//import "os"
 
 func WalkPathByPattern(path string, compiledPattern *regexp.Regexp)([]string, error) {
 	list := make([]string, 0)
@@ -25,63 +22,72 @@ func WalkPathByPattern(path string, compiledPattern *regexp.Regexp)([]string, er
 	})
 	return list, err
 }
-/*
-func CopyResumed(src, dst *os.File, progressHandler func(bytesTransferred, size int64) int64) (error) {
-	srcStats, err := (*src).Stat()
+
+func Exists(f string) (bool) {
+	_, err := os.Stat(f)
+	if ! os.IsNotExist(err) {
+		return true
+	}
+	return false
+}
+
+func ContentsEqual(src, dst string)(bool, error) {
+
+	srcPointer, err := os.Open(src)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	dstStats, err := (*dst).Stat()
+	dstPointer, err := os.Open(dst)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	srcSize := srcStats.Size()
-	dstSize := dstStats.Size()
+	return FileContentsEqual(srcPointer, dstPointer)
+}
 
-	if(dstSize > srcSize) {
-		return errors.New("File cannot be resumed, destination is larger than source")
-	}
-
-	if(srcSize == dstSize) {
-		return nil
-	}
-	src.Seek(dstSize, 0)
-	dst.Seek(dstSize, 0)
-
-	bufferSize := 1024
-	buf := make([]byte, bufferSize)
+func FileContentsEqual(src, dst *os.File) (bool, error) {
+	src.Seek(0, 0)
+	dst.Seek(0, 0)
+	srcBuffer := make([]byte, 32*1024)
+	dstBuffer := make([]byte, 32*1024)
 	for {
-		// read a chunk
-		n, err := src.Read(buf)
+		n, err := src.Read(srcBuffer)
 		if err != nil && err != io.EOF {
-			return err
+			return false, err
 		}
 		if n == 0 {
+			o, _ := dst.Read(dstBuffer)
+			// destination is larger than source
+			if o != n {
+				return false, nil
+			}
 			break
 		}
 
-		// write a chunk
-		if _, err := dst.Write(buf[:n]); err != nil {
-			return err
+		o, err := dst.Read(dstBuffer)
+		if err != nil && err != io.EOF {
+			return false, err
 		}
-		newBufferSize := progressHandler(srcSize)
-		if(newBufferSize != bufferSize) {
-			bufferSize = newBufferSize
-			buf = make([]byte, bufferSize)
+		if o == 0 {
+			break
 		}
-	}
-	return nil
-}
-*/
 
-func FilesEqualQuick(inFile, outFile string, bufSize int64) (bool, error) {
-	inStats, err := os.Stat(inFile)
+		if(!bytes.Equal(srcBuffer, dstBuffer)) {
+			return false, nil
+		}
+
+	}
+
+	return true, nil
+}
+
+func FileContentsEqualQuick(fi, fo *os.File, bufSize int64) (bool, error) {
+	inStats, err := (fi).Stat()
 	if(err != nil) {
 		return false, err
 	}
-	outStats, err := os.Stat(outFile)
+	outStats, err := fo.Stat()
 	if(err != nil) {
 		return false, err
 	}
@@ -94,16 +100,7 @@ func FilesEqualQuick(inFile, outFile string, bufSize int64) (bool, error) {
 		return false, nil
 	}
 
-	fi, err := os.Open(inFile)
-	if err != nil {
-		return false, err
-	}
 
-
-	fo, err := os.Open(outFile)
-	if err != nil {
-		return false, err
-	}
 	backBufSize := bufSize
 	if bufSize > outSize {
 		bufSize = outSize
@@ -148,6 +145,89 @@ func FilesEqualQuick(inFile, outFile string, bufSize int64) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func Replace(src, dst string)(error) {
+	_, err := os.Stat(dst)
+	if ! os.IsNotExist(err) {
+		os.Remove(dst)
+	}
+	return Copy(src, dst)
+}
+
+
+func Copy(src, dst string)(error) {
+	srcStat, err := os.Stat(src)
+	if os.IsNotExist(err) {
+		return err
+	}
+
+	_, err = os.Stat(dst)
+
+	if ! os.IsNotExist(err) {
+		return errors.New("destination file " + dst + " already exists")
+	}
+
+	srcPointer, err := os.Open(src)
+	if(err != nil) {
+		return nil
+	}
+
+	dstPointer, _ := os.OpenFile(dst, os.O_RDWR | os.O_CREATE,srcStat.Mode())
+	io.Copy(dstPointer, srcPointer)
+	defer srcPointer.Close()
+	defer dstPointer.Close()
+	return nil
+}
+
+func CopyResumed(src, dst *os.File, progressHandler func(bytesTransferred, size, chunkSize int64) int64) (error) {
+	srcStats, err := (*src).Stat()
+	if err != nil {
+		return err
+	}
+
+	dstStats, err := (*dst).Stat()
+	if err != nil {
+		return err
+	}
+
+	srcSize := srcStats.Size()
+	dstSize := dstStats.Size()
+
+	if(dstSize > srcSize) {
+		return errors.New("File cannot be resumed, destination is larger than source")
+	}
+
+	if(srcSize == dstSize) {
+		return nil
+	}
+	src.Seek(dstSize, 0)
+	dst.Seek(dstSize, 0)
+
+	bufferSize := progressHandler(0, srcSize, 32*1024)
+	buf := make([]byte, bufferSize)
+	bytesTransferred := int64(0)
+	for {
+		n, err := src.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+
+
+		if _, err := dst.Write(buf[:n]); err != nil {
+			return err
+		}
+		bytesTransferred += int64(n);
+		newBufferSize := progressHandler(bytesTransferred, srcSize, bufferSize)
+		if(newBufferSize != bufferSize) {
+			bufferSize = newBufferSize
+			buf = make([]byte, bufferSize)
+		}
+	}
+	return nil
 }
 
 
