@@ -18,11 +18,15 @@ var (
 	sourcePatternParameter = app.Arg("source-pattern", "source pattern - used to locate files (e.g. src/*)").Required().String()
 	destinationPatternParameter = app.Arg("destination-pattern", "destination pattern for transfer (e.g. dst/$1)").Default("").String()
 
+	exportTo = app.Flag("export-to", "export source listing to file, one line per found item").Default("").String()
+	// filesFrom = app.Flag("files-from", "import source listing from file, one line per item").Default("").String()
+
 	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
 	dryRun = app.Flag("dry-run", "dry-run / simulation mode").Bool()
 	move = app.Flag("move", "move / rename files - do not make a copy").Bool()
 	quiet = app.Flag("quiet", "quiet mode - do not show any output").Bool()
 	regex = app.Flag("regex", "use a real regex instead of glob patterns (e.g. src/.*\\.jpg)").Bool()
+	times = app.Flag("times", "transfer source modify times to destination").Bool()
 )
 
 
@@ -33,45 +37,51 @@ func main() {
 	sourcePattern := *sourcePatternParameter
 	destinationPattern := *destinationPatternParameter
 
-	if destinationPattern == "" {
-		prntln("search: " + sourcePattern)
-	} else if(*move){
-		prntln("move: " + sourcePattern + " => " + destinationPattern)
-	} else {
-		prntln("copy: " + sourcePattern + " => " + destinationPattern)
-	}
+	//if *filesFrom == "" {
+		if destinationPattern == "" {
+			prntln("search: " + sourcePattern)
+		} else if(*move){
+			prntln("move: " + sourcePattern + " => " + destinationPattern)
+		} else {
+			prntln("copy: " + sourcePattern + " => " + destinationPattern)
+		}
 
 
-	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
-	prntln("")
-	prntln("")
+		patternPath, pat := pattern.ParsePathPattern(sourcePattern)
+		prntln("")
+		prntln("")
 
-	if ! *regex {
-		pat = pattern.GlobToRegex(pat)
-	}
+		if ! *regex {
+			pat = pattern.GlobToRegex(pat)
+		}
 
 
-	caseInsensitiveQualifier := "(?i)"
-	if *caseSensitive {
-		caseInsensitiveQualifier = ""
-	}
+		caseInsensitiveQualifier := "(?i)"
+		if *caseSensitive {
+			caseInsensitiveQualifier = ""
+		}
 
-	compiledPattern, err := pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + pat)
-	if compiledPattern.NumSubexp() == 0 {
-		compiledPattern, err = pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + "(" + pat + ")")
-	}
+		compiledPattern, err := pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + pat)
+		if compiledPattern.NumSubexp() == 0 {
+			compiledPattern, err = pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + "(" + pat + ")")
+		}
 
-	if err != nil {
-		prntln("could not compile source pattern " + patternPath + ", " + pat)
-		return
-	}
+		if err != nil {
+			prntln("could not compile source pattern " + patternPath + ", " + pat)
+			return
+		}
 
-	matchingPaths, err := file.WalkPathByPattern(patternPath, compiledPattern)
-
-	if err != nil {
-		prntln("Could not scan path " + patternPath + ":", err.Error())
-		return
-	}
+		matchingPaths, err := file.WalkPathByPattern(patternPath, compiledPattern)
+		if err != nil {
+			prntln("Could not scan path " + patternPath + ":", err.Error())
+			return
+		}
+		if *exportTo != "" {
+			exportFile(*exportTo, matchingPaths)
+		}
+	//} else {
+	//
+	//}
 
 	if destinationPattern == "" {
 		for _, element := range matchingPaths {
@@ -90,6 +100,20 @@ func main() {
 		}
 	}
 	return
+}
+
+func exportFile(file string, lines []string) {
+	f, err := os.Create(*exportTo)
+	if err != nil {
+		prntln("could not create export file " + file + ": " + err.Error())
+		return;
+	}
+	_, err = f.WriteString(strings.Join(lines, "\n"))
+	defer f.Close()
+	if err != nil {
+		prntln("could not write export file "+file+": " + err.Error())
+	}
+
 }
 
 func appendRemoveDir(dir string) {
@@ -163,11 +187,13 @@ func transferElementHandler(src, destinationPattern string, compiledPattern  *re
 				prntln("Could not create destination directory")
 			}
 			appendRemoveDir(dst)
+			fixTimes(dst, srcStat)
 			return
 		}
 
 		if dstStat.IsDir() {
 			appendRemoveDir(dst)
+			fixTimes(dst, srcStat)
 			return
 		}
 
@@ -192,6 +218,7 @@ func transferElementHandler(src, destinationPattern string, compiledPattern  *re
 		renameErr := os.Rename(src, dst)
 		if renameErr == nil {
 			appendRemoveDir(srcDir)
+			fixTimes(dst, srcStat)
 			return
 		}
 		prntln("Could not rename source")
@@ -212,4 +239,11 @@ func transferElementHandler(src, destinationPattern string, compiledPattern  *re
 	}
 
 	file.CopyResumed(srcPointer, dstPointer, handleProgress)
+	fixTimes(dst, srcStat)
+}
+
+func fixTimes(dst string, inStats os.FileInfo) {
+	if *times {
+		os.Chtimes(dst, inStats.ModTime(), inStats.ModTime())
+	}
 }
