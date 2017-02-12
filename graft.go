@@ -2,9 +2,8 @@ package main
 
 import (
 	"os"
-	"github.com/urfave/cli"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"fmt"
-	"errors"
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/file"
 	"strconv"
@@ -14,44 +13,87 @@ import (
 	"math"
 )
 
-var settings *cli.Context
+var (
+	app      = kingpin.New("graft", "A command-line tool to locate and transfer files")
+	sourcePatternParameter = app.Arg("source-pattern", "source pattern - used to locate files (e.g. src/*)").Required().String()
+	destinationPatternParameter = app.Arg("destination-pattern", "destination pattern for transfer (e.g. dst/$1)").Default("").String()
+
+	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
+	dryRun = app.Flag("dry-run", "dry-run / simulation mode").Bool()
+	move = app.Flag("move", "move / rename files - do not make a copy").Bool()
+	quiet = app.Flag("quiet", "quiet mode - do not show any output").Bool()
+	regex = app.Flag("regex", "use a real regex instead of glob patterns (e.g. src/.*\\.jpg)").Bool()
+)
+
+
 var dirsToRemove = make([]string, 0)
 
 func main() {
-	app := cli.NewApp()
-	app.Name = "graft"
-	app.Usage = "find and copy files via command line"
-	app.Version = "0.0.1"
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "move",
-			Usage: "move files instead of copy",
-		},
-		cli.BoolFlag{
-			Name:  "dry-run",
-			Usage: "perform a dry run",
-		},
-		cli.BoolFlag{
-			Name:  "regex",
-			Usage: "use a real regular expression instead of glob patterns",
-		},
-		cli.BoolFlag{
-			Name:  "case-sensitive",
-			Usage: "match case sensitive",
-		},
-		cli.BoolFlag{
-			Name:  "quiet",
-			Usage: "do not show any output",
-		},
+	kingpin.MustParse(app.Parse(os.Args[1:]))
+	sourcePattern := *sourcePatternParameter
+	destinationPattern := *destinationPatternParameter
+
+	if destinationPattern == "" {
+		prntln("search: " + sourcePattern)
+	} else if(*move){
+		prntln("move: " + sourcePattern + " => " + destinationPattern)
+	} else {
+		prntln("copy: " + sourcePattern + " => " + destinationPattern)
 	}
 
-	app.Action = mainAction
 
-	app.Run(os.Args)
+	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
+	prntln("")
+	prntln("")
+
+	if ! *regex {
+		pat = pattern.GlobToRegex(pat)
+	}
+
+
+	caseInsensitiveQualifier := "(?i)"
+	if *caseSensitive {
+		caseInsensitiveQualifier = ""
+	}
+
+	compiledPattern, err := pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + pat)
+	if compiledPattern.NumSubexp() == 0 {
+		compiledPattern, err = pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + "(" + pat + ")")
+	}
+
+	if err != nil {
+		prntln("could not compile source pattern " + patternPath + ", " + pat)
+		return
+	}
+
+	matchingPaths, err := file.WalkPathByPattern(patternPath, compiledPattern)
+
+	if err != nil {
+		prntln("Could not scan path " + patternPath + ":", err.Error())
+		return
+	}
+
+	if destinationPattern == "" {
+		for _, element := range matchingPaths {
+			findElementHandler(element, compiledPattern)
+		}
+		return
+	}
+
+	for _, element := range matchingPaths {
+		transferElementHandler(element, destinationPattern, compiledPattern)
+	}
+
+	if *move {
+		for _, dirToRemove := range dirsToRemove {
+			os.Remove(dirToRemove)
+		}
+	}
+	return
 }
 
 func appendRemoveDir(dir string) {
-	if (settings.Bool("move")) {
+	if (*move) {
 		dirsToRemove = append(dirsToRemove, dir)
 	}
 }
@@ -74,85 +116,15 @@ func handleProgress(bytesTransferred, size, chunkSize int64) (int64) {
 	return chunkSize
 }
 
-func mainAction(c *cli.Context) error {
-	settings = c
-	sourcePattern := ""
-	if c.NArg() < 1 {
-		return errors.New("missing required parameter source-pattern, use --help parameter for usage instructions")
-	}
-
-	sourcePattern = c.Args().Get(0)
-	destinationPattern := ""
-	if c.NArg() > 1 {
-		destinationPattern = c.Args().Get(1)
-	}
-
-	if destinationPattern == "" {
-		prntln("search: " + sourcePattern)
-	} else if(settings.Bool("move")){
-		prntln("move: " + sourcePattern + " => " + destinationPattern)
-	} else {
-		prntln("copy: " + sourcePattern + " => " + destinationPattern)
-	}
-
-
-	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
-	prntln("")
-	prntln("")
-
-	if ! settings.Bool("regex") {
-		pat = pattern.GlobToRegex(pat)
-	}
-
-
-	caseInsensitiveQualifier := "(?i)"
-	if settings.Bool("case-sensitive") {
-		caseInsensitiveQualifier = ""
-	}
-
-	compiledPattern, err := pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + pat)
-	if compiledPattern.NumSubexp() == 0 {
-		compiledPattern, err = pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + "(" + pat + ")")
-	}
-
-	if err != nil {
-		return errors.New("could not compile source pattern " + patternPath + ", " + pat)
-	}
-
-	matchingPaths, err := file.WalkPathByPattern(patternPath, compiledPattern)
-
-	if err != nil {
-		return err
-	}
-
-	if destinationPattern == "" {
-		for _, element := range matchingPaths {
-			findElementHandler(element, compiledPattern)
-		}
-		return nil
-	}
-
-	for _, element := range matchingPaths {
-		transferElementHandler(element, destinationPattern, compiledPattern)
-	}
-
-	if settings.Bool("move") {
-		for _, dirToRemove := range dirsToRemove {
-			os.Remove(dirToRemove)
-		}
-	}
-	return nil
-}
-
 func prntln(a ...interface{}) (n int, err error) {
-	if ! settings.Bool("quiet") {
+	if ! *quiet {
 		return fmt.Println(a...)
 	}
 	return n, err
 }
 
 func prnt(a...interface{}) (n int, err error) {
-	if ! settings.Bool("quiet") {
+	if ! *quiet {
 		return fmt.Print(a...)
 	}
 	return n, err
@@ -172,7 +144,7 @@ func transferElementHandler(src, destinationPattern string, compiledPattern  *re
 
 	prntln(src + " => " + dst)
 
-	if settings.Bool("dry-run") {
+	if *dryRun {
 		return
 	}
 
@@ -216,7 +188,7 @@ func transferElementHandler(src, destinationPattern string, compiledPattern  *re
 		os.MkdirAll(dstDir, srcDirStat.Mode())
 	}
 
-	if settings.Bool("move") {
+	if *move {
 		renameErr := os.Rename(src, dst)
 		if renameErr == nil {
 			appendRemoveDir(srcDir)
