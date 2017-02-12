@@ -234,6 +234,24 @@ func CopyResumed(src, dst *os.File, progressHandler func(bytesTransferred, size,
 	return nil
 }
 
+//func MkdirAll(p string, perm os.FileMode) (error) {
+//	pathParts := strings.Split(filepath.ToSlash(p), "/")
+//	path := ""
+//	for _, dir := range pathParts {
+//		path += dir
+//		stat, err := os.Stat(path)
+//		if os.IsNotExist(err) {
+//			os.Mkdir(path, perm)
+//		} else if ! stat.IsDir() {
+//			return errors.New("path " + path + " is a file and cannot be used as directory")
+//		}
+//
+//		path += "/"
+//
+//	}
+//	return nil
+//}
+
 
 
 //func TransferFileBuffer(fi, fo *os.File, offset int64, progressHandler func(bytesTransferred, size int64) int64) (error) {

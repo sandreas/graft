@@ -152,6 +152,24 @@ func TestFilesEqualQuick(t *testing.T) {
 	expect.False(file.FileContentsEqualQuick(file1, file3, 5))
 }
 
+//func TestMkdirAll(t *testing.T) {
+//	expect := assert.New(t)
+//	srcStat, _ := os.Stat("../data")
+//	dst := "../data/tmp/mkdirall/recursive/directory"
+//
+//	if file.Exists(dst) {
+//		os.RemoveAll("../data/tmp/mkdirall")
+//	}
+//
+//	expect.False(file.Exists(dst))
+//
+//	file.MkdirAll(dst, srcStat.Mode())
+//	dstStat, _ := os.Stat(dst)
+//
+//	expect.True(dstStat.IsDir())
+//	expect.Equal(srcStat.Mode(), dstStat.Mode())
+//}
+
 //func TestHumanReadableSize(t *testing.T) {
 //	expect := assert.New(t)
 //
