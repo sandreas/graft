@@ -57,16 +57,19 @@ func appendRemoveDir(dir string) {
 }
 
 func handleProgress(bytesTransferred, size, chunkSize int64) (int64) {
+
 	if size <= 0 {
 		return chunkSize
 	}
 
-	percent := bytesTransferred / size
-
-	progressChars := int(math.Floor(float64(percent * 10)) * 2)
-
-	progressBar := fmt.Sprintf("[%-21s] %3d/100%%", strings.Repeat("=", progressChars) + ">", percent * 100)
-	prnt("\x0c" + progressBar)
+	percent := float64(bytesTransferred) / float64(size)
+	progressChars := int(math.Floor(percent * 10) * 2)
+	progressBar := fmt.Sprintf("[%-21s] %3d%%", strings.Repeat("=", progressChars) + ">", int64(percent * 100))
+	// prnt("\x0c" + progressBar)
+	prnt("\r" + progressBar)
+	if bytesTransferred == size {
+		prntln("")
+	}
 	// fmt.Print("\r" + progressBar)
 	return chunkSize
 }
@@ -91,10 +94,11 @@ func mainAction(c *cli.Context) error {
 	} else {
 		prntln("copy: " + sourcePattern + " => " + destinationPattern)
 	}
-	prntln("")
-	prntln("")
+
 
 	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
+	prntln("")
+	prntln("")
 
 	if ! settings.Bool("regex") {
 		pat = pattern.GlobToRegex(pat)
@@ -208,8 +212,7 @@ func transferElementHandler(src, destinationPattern string, compiledPattern  *re
 	srcDirStat, _ := os.Stat(srcDir)
 
 	dstDir := path.Dir(dst)
-	_, dstDirErr := os.Stat(dstDir)
-	if ! os.IsNotExist(dstDirErr) {
+	if ! file.Exists(dstDir) {
 		os.MkdirAll(dstDir, srcDirStat.Mode())
 	}
 
@@ -229,10 +232,10 @@ func transferElementHandler(src, destinationPattern string, compiledPattern  *re
 		prntln("Could not open source file")
 		return
 	}
+	dstPointer, dstPointerErr := os.OpenFile(dst, os.O_WRONLY | os.O_CREATE, srcStat.Mode())
 
-	dstPointer, dstPointerErr := os.OpenFile(dst, os.O_RDWR | os.O_CREATE, srcStat.Mode())
 	if dstPointerErr != nil {
-		prntln("Could not create destination file")
+		prntln("Could not create destination file", dstPointerErr.Error())
 		return
 	}
 

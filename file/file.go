@@ -12,14 +12,18 @@ import (
 // Todo add progress callback parameter
 func WalkPathByPattern(path string, compiledPattern *regexp.Regexp)([]string, error) {
 	list := make([]string, 0)
-	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		normalizedPath := pattern.NormalizeDirSep(path)
+	err := filepath.Walk(path, func(innerPath string, info os.FileInfo, err error) error {
+		// fmt.Println(" param ===> " + innerPath)
+		normalizedPath := pattern.NormalizeDirSep(innerPath)
+		// fmt.Println(" normalized ===> " + normalizedPath)
 		if ! compiledPattern.MatchString(normalizedPath) {
 			return nil
 		}
-		list = append(list, path)
+		list = append(list, innerPath)
 		return nil
 	})
+
+	//fmt.Println(list)
 	return list, err
 }
 
@@ -204,9 +208,9 @@ func CopyResumed(src, dst *os.File, progressHandler func(bytesTransferred, size,
 	src.Seek(dstSize, 0)
 	dst.Seek(dstSize, 0)
 
-	bufferSize := progressHandler(0, srcSize, 32*1024)
+	bufferSize := progressHandler(dstSize, srcSize, 32*1024)
 	buf := make([]byte, bufferSize)
-	bytesTransferred := int64(0)
+	bytesTransferred := dstSize
 	for {
 		n, err := src.Read(buf)
 		if err != nil && err != io.EOF {
