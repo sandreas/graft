@@ -164,7 +164,7 @@ func findElementHandler(element string, compiledPattern *regexp.Regexp) {
 }
 
 func transferElementHandler(src, destinationPattern string, compiledPattern  *regexp.Regexp) {
-	dst := compiledPattern.ReplaceAllString(src, destinationPattern)
+	dst := compiledPattern.ReplaceAllString(pattern.NormalizeDirSep(src), pattern.NormalizeDirSep(destinationPattern))
 
 	prntln(src + " => " + dst)
 
