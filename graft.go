@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	app      = kingpin.New("graft", "A command-line tool to locate and transfer files")
+	app = kingpin.New("graft", "A command-line tool to locate and transfer files")
 	sourcePatternParameter = app.Arg("source-pattern", "source pattern - used to locate files (e.g. src/*)").Required().String()
 	destinationPatternParameter = app.Arg("destination-pattern", "destination pattern for transfer (e.g. dst/$1)").Default("").String()
 
@@ -23,12 +23,12 @@ var (
 
 	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
 	dryRun = app.Flag("dry-run", "dry-run / simulation mode").Bool()
+	hideMatches = app.Flag("hide-matches", "hide matches in search mode ($1: ...)").Bool()
 	move = app.Flag("move", "move / rename files - do not make a copy").Bool()
 	quiet = app.Flag("quiet", "quiet mode - do not show any output").Bool()
 	regex = app.Flag("regex", "use a real regex instead of glob patterns (e.g. src/.*\\.jpg)").Bool()
 	times = app.Flag("times", "transfer source modify times to destination").Bool()
 )
-
 
 var dirsToRemove = make([]string, 0)
 
@@ -38,47 +38,44 @@ func main() {
 	destinationPattern := *destinationPatternParameter
 
 	//if *filesFrom == "" {
-		if destinationPattern == "" {
-			prntln("search: " + sourcePattern)
-		} else if(*move){
-			prntln("move: " + sourcePattern + " => " + destinationPattern)
-		} else {
-			prntln("copy: " + sourcePattern + " => " + destinationPattern)
-		}
+	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
+	if destinationPattern == "" {
+		prntln("search in " + patternPath + ": " + pat)
+	} else if (*move) {
+		prntln("move: " + sourcePattern + " => " + destinationPattern)
+	} else {
+		prntln("copy: " + sourcePattern + " => " + destinationPattern)
+	}
 
+	prntln("")
 
-		patternPath, pat := pattern.ParsePathPattern(sourcePattern)
-		prntln("")
-		prntln("")
+	if ! *regex {
+		pat = pattern.GlobToRegex(pat)
+	}
 
-		if ! *regex {
-			pat = pattern.GlobToRegex(pat)
-		}
+	caseInsensitiveQualifier := "(?i)"
+	if *caseSensitive {
+		caseInsensitiveQualifier = ""
+	}
 
+	compiledPattern, err := pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + pat)
+	if err == nil && compiledPattern.NumSubexp() == 0 && pat != "" {
+		compiledPattern, err = pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + "(" + pat + ")")
+	}
 
-		caseInsensitiveQualifier := "(?i)"
-		if *caseSensitive {
-			caseInsensitiveQualifier = ""
-		}
+	if err != nil {
+		prntln("could not compile source pattern, please use slashes to qualify paths (recognized path: " + patternPath + ", pattern" + pat + ")")
+		return
+	}
 
-		compiledPattern, err := pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + pat)
-		if compiledPattern.NumSubexp() == 0 {
-			compiledPattern, err = pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + "(" + pat + ")")
-		}
-
-		if err != nil {
-			prntln("could not compile source pattern " + patternPath + ", " + pat)
-			return
-		}
-
-		matchingPaths, err := file.WalkPathByPattern(patternPath, compiledPattern)
-		if err != nil {
-			prntln("Could not scan path " + patternPath + ":", err.Error())
-			return
-		}
-		if *exportTo != "" {
-			exportFile(*exportTo, matchingPaths)
-		}
+	matchingPaths, err := file.WalkPathByPattern(patternPath, compiledPattern)
+	if err != nil {
+		prntln("Could not scan path " + patternPath + ":", err.Error())
+		return
+	}
+	if *exportTo != "" {
+		exportFile(*exportTo, matchingPaths)
+	}
 	//} else {
 	//
 	//}
@@ -111,7 +108,7 @@ func exportFile(file string, lines []string) {
 	_, err = f.WriteString(strings.Join(lines, "\n"))
 	defer f.Close()
 	if err != nil {
-		prntln("could not write export file "+file+": " + err.Error())
+		prntln("could not write export file " + file + ": " + err.Error())
 	}
 
 }
@@ -155,8 +152,11 @@ func prnt(a...interface{}) (n int, err error) {
 }
 
 func findElementHandler(element string, compiledPattern *regexp.Regexp) {
-	elementMatches := pattern.BuildMatchList(compiledPattern, element)
 	prntln(element)
+	if *hideMatches {
+		return
+	}
+	elementMatches := pattern.BuildMatchList(compiledPattern, element)
 	for i := 0; i < len(elementMatches); i++ {
 		prntln("    $" + strconv.Itoa(i + 1) + ": " + elementMatches[i])
 	}
@@ -224,7 +224,6 @@ func transferElementHandler(src, destinationPattern string, compiledPattern  *re
 		prntln("Could not rename source")
 		return
 	}
-
 
 	srcPointer, srcPointerErr := os.Open(src)
 	if srcPointerErr != nil {

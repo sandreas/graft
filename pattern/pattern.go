@@ -114,6 +114,9 @@ func BuildMatchList(sourcePattern *regexp.Regexp, subject string)([]string) {
 
 func CompileNormalizedPathPattern(path string, pattern string) (*regexp.Regexp, error) {
 	preparedPath := NormalizeDirSep(path)
-	preparedPatternToCompile := regexp.QuoteMeta(preparedPath) + "/" + pattern
+	if preparedPath != "" {
+		preparedPath = regexp.QuoteMeta(preparedPath) + "/"
+	}
+	preparedPatternToCompile :=  preparedPath + pattern
 	return regexp.Compile(preparedPatternToCompile)
 }

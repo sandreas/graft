@@ -8,43 +8,52 @@ import (
 )
 
 func TestNormalizeDirSep(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal("/tmp/dir/subdir", pattern.NormalizeDirSep("/tmp\\dir\\subdir"))
+	expect := assert.New(t)
+	expect.Equal("/tmp/dir/subdir", pattern.NormalizeDirSep("/tmp\\dir\\subdir"))
 }
 
 func TestParsePathPattern(t *testing.T) {
-	assert := assert.New(t)
+	expect := assert.New(t)
 
 	path, pat := pattern.ParsePathPattern("../data/fixtures/global/*")
-	assert.Equal("../data/fixtures/global", path)
-	assert.Equal("*", pat)
+	expect.Equal("../data/fixtures/global", path)
+	expect.Equal("*", pat)
 
 	path, pat = pattern.ParsePathPattern("../data/fixtures/non-existing/*.*")
-	assert.Equal("../data/fixtures", path)
-	assert.Equal("non-existing/*.*", pat)
+	expect.Equal("../data/fixtures", path)
+	expect.Equal("non-existing/*.*", pat)
 }
 
 func TestGlobToRegex(t *testing.T) {
-	assert := assert.New(t)
-	assert.Equal(".*\\.jpg", pattern.GlobToRegex("*.jpg"))
-	assert.Equal("star-file-\\*\\.jpg", pattern.GlobToRegex("star-file-\\*.jpg"))
-	assert.Equal("test\\.(jpg|png)", pattern.GlobToRegex("test.{jpg,png}"))
+	expect := assert.New(t)
+	expect.Equal(".*\\.jpg", pattern.GlobToRegex("*.jpg"))
+	expect.Equal("star-file-\\*\\.jpg", pattern.GlobToRegex("star-file-\\*.jpg"))
+	expect.Equal("test\\.(jpg|png)", pattern.GlobToRegex("test.{jpg,png}"))
+
+	expect.Equal("fixtures\\(\\..*)", pattern.GlobToRegex("fixtures\\(.*)"))
 }
 
 func TestBuildMatchList(t *testing.T) {
-	assert := assert.New(t)
+	expect := assert.New(t)
 	compiled, _ := regexp.Compile("data/fixtures/global/(.*)(\\.txt)$")
 
 	list := pattern.BuildMatchList(compiled, "data/fixtures/global/documents (2010)/document (2010).txt")
 
 
-	assert.Equal(2, len(list))
-	assert.Equal("documents (2010)/document (2010)", list[0])
-	assert.Equal(".txt", list[1])
+	expect.Equal(2, len(list))
+	expect.Equal("documents (2010)/document (2010)", list[0])
+	expect.Equal(".txt", list[1])
 }
 
 func TestCompileNormalizedPathPattern(t *testing.T) {
-	assert := assert.New(t)
+	expect := assert.New(t)
 	compiled, _ := pattern.CompileNormalizedPathPattern("data\\fixtures/global", "(.*)")
-	assert.Regexp(compiled, "data/fixtures/global/test.txt")
+	expect.Equal("data/fixtures/global/(.*)", compiled.String())
+	expect.Regexp(compiled, "data/fixtures/global/test.txt")
+
+
+	compiled, _ = pattern.CompileNormalizedPathPattern("", "(.*\\.jpg)")
+	expect.Equal("(.*\\.jpg)", compiled.String())
+	expect.Regexp(compiled, "data/fixtures/global/test.jpg")
+
 }

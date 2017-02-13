@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"os"
 	"github.com/sandreas/graft/pattern"
+	"path/filepath"
 )
 
 func TestExists(t *testing.T) {
@@ -27,9 +28,22 @@ func TestWalkPathByPattern(t *testing.T) {
 	expect.Len(allFiles, 12)
 	expect.Len(txtFiles, 4)
 	expect.Len(rarFiles, 3)
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part1.rar", rarFiles[0])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part2.rar", rarFiles[1])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part3.rar", rarFiles[2])
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part1.rar", filepath.ToSlash(rarFiles[0]))
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part2.rar", filepath.ToSlash(rarFiles[1]))
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part3.rar", filepath.ToSlash(rarFiles[2]))
+	//
+
+	wd, _ := os.Getwd()
+	os.Chdir("../data/fixtures/file/WalkPathByPattern")
+	rarFiles, _ = file.WalkPathByPattern("", rarPattern)
+	os.Chdir(wd)
+
+	expect.Len(rarFiles, 3)
+	expect.Equal("test.part1.rar", rarFiles[0])
+	expect.Equal("test.part2.rar", rarFiles[1])
+	expect.Equal("test.part3.rar", rarFiles[2])
+
+
 }
 
 func TestCopy(t *testing.T) {

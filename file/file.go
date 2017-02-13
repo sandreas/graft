@@ -12,8 +12,10 @@ import (
 // Todo add progress callback parameter
 func WalkPathByPattern(path string, compiledPattern *regexp.Regexp)([]string, error) {
 	list := make([]string, 0)
+	if path == "" {
+		path = "."
+	}
 	err := filepath.Walk(path, func(innerPath string, info os.FileInfo, err error) error {
-		// fmt.Println(" param ===> " + innerPath)
 		normalizedPath := pattern.NormalizeDirSep(innerPath)
 		// fmt.Println(" normalized ===> " + normalizedPath)
 		if ! compiledPattern.MatchString(normalizedPath) {
