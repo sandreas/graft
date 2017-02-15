@@ -40,7 +40,17 @@ func main() {
 	//if *filesFrom == "" {
 	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
 	if destinationPattern == "" {
-		prntln("search in " + patternPath + ": " + pat)
+		searchIn := patternPath
+		if patternPath == "" {
+			searchIn = "./"
+		}
+
+		searchFor := ""
+		if pat != "" {
+			searchFor = pat
+		}
+		prntln("search in " + searchIn + ": " + searchFor)
+
 	} else if (*move) {
 		prntln("move: " + sourcePattern + " => " + destinationPattern)
 	} else {
@@ -87,8 +97,15 @@ func main() {
 		return
 	}
 
+	dstPath, dstPatt := pattern.ParsePathPattern(destinationPattern)
+	var dst string
 	for _, element := range matchingPaths {
-		transferElementHandler(element, destinationPattern, compiledPattern)
+		if dstPatt == "" {
+			dst = pattern.NormalizeDirSep(dstPath + element[len(patternPath)+1:])
+		} else {
+			dst = compiledPattern.ReplaceAllString(pattern.NormalizeDirSep(element), pattern.NormalizeDirSep(destinationPattern))
+		}
+		transferElementHandler(element, dst)
 	}
 
 	if *move {
@@ -163,8 +180,7 @@ func findElementHandler(element string, compiledPattern *regexp.Regexp) {
 
 }
 
-func transferElementHandler(src, destinationPattern string, compiledPattern  *regexp.Regexp) {
-	dst := compiledPattern.ReplaceAllString(pattern.NormalizeDirSep(src), pattern.NormalizeDirSep(destinationPattern))
+func transferElementHandler(src, dst string) {
 
 	prntln(src + " => " + dst)
 
