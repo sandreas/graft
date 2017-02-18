@@ -1,3 +1,9 @@
+# Things to do
+
+- implement the files-from parameter
+- implement max-age and min-age parameter
+- implement max-items parameter
+
 # Technology links
 
 ## big list of different libraries

@@ -49,7 +49,7 @@ func main() {
 		if pat != "" {
 			searchFor = pat
 		}
-		prntln("search in " + searchIn + ": " + searchFor)
+		prntln("search in '" + searchIn + "': " + searchFor)
 
 	} else if (*move) {
 		prntln("move: " + sourcePattern + " => " + destinationPattern)
@@ -78,7 +78,7 @@ func main() {
 		return
 	}
 
-	matchingPaths, err := file.WalkPathByPattern(patternPath, compiledPattern)
+	matchingPaths, err := file.WalkPathByPattern(patternPath, compiledPattern, progressHandlerWalkPathByPattern)
 	if err != nil {
 		prntln("Could not scan path " + patternPath + ":", err.Error())
 		return
@@ -115,6 +115,26 @@ func main() {
 	}
 	return
 }
+
+func progressHandlerWalkPathByPattern(entriesWalked, entriesMatched int64, finished bool) (int64) {
+	var progress string;
+	if entriesMatched == 0 {
+		progress = fmt.Sprintf("scanning - total: %d", entriesWalked)
+	} else {
+		progress = fmt.Sprintf("scanning - total: %d,  matches: %d", entriesWalked, entriesMatched)
+	}
+	// prnt("\x0c" + progressBar)
+	prnt("\r" + progress)
+	if finished {
+		prntln("")
+		prntln("")
+	}
+	if(entriesWalked > 1000) {
+		return 500
+	}
+	return 100
+}
+
 
 func exportFile(file string, lines []string) {
 	f, err := os.Create(*exportTo)

@@ -9,21 +9,35 @@ import (
 	"errors"
 	"io"
 )
-// Todo add progress callback parameter
-func WalkPathByPattern(path string, compiledPattern *regexp.Regexp)([]string, error) {
+func WalkPathByPattern(path string, compiledPattern *regexp.Regexp, progressHandler func(entriesWalked, entriesMatched int64, finished bool) int64)([]string, error) {
 	list := make([]string, 0)
 	if path == "" {
 		path = "."
 	}
+
+	entriesWalked := int64(0)
+	entriesMatched := int64(0)
+	reportEvery := progressHandler(entriesWalked, entriesMatched, false)
 	err := filepath.Walk(path, func(innerPath string, info os.FileInfo, err error) error {
+
+		if path == innerPath && info.IsDir() {
+			return nil
+		}
+		entriesWalked++
+		if reportEvery == 0 || entriesWalked % reportEvery == 0 {
+			progressHandler(entriesWalked, entriesMatched, false)
+		}
+
 		normalizedPath := pattern.NormalizeDirSep(innerPath)
 		// fmt.Println(" normalized ===> " + normalizedPath)
 		if ! compiledPattern.MatchString(normalizedPath) {
 			return nil
 		}
+		entriesMatched++
 		list = append(list, innerPath)
 		return nil
 	})
+	progressHandler(entriesWalked, entriesMatched, true)
 
 	//fmt.Println(list)
 	return list, err
@@ -154,8 +168,8 @@ func FileContentsEqualQuick(fi, fo *os.File, bufSize int64) (bool, error) {
 }
 
 func Replace(src, dst string)(error) {
-	_, err := os.Stat(dst)
-	if ! os.IsNotExist(err) {
+
+	if Exists(dst) {
 		os.Remove(dst)
 	}
 	return Copy(src, dst)

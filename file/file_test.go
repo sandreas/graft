@@ -22,10 +22,13 @@ func TestWalkPathByPattern(t *testing.T) {
 	allPattern, _ := regexp.Compile("(.*)")
 	txtPattern, _ := regexp.Compile("(.*)\\.txt")
 	rarPattern, _ := regexp.Compile(pattern.GlobToRegex("*.rar"))
-	allFiles, _ := file.WalkPathByPattern("../data/fixtures/file/WalkPathByPattern", allPattern)
-	txtFiles, _ := file.WalkPathByPattern("../data/fixtures/file/WalkPathByPattern", txtPattern)
-	rarFiles, _ := file.WalkPathByPattern("../data/fixtures/file/WalkPathByPattern", rarPattern)
-	expect.Len(allFiles, 12)
+
+
+
+	allFiles, _ := file.WalkPathByPattern("../data/fixtures/file/WalkPathByPattern", allPattern, progressHandlerWalkPathByPattern)
+	txtFiles, _ := file.WalkPathByPattern("../data/fixtures/file/WalkPathByPattern", txtPattern, progressHandlerWalkPathByPattern)
+	rarFiles, _ := file.WalkPathByPattern("../data/fixtures/file/WalkPathByPattern", rarPattern, progressHandlerWalkPathByPattern)
+	expect.Len(allFiles, 11)
 	expect.Len(txtFiles, 4)
 	expect.Len(rarFiles, 3)
 	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part1.rar", filepath.ToSlash(rarFiles[0]))
@@ -35,7 +38,7 @@ func TestWalkPathByPattern(t *testing.T) {
 
 	wd, _ := os.Getwd()
 	os.Chdir("../data/fixtures/file/WalkPathByPattern")
-	rarFiles, _ = file.WalkPathByPattern("", rarPattern)
+	rarFiles, _ = file.WalkPathByPattern("", rarPattern, progressHandlerWalkPathByPattern)
 	os.Chdir(wd)
 
 	expect.Len(rarFiles, 3)
@@ -44,6 +47,13 @@ func TestWalkPathByPattern(t *testing.T) {
 	expect.Equal("test.part3.rar", rarFiles[2])
 
 
+}
+
+func progressHandlerWalkPathByPattern(entriesWalked, entriesMatched int64, finished bool) (int64) {
+	if(finished) {
+		entriesWalked = entriesMatched
+	}
+	return 5
 }
 
 func TestCopy(t *testing.T) {
