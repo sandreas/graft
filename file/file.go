@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"errors"
 	"io"
+	"bufio"
+	"strings"
 )
 func WalkPathByPattern(path string, compiledPattern *regexp.Regexp, progressHandler func(entriesWalked, entriesMatched int64, finished bool) int64)([]string, error) {
 	list := make([]string, 0)
@@ -248,6 +250,28 @@ func CopyResumed(src, dst *os.File, progressHandler func(bytesTransferred, size,
 		}
 	}
 	return nil
+}
+
+func ReadAllLinesFunc(path string, filterFunc func(line string) bool) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if(filterFunc(line)) {
+			lines = append(lines, line)
+		}
+	}
+	return lines, scanner.Err()
+}
+
+func SkipEmptyLines(line string)(bool) {
+	return strings.Trim(line, " \r\n\t") != ""
 }
 
 //func MkdirAll(p string, perm os.FileMode) (error) {

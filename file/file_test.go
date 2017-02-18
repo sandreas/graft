@@ -176,6 +176,20 @@ func TestFilesEqualQuick(t *testing.T) {
 	expect.False(file.FileContentsEqualQuick(file1, file3, 5))
 }
 
+
+func TestReadAllLinesFunc(t *testing.T) {
+	expect := assert.New(t)
+
+
+	fileWithEmptySkipped, _ := file.ReadAllLinesFunc("../data/fixtures/file/ReadAllLines/10-with-empty.txt", file.SkipEmptyLines)
+	expect.Len(fileWithEmptySkipped, 7)
+	expect.Equal(fileWithEmptySkipped[0], "line 1")
+	expect.Equal(fileWithEmptySkipped[5], "line 7")
+	expect.Equal(fileWithEmptySkipped[6], "line 10")
+}
+
+
+
 //func TestMkdirAll(t *testing.T) {
 //	expect := assert.New(t)
 //	srcStat, _ := os.Stat("../data")

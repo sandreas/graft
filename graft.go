@@ -19,7 +19,7 @@ var (
 	destinationPatternParameter = app.Arg("destination-pattern", "destination pattern for transfer (e.g. dst/$1)").Default("").String()
 
 	exportTo = app.Flag("export-to", "export source listing to file, one line per found item").Default("").String()
-	// filesFrom = app.Flag("files-from", "import source listing from file, one line per item").Default("").String()
+	filesFrom = app.Flag("files-from", "import source listing from file, one line per item").Default("").String()
 
 	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
 	dryRun = app.Flag("dry-run", "dry-run / simulation mode").Bool()
@@ -37,7 +37,6 @@ func main() {
 	sourcePattern := *sourcePatternParameter
 	destinationPattern := *destinationPatternParameter
 
-	//if *filesFrom == "" {
 	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
 	if destinationPattern == "" {
 		searchIn := patternPath
@@ -56,7 +55,6 @@ func main() {
 	} else {
 		prntln("copy: " + sourcePattern + " => " + destinationPattern)
 	}
-
 	prntln("")
 
 	if ! *regex {
@@ -78,17 +76,27 @@ func main() {
 		return
 	}
 
-	matchingPaths, err := file.WalkPathByPattern(patternPath, compiledPattern, progressHandlerWalkPathByPattern)
+	var matchingPaths []string
+
+	if *filesFrom != "" {
+		if ! file.Exists(*filesFrom) {
+			prntln("Could not load files from " + *filesFrom)
+			return
+		}
+		matchingPaths, err = file.ReadAllLinesFunc(*filesFrom, file.SkipEmptyLines)
+	} else {
+		matchingPaths, err = file.WalkPathByPattern(patternPath, compiledPattern, progressHandlerWalkPathByPattern)
+		if *exportTo != "" {
+			exportFile(*exportTo, matchingPaths)
+		}
+	}
+
 	if err != nil {
-		prntln("Could not scan path " + patternPath + ":", err.Error())
+		prntln("Could not load sources path " + patternPath + ":", err.Error())
 		return
 	}
-	if *exportTo != "" {
-		exportFile(*exportTo, matchingPaths)
-	}
-	//} else {
-	//
-	//}
+
+
 
 	if destinationPattern == "" {
 		for _, element := range matchingPaths {
