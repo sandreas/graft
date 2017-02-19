@@ -45,8 +45,26 @@ func TestWalkPathByPattern(t *testing.T) {
 	expect.Equal("test.part1.rar", rarFiles[0])
 	expect.Equal("test.part2.rar", rarFiles[1])
 	expect.Equal("test.part3.rar", rarFiles[2])
+}
 
+func TestWalkPathFiltered(t *testing.T) {
+	expect := assert.New(t)
 
+	rarFiles, _ := file.WalkPathFiltered("../data/fixtures/file/WalkPathByPattern", WalkPathFilteredFilterFunc, progressHandlerWalkPathByPattern)
+
+	expect.Len(rarFiles, 3)
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part1.rar", filepath.ToSlash(rarFiles[0].Path))
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part2.rar", filepath.ToSlash(rarFiles[1].Path))
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/test.part3.rar", filepath.ToSlash(rarFiles[2].Path))
+
+}
+
+func WalkPathFilteredFilterFunc(f file.File, err error) bool {
+	if err == nil {
+		rarPattern, _ := regexp.Compile(pattern.GlobToRegex("*.rar"))
+		return rarPattern.MatchString(f.Path)
+	}
+	return false
 }
 
 func progressHandlerWalkPathByPattern(entriesWalked, entriesMatched int64, finished bool) (int64) {

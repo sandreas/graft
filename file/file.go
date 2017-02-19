@@ -11,6 +11,13 @@ import (
 	"bufio"
 	"strings"
 )
+
+type File struct {
+	os.FileInfo
+	Path string
+}
+
+
 func WalkPathByPattern(path string, compiledPattern *regexp.Regexp, progressHandler func(entriesWalked, entriesMatched int64, finished bool) int64)([]string, error) {
 	list := make([]string, 0)
 	if path == "" {
@@ -42,6 +49,30 @@ func WalkPathByPattern(path string, compiledPattern *regexp.Regexp, progressHand
 	progressHandler(entriesWalked, entriesMatched, true)
 
 	//fmt.Println(list)
+	return list, err
+}
+
+func WalkPathFiltered(path string, filterFunc func(f File, err error) bool,  progressHandlerFunc func(entriesWalked, entriesMatched int64, finished bool) int64) ([]File, error) {
+	list := make([]File, 0)
+	entriesWalked := int64(0)
+	entriesMatched := int64(0)
+	reportEvery := progressHandlerFunc(entriesWalked, entriesMatched, false)
+	err := filepath.Walk(path, func(innerPath string, info os.FileInfo, err error) error {
+		entriesWalked++
+		if reportEvery == 0 || entriesWalked % reportEvery == 0 {
+			progressHandlerFunc(entriesWalked, entriesMatched, false)
+		}
+
+		file := File{info, innerPath}
+		if ! filterFunc(file, err) {
+			return nil
+		}
+
+		entriesMatched++
+		list = append(list, file)
+		return nil
+	})
+	progressHandlerFunc(entriesWalked, entriesMatched, true)
 	return list, err
 }
 
