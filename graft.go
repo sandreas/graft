@@ -11,6 +11,7 @@ import (
 	"path"
 	"strings"
 	"math"
+	"time"
 )
 
 var (
@@ -20,6 +21,10 @@ var (
 
 	exportTo = app.Flag("export-to", "export source listing to file, one line per found item").Default("").String()
 	filesFrom = app.Flag("files-from", "import source listing from file, one line per item").Default("").String()
+
+	minAge = app.Flag("min-age", " minimum age (e.g. -2 days, -8 weeks, 2015-10-10, etc.)").Default("").String()
+	maxAge = app.Flag("max-age", "maximum age (e.g. 2 days, 8 weeks, 2015-10-10, etc.)").Default("").String()
+
 
 	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
 	dryRun = app.Flag("dry-run", "dry-run / simulation mode").Bool()
@@ -85,7 +90,19 @@ func main() {
 		}
 		matchingPaths, err = file.ReadAllLinesFunc(*filesFrom, file.SkipEmptyLines)
 	} else {
-		matchingPaths, err = file.WalkPathByPattern(patternPath, compiledPattern, progressHandlerWalkPathByPattern)
+		 //matchingPaths, err = file.WalkPathByPattern(patternPath, compiledPattern, progressHandlerWalkPathByPattern)
+		matchingFiles, _ := file.WalkPathFiltered(patternPath, func(f file.File, err error)(bool) {
+			if ! compiledPattern.MatchString(f.Path) {
+				return false
+			}
+
+			return minAgeFilter(f) && maxAgeFilter(f)
+		}, progressHandlerWalkPathByPattern)
+
+		for _, element := range matchingFiles {
+			matchingPaths = append(matchingPaths, element.Path)
+		}
+
 		if *exportTo != "" {
 			exportFile(*exportTo, matchingPaths)
 		}
@@ -123,6 +140,31 @@ func main() {
 	}
 	return
 }
+
+func minAgeFilter(f file.File)(bool) {
+	if *minAge == "" {
+		return true
+	}
+
+	minAgeTime, err := pattern.StrToAge(*minAge, time.Now())
+	if err != nil {
+		return false
+	}
+	return minAgeTime.UnixNano() > f.ModTime().UnixNano()
+}
+
+func maxAgeFilter(f file.File)(bool) {
+	if *maxAge == "" {
+		return true
+	}
+
+	maxAgeTime, err := pattern.StrToAge(*maxAge, time.Now())
+	if err != nil {
+		return false
+	}
+	return maxAgeTime.UnixNano() < f.ModTime().UnixNano()
+}
+
 
 func progressHandlerWalkPathByPattern(entriesWalked, entriesMatched int64, finished bool) (int64) {
 	var progress string;
