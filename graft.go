@@ -172,8 +172,9 @@ func handleProgress(bytesTransferred, size, chunkSize int64) (int64) {
 
 	percent := float64(bytesTransferred) / float64(size)
 	charCountWhenFullyTransmitted := 20
-	progressChars := int(math.Floor(percent * charCountWhenFullyTransmitted))
-	progressBar := fmt.Sprintf("[%-" + (charCountWhenFullyTransmitted + 1)+ "s] %3d%%", strings.Repeat("=", progressChars) + ">", int64(percent * 100))
+	progressChars := int(math.Floor(percent * float64(charCountWhenFullyTransmitted)))
+	normalizedInt :=percent * 100
+	progressBar := fmt.Sprintf("[%-" + strconv.Itoa(charCountWhenFullyTransmitted + 1)+ "s] %3d%%", strings.Repeat("=", progressChars) + ">", normalizedInt)
 
 	prnt("\r" + progressBar)
 	if bytesTransferred == size {
