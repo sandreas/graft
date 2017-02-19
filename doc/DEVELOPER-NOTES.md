@@ -1,5 +1,6 @@
 # Things to do
 
+- calculate and show transfer speed
 - implement the files-from parameter
 - implement max-age and min-age parameter
 - implement max-items parameter

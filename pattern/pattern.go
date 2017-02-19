@@ -5,6 +5,8 @@ import (
 	"strings"
 	"bytes"
 	"regexp"
+	"time"
+	"strconv"
 )
 
 func NormalizeDirSep(path string) (string) {
@@ -119,4 +121,67 @@ func CompileNormalizedPathPattern(path string, pattern string) (*regexp.Regexp, 
 	}
 	preparedPatternToCompile :=  preparedPath + pattern
 	return regexp.Compile(preparedPatternToCompile)
+}
+
+func StrToAge(t string, reference time.Time) (time.Time, error) {
+	modifyPattern, err := regexp.Compile("^([+-]?[0-9]+)[\\s]*([a-zA-Z]+)$")
+	if(err != nil) {
+		return reference, err
+	}
+
+	if modifyPattern.MatchString(t) {
+		submatches := modifyPattern.FindStringSubmatch(t)
+		modifier, err := strconv.Atoi(submatches[1])
+		if err != nil {
+			return reference, err
+		}
+
+		// age must be negated
+		modifier *= -1
+
+		unit := strings.ToLower(submatches[2])
+
+		if(strings.HasPrefix(unit, "day")) {
+			return reference.AddDate(0, 0, modifier), nil
+		}
+		if(strings.HasPrefix(unit, "week")) {
+			return reference.AddDate(0, 0, modifier * 7), nil
+		}
+		if(strings.HasPrefix(unit, "month")) {
+			return reference.AddDate(0, modifier, 0), nil
+		}
+		if(strings.HasPrefix(unit, "year")) {
+			return reference.AddDate(modifier, 0, 0), nil
+		}
+
+		if strings.HasPrefix(unit, "ns") {
+			unit = "ns"
+		} else if strings.HasPrefix(unit, "us") || strings.HasPrefix(unit, "µs") {
+			unit = "us"
+		} else if strings.HasPrefix(unit, "ms") {
+			unit = "ms"
+		} else if strings.HasPrefix(unit, "s") {
+			unit = "s"
+		} else if strings.HasPrefix(unit, "m") {
+			unit = "m"
+		} else if strings.HasPrefix(unit, "h") {
+			unit = "h"
+		}
+
+		d, err := time.ParseDuration(strconv.Itoa(modifier)+unit)
+		if err != nil {
+			return reference, err
+		}
+
+		return reference.Add(d), nil
+	}
+
+	fixedPattern, err := regexp.Compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+	if fixedPattern.MatchString(t) {
+		layout := "2006-01-02"
+		return time.Parse(layout, t)
+	}
+
+	layout := "2006-01-02T15:04:05.000Z"
+	return time.Parse(layout, t)
 }
