@@ -92,7 +92,8 @@ func main() {
 	} else {
 		 //matchingPaths, err = file.WalkPathByPattern(patternPath, compiledPattern, progressHandlerWalkPathByPattern)
 		matchingFiles, _ := file.WalkPathFiltered(patternPath, func(f file.File, err error)(bool) {
-			if ! compiledPattern.MatchString(f.Path) {
+			normalizedPath := pattern.NormalizeDirSep(f.Path)
+			if ! compiledPattern.MatchString(normalizedPath) {
 				return false
 			}
 
