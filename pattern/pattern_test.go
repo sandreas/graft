@@ -23,6 +23,11 @@ func TestParsePathPattern(t *testing.T) {
 	path, pat = pattern.ParsePathPattern("../data/fixtures/non-existing/*.*")
 	expect.Equal("../data/fixtures", path)
 	expect.Equal("non-existing/*.*", pat)
+
+	path, pat = pattern.ParsePathPattern("../data/fixtures/global/file.txt")
+	expect.Equal("../data/fixtures/global/file.txt", path)
+	expect.Equal("", pat)
+
 }
 
 func TestGlobToRegex(t *testing.T) {

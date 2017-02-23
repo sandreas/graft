@@ -12,12 +12,13 @@ import (
 	"strings"
 	"math"
 	"time"
+	"path/filepath"
 )
 
 var (
 	app = kingpin.New("graft", "A command-line tool to locate and transfer files")
-	sourcePatternParameter = app.Arg("source-pattern", "source pattern - used to locate files (e.g. src/*)").Required().String()
-	destinationPatternParameter = app.Arg("destination-pattern", "destination pattern for transfer (e.g. dst/$1)").Default("").String()
+	sourceParameter = app.Arg("source-pattern", "source pattern - used to locate files (e.g. src/*)").Required().String()
+	destinationParameter = app.Arg("destination-pattern", "destination pattern for transfer (e.g. dst/$1)").Default("").String()
 
 	exportTo = app.Flag("export-to", "export source listing to file, one line per found item").Default("").String()
 	filesFrom = app.Flag("files-from", "import source listing from file, one line per item").Default("").String()
@@ -35,103 +36,219 @@ var (
 	times = app.Flag("times", "transfer source modify times to destination").Bool()
 )
 
-var dirsToRemove = make([]string, 0)
+var (
+	source string
+	destination string
+
+	sourcePath string
+	sourcePattern string
+	sourcePathStat os.FileInfo
+
+
+	err error
+	dirsToRemove = make([]string, 0)
+	exportFile os.File
+)
+
 
 func main() {
-	kingpin.MustParse(app.Parse(os.Args[1:]))
-	sourcePattern := *sourcePatternParameter
-	destinationPattern := *destinationPatternParameter
+	/*
+	if source is a file, no walk is needed
+		if destination is a path, filename is appended to path
+		if destination is a file, destination is kept
 
-	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
-	if destinationPattern == "" {
-		searchIn := patternPath
-		if patternPath == "" {
+
+	if source is a path, these possibilities exist
+
+	Pattern based:
+	/data/* /data2/		- if data2 is a file, transfer is not performed
+	 data/* data2/		- if data2 is a file, transfer is not performed
+
+	Without pattern:
+	 data/ data2      	- source is a path, destination should be path to, if data2 is a file, transfer is not performed
+	 data/ data2/	  	- source is a path, destination is a path, if data2 is a file, transfer is not performed
+
+
+	 */
+
+
+	kingpin.MustParse(app.Parse(os.Args[1:]))
+
+
+	source = *sourceParameter
+	sourcePath, sourcePattern = pattern.ParsePathPattern(source)
+	sourcePathStat, err = os.Stat(sourcePath)
+
+	destination = *destinationParameter
+
+
+	if err != nil {
+		println("could not read source " + sourcePath + ": " + err.Error())
+		return
+	}
+
+
+	printAction()
+	initExport()
+
+	if isSourceAFile() {
+		handleFileSource()
+		return;
+	}
+	handleWalkableSource()
+}
+
+func printAction() {
+	if destination == "" {
+		searchIn := sourcePath
+		if sourcePath == "" {
 			searchIn = "./"
 		}
 
 		searchFor := ""
-		if pat != "" {
-			searchFor = pat
+		if sourcePattern != "" {
+			searchFor = sourcePattern
 		}
 		prntln("search in '" + searchIn + "': " + searchFor)
 
 	} else if (*move) {
-		prntln("move: " + sourcePattern + " => " + destinationPattern)
+		prntln("move: " + source + " => " + destination)
 	} else {
-		prntln("copy: " + sourcePattern + " => " + destinationPattern)
+		prntln("copy: " + source + " => " + destination)
 	}
 	prntln("")
+}
 
-	if ! *regex {
-		pat = pattern.GlobToRegex(pat)
+
+func prntln(a ...interface{}) (n int, err error) {
+	if ! *quiet {
+		return fmt.Println(a...)
+	}
+	return n, err
+}
+
+
+func initExport() {
+	if *exportTo != "" {
+		file, err := os.Create(*exportTo)
+		if err != nil {
+			prntln("could not create export file " + *exportTo + ": " + err.Error())
+		} else {
+			exportFile = *file
+			defer exportFile.Close()
+		}
+	}
+}
+
+func isSourceAFile()(bool) {
+	return sourcePathStat.Mode().IsRegular()
+}
+
+func handleFileSource() {
+	if strings.HasSuffix(destination, "/") || strings.HasSuffix(destination, "\\") {
+		destination += sourcePathStat.Name()
 	}
 
-	caseInsensitiveQualifier := "(?i)"
-	if *caseSensitive {
-		caseInsensitiveQualifier = ""
+	transferElementHandler(source, destination)
+}
+
+func handleWalkableSource() {
+	compiledPattern, _ := regexp.Compile("");
+	hasCompiledPattern := false
+	if sourcePattern != "" {
+		if ! *regex {
+			sourcePattern = pattern.GlobToRegex(sourcePattern)
+		}
+
+		caseInsensitiveQualifier := "(?i)"
+		if *caseSensitive {
+			caseInsensitiveQualifier = ""
+		}
+
+		compiledPattern, err := pattern.CompileNormalizedPathPattern(sourcePath, caseInsensitiveQualifier + sourcePattern)
+		if err == nil && compiledPattern.NumSubexp() == 0 && sourcePattern != "" {
+			compiledPattern, err = pattern.CompileNormalizedPathPattern(sourcePath, caseInsensitiveQualifier + "(" + sourcePattern + ")")
+		}
+
+		if err != nil {
+			prntln("could not compile source pattern, please use slashes to qualify paths (recognized path: " + sourcePath + ", pattern" + sourcePattern + ")")
+			return
+		}
+		hasCompiledPattern = true
 	}
 
-	compiledPattern, err := pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + pat)
-	if err == nil && compiledPattern.NumSubexp() == 0 && pat != "" {
-		compiledPattern, err = pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + "(" + pat + ")")
-	}
 
-	if err != nil {
-		prntln("could not compile source pattern, please use slashes to qualify paths (recognized path: " + patternPath + ", pattern" + pat + ")")
-		return
-	}
 
-	var matchingPaths []string
+	destinationPath, destinationPattern := pattern.ParsePathPattern(destination)
+
+	var dst string;
+	var err error;
 
 	if *filesFrom != "" {
 		if ! file.Exists(*filesFrom) {
 			prntln("Could not load files from " + *filesFrom)
 			return
 		}
-		matchingPaths, err = file.ReadAllLinesFunc(*filesFrom, file.SkipEmptyLines)
+		matchingPaths, err := file.ReadAllLinesFunc(*filesFrom, file.SkipEmptyLines)
+		if err != nil {
+			prntln("could read lines from file " + *filesFrom + ": " + err.Error())
+			return
+		}
+		for _, p := range matchingPaths {
+			if destinationPattern == "" {
+				dst = pattern.NormalizeDirSep(destinationPath + p[len(sourcePath)+1:])
+			} else {
+				dst = compiledPattern.ReplaceAllString(pattern.NormalizeDirSep(p), pattern.NormalizeDirSep(destination))
+			}
+
+
+			if destination == "" {
+				findElementHandler(p, compiledPattern)
+			} else {
+				transferElementHandler(p, dst)
+			}
+		}
 	} else {
-		 //matchingPaths, err = file.WalkPathByPattern(patternPath, compiledPattern, progressHandlerWalkPathByPattern)
-		matchingFiles, _ := file.WalkPathFiltered(patternPath, func(f file.File, err error)(bool) {
-			normalizedPath := pattern.NormalizeDirSep(f.Path)
-			if ! compiledPattern.MatchString(normalizedPath) {
+		matchingFiles, _ := file.WalkPathFiltered(sourcePath, func(f file.File, err error)(bool) {
+			normalizedPath := filepath.ToSlash(f.Path)
+			if hasCompiledPattern && !compiledPattern.MatchString(normalizedPath) {
 				return false
 			}
 
 			return minAgeFilter(f) && maxAgeFilter(f)
 		}, progressHandlerWalkPathByPattern)
 
-		for _, element := range matchingFiles {
-			matchingPaths = append(matchingPaths, element.Path)
+
+		//for _, element := range matchingPaths {
+		//	if dstPatt == "" {
+		//		dst = pattern.NormalizeDirSep(dstPath + element[len(patternPath)+1:])
+		//	} else {
+		//		dst = compiledPattern.ReplaceAllString(pattern.NormalizeDirSep(element), pattern.NormalizeDirSep(destinationPattern))
+		//	}
+		//	transferElementHandler(element, dst)
+		//}
+
+		for _, f := range matchingFiles {
+			p := f.Path
+			if destinationPattern == "" {
+				dst = pattern.NormalizeDirSep(destinationPath + p[len(sourcePath)+1:])
+			} else {
+				// dst = compiledPattern.ReplaceAllString(pattern.NormalizeDirSep(p), pattern.NormalizeDirSep(destination))
+				dst = compiledPattern.ReplaceAllString(pattern.NormalizeDirSep(source), pattern.NormalizeDirSep(destination))
+
+			}
+
+			if destination == "" {
+				findElementHandler(p, compiledPattern)
+			} else {
+				transferElementHandler(p, dst)
+			}
+			exportLineIfRequested(f.Path)
 		}
 
-		if *exportTo != "" {
-			exportFile(*exportTo, matchingPaths)
+		if err != nil {
+			prntln("could not write all lines to file " + *exportTo + ": " + err.Error())
 		}
-	}
-
-	if err != nil {
-		prntln("Could not load sources path " + patternPath + ":", err.Error())
-		return
-	}
-
-
-
-	if destinationPattern == "" {
-		for _, element := range matchingPaths {
-			findElementHandler(element, compiledPattern)
-		}
-		return
-	}
-
-	dstPath, dstPatt := pattern.ParsePathPattern(destinationPattern)
-	var dst string
-	for _, element := range matchingPaths {
-		if dstPatt == "" {
-			dst = pattern.NormalizeDirSep(dstPath + element[len(patternPath)+1:])
-		} else {
-			dst = compiledPattern.ReplaceAllString(pattern.NormalizeDirSep(element), pattern.NormalizeDirSep(destinationPattern))
-		}
-		transferElementHandler(element, dst)
 	}
 
 	if *move {
@@ -139,7 +256,13 @@ func main() {
 			os.Remove(dirToRemove)
 		}
 	}
-	return
+}
+
+
+func exportLineIfRequested(line string) {
+	if exportFile != (os.File{}) {
+		exportFile.WriteString(line + "\n")
+	}
 }
 
 func minAgeFilter(f file.File)(bool) {
@@ -166,13 +289,12 @@ func maxAgeFilter(f file.File)(bool) {
 	return maxAgeTime.UnixNano() < f.ModTime().UnixNano()
 }
 
-
 func progressHandlerWalkPathByPattern(entriesWalked, entriesMatched int64, finished bool) (int64) {
 	var progress string;
 	if entriesMatched == 0 {
-		progress = fmt.Sprintf("scanning - total: %d", entriesWalked)
+		progress = fmt.Sprintf("scanned: %d", entriesWalked)
 	} else {
-		progress = fmt.Sprintf("scanning - total: %d,  matches: %d", entriesWalked, entriesMatched)
+		progress = fmt.Sprintf("scanned: %d,  matched: %d", entriesWalked, entriesMatched)
 	}
 	// prnt("\x0c" + progressBar)
 	prnt("\r" + progress)
@@ -186,20 +308,13 @@ func progressHandlerWalkPathByPattern(entriesWalked, entriesMatched int64, finis
 	return 100
 }
 
-
-func exportFile(file string, lines []string) {
-	f, err := os.Create(*exportTo)
-	if err != nil {
-		prntln("could not create export file " + file + ": " + err.Error())
-		return;
+func prnt(a...interface{}) (n int, err error) {
+	if ! *quiet {
+		return fmt.Print(a...)
 	}
-	_, err = f.WriteString(strings.Join(lines, "\n"))
-	defer f.Close()
-	if err != nil {
-		prntln("could not write export file " + file + ": " + err.Error())
-	}
-
+	return n, err
 }
+
 
 func appendRemoveDir(dir string) {
 	if (*move) {
@@ -227,23 +342,10 @@ func handleProgress(bytesTransferred, size, chunkSize int64) (int64) {
 	return chunkSize
 }
 
-func prntln(a ...interface{}) (n int, err error) {
-	if ! *quiet {
-		return fmt.Println(a...)
-	}
-	return n, err
-}
-
-func prnt(a...interface{}) (n int, err error) {
-	if ! *quiet {
-		return fmt.Print(a...)
-	}
-	return n, err
-}
 
 func findElementHandler(element string, compiledPattern *regexp.Regexp) {
 	prntln(element)
-	if *hideMatches {
+	if *hideMatches || compiledPattern.String() == "" {
 		return
 	}
 	elementMatches := pattern.BuildMatchList(compiledPattern, element)
@@ -255,21 +357,21 @@ func findElementHandler(element string, compiledPattern *regexp.Regexp) {
 
 func transferElementHandler(src, dst string) {
 
+	srcStat, srcErr := os.Stat(src)
+	if srcErr != nil {
+		prntln("could not read source: ", srcErr)
+		return
+	}
+	dstStat, _ := os.Stat(dst)
+	dstExists := file.Exists(dst)
+
 	prntln(src + " => " + dst)
 
 	if *dryRun {
 		return
 	}
 
-	srcStat, srcErr := os.Stat(src)
 
-	if srcErr != nil {
-		prntln("could not read source: ", srcErr)
-		return
-	}
-
-	dstStat, _ := os.Stat(dst)
-	dstExists := file.Exists(dst)
 	if srcStat.IsDir() {
 		if ! dstExists {
 			if os.MkdirAll(dst, srcStat.Mode()) != nil {
@@ -287,11 +389,6 @@ func transferElementHandler(src, dst string) {
 		}
 
 		prntln("destination already exists as file, source is a directory")
-		return
-	}
-
-	if dstExists && dstStat.IsDir() {
-		prntln("destination already exists as directory, source is a file")
 		return
 	}
 
