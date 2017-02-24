@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/tears-of-noobs/bytefmt"
 	"fmt"
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/file"
@@ -36,9 +37,28 @@ var (
 )
 
 var dirsToRemove = make([]string, 0)
-
+var copyStartTime = time.Now();
+var copyStartBytes = int64(0);
+var nextTimeUpdateSeconds = float64(2);
+var transferSpeedOutput = ""
 func main() {
 	kingpin.MustParse(app.Parse(os.Args[1:]))
+
+	//firstBytes := int64(1003838300);
+	//size := firstBytes * 5;
+	//chunkSize:= int64(32*1024);
+	//
+	//handleProgress(firstBytes, size, chunkSize)
+	//time.Sleep(3 * time.Second)
+	//handleProgress(firstBytes*2, size, chunkSize)
+	//time.Sleep(3 * time.Second)
+	//handleProgress(firstBytes*3, size, chunkSize)
+	//time.Sleep(3 * time.Second)
+	//handleProgress(firstBytes*4, size, chunkSize)
+	//time.Sleep(3 * time.Second)
+	//handleProgress(firstBytes*5, size, chunkSize)
+	//os.Exit(0)
+
 	sourcePattern := *sourcePatternParameter
 	destinationPattern := *destinationPatternParameter
 
@@ -225,11 +245,38 @@ func handleProgress(bytesTransferred, size, chunkSize int64) (int64) {
 		return chunkSize
 	}
 
+	bytesPerSecond := float64(0)
+
+	if copyStartBytes > 0 {
+		timeDiffNano := time.Now().UnixNano() - copyStartTime.UnixNano()
+		timeDiffSecond := float64(timeDiffNano) / float64(time.Second)
+
+		bytesDiff := bytesTransferred - copyStartBytes
+		bytesPerSecond = float64(float64(bytesDiff) / float64(timeDiffSecond))
+		nextTimeUpdateSeconds -= timeDiffSecond
+	}
+
+	//var nextTimeUpdateSeconds = 2;
+	//var transferSpeedOutput = ""
+
+	if transferSpeedOutput == "" || nextTimeUpdateSeconds < 0 {
+		transferSpeedOutput = " - " + bytefmt.FormatBytes(bytesPerSecond, 2, true) + "/s"
+		nextTimeUpdateSeconds = 2
+	}
+
+	copyStartTime = time.Now()
+	copyStartBytes = bytesTransferred
+
+
 	percent := float64(bytesTransferred) / float64(size)
 	charCountWhenFullyTransmitted := 20
 	progressChars := int(math.Floor(percent * float64(charCountWhenFullyTransmitted)))
-	normalizedInt :=percent * 100
-	progressBar := fmt.Sprintf("[%-" + strconv.Itoa(charCountWhenFullyTransmitted + 1)+ "s] %3d%%", strings.Repeat("=", progressChars) + ">", normalizedInt)
+	normalizedInt := percent * 100
+	percentOutput := strconv.FormatFloat(normalizedInt, 'f', 2, 64)
+	if bytesPerSecond == 0 {
+		transferSpeedOutput = ""
+	}
+	progressBar := fmt.Sprintf("[%-" + strconv.Itoa(charCountWhenFullyTransmitted + 1)+ "s] " +percentOutput +  "%%" + transferSpeedOutput, strings.Repeat("=", progressChars) + ">")
 
 	prnt("\r" + progressBar)
 	if bytesTransferred == size {
