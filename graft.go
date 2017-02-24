@@ -277,7 +277,7 @@ func handleProgress(bytesTransferred, size, chunkSize int64) (int64) {
 	startTimer(bytesTransferred, 1 * int64(time.Second))
 	shouldReport, bytesPerSecond, percent := getReportStatus(bytesTransferred, size)
 	if shouldReport {
-		bandwidthOutput := " " + bytefmt.FormatBytes(bytesPerSecond, 2, true) + "/s"
+		bandwidthOutput := "   " + bytefmt.FormatBytes(bytesPerSecond, 2, true) + "/s"
 		charCountWhenFullyTransmitted := 20
 		progressChars := int(math.Floor(percent * float64(charCountWhenFullyTransmitted)))
 		normalizedInt := percent * 100
