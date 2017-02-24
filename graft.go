@@ -37,10 +37,6 @@ var (
 )
 
 var dirsToRemove = make([]string, 0)
-var copyStartTime = time.Now();
-var copyStartBytes = int64(0);
-var nextTimeUpdateSeconds = float64(2);
-var transferSpeedOutput = ""
 func main() {
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -239,50 +235,65 @@ func appendRemoveDir(dir string) {
 	}
 }
 
+
+var timerLastUpdate time.Time
+var reportInterval int64
+var bytesLastUpdate int64
+
+func startTimer(bytesTransferred, interval int64) {
+	if bytesTransferred == 0 {
+		timerLastUpdate = time.Now()
+		reportInterval = interval
+		bytesLastUpdate = 0
+	}
+}
+
+func getReportStatus(bytesTransferred, size int64) (bool, float64, float64) {
+	timeDiffNano := time.Now().UnixNano() - timerLastUpdate.UnixNano()
+	 timeDiffSeconds := float64(timeDiffNano) / float64(time.Second)
+	// if timeDiffSeconds >= float64(reportInterval) {
+	if timeDiffNano >= reportInterval {
+		bytesDiff := bytesTransferred - bytesLastUpdate
+		bytesPerSecond := float64(float64(bytesDiff) / float64(timeDiffSeconds))
+		percent := float64(bytesTransferred) / float64(size)
+
+		bytesLastUpdate = bytesTransferred
+		timerLastUpdate = time.Now()
+
+		return true, bytesPerSecond, percent
+	}
+
+	return false, 0, 0
+}
+
+
+
 func handleProgress(bytesTransferred, size, chunkSize int64) (int64) {
 
 	if size <= 0 {
 		return chunkSize
 	}
 
-	bytesPerSecond := float64(0)
+	startTimer(bytesTransferred, 1 * int64(time.Second))
+	shouldReport, bytesPerSecond, percent := getReportStatus(bytesTransferred, size)
+	if shouldReport {
+		bandwidthOutput := " " + bytefmt.FormatBytes(bytesPerSecond, 2, true) + "/s"
+		charCountWhenFullyTransmitted := 20
+		progressChars := int(math.Floor(percent * float64(charCountWhenFullyTransmitted)))
+		normalizedInt := percent * 100
+		percentOutput := strconv.FormatFloat(normalizedInt, 'f', 2, 64)
+		if bytesPerSecond == 0 {
+			bandwidthOutput = ""
+		}
+		progressBar := fmt.Sprintf("[%-" + strconv.Itoa(charCountWhenFullyTransmitted + 1)+ "s] " +percentOutput +  "%%" + bandwidthOutput, strings.Repeat("=", progressChars) + ">")
 
-	if copyStartBytes > 0 {
-		timeDiffNano := time.Now().UnixNano() - copyStartTime.UnixNano()
-		timeDiffSecond := float64(timeDiffNano) / float64(time.Second)
-
-		bytesDiff := bytesTransferred - copyStartBytes
-		bytesPerSecond = float64(float64(bytesDiff) / float64(timeDiffSecond))
-		nextTimeUpdateSeconds -= timeDiffSecond
+		prnt("\r" + progressBar)
 	}
 
-	//var nextTimeUpdateSeconds = 2;
-	//var transferSpeedOutput = ""
-
-	if transferSpeedOutput == "" || nextTimeUpdateSeconds < 0 {
-		transferSpeedOutput = " - " + bytefmt.FormatBytes(bytesPerSecond, 2, true) + "/s"
-		nextTimeUpdateSeconds = 2
-	}
-
-	copyStartTime = time.Now()
-	copyStartBytes = bytesTransferred
-
-
-	percent := float64(bytesTransferred) / float64(size)
-	charCountWhenFullyTransmitted := 20
-	progressChars := int(math.Floor(percent * float64(charCountWhenFullyTransmitted)))
-	normalizedInt := percent * 100
-	percentOutput := strconv.FormatFloat(normalizedInt, 'f', 2, 64)
-	if bytesPerSecond == 0 {
-		transferSpeedOutput = ""
-	}
-	progressBar := fmt.Sprintf("[%-" + strconv.Itoa(charCountWhenFullyTransmitted + 1)+ "s] " +percentOutput +  "%%" + transferSpeedOutput, strings.Repeat("=", progressChars) + ">")
-
-	prnt("\r" + progressBar)
 	if bytesTransferred == size {
 		prntln("")
 	}
-	// fmt.Print("\r" + progressBar)
+
 	return chunkSize
 }
 
