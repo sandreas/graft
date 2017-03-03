@@ -38,6 +38,11 @@ func ParsePathPattern(sourcePattern string) (string, string) {
 		path = ""
 		pattern = sourcePattern
 	}
+
+	if path == "" {
+		path = "."
+	}
+
 	return path, pattern
 }
 
@@ -116,7 +121,9 @@ func BuildMatchList(sourcePattern *regexp.Regexp, subject string)([]string) {
 
 func CompileNormalizedPathPattern(path string, pattern string) (*regexp.Regexp, error) {
 	preparedPath := NormalizeDirSep(path)
-	if preparedPath != "" {
+	if preparedPath == "." {
+		preparedPath = ""
+	} else if preparedPath != "" {
 		preparedPath = regexp.QuoteMeta(preparedPath) + "/"
 	}
 	preparedPatternToCompile :=  preparedPath + pattern

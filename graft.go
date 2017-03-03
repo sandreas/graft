@@ -37,6 +37,8 @@ var (
 )
 
 var dirsToRemove = make([]string, 0)
+var minAgeTime time.Time
+var maxAgeTime time.Time
 func main() {
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -60,9 +62,15 @@ func main() {
 
 	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
 
-	sourcePathStat, err := os.Stat(patternPath)
 
-	if sourcePathStat.Mode().IsRegular() {
+	isFile, sourcePathStat, err := file.IsFile(patternPath)
+
+	if err != nil {
+		prntln("Could not check pattern path: " + err.Error())
+		return
+	}
+
+	if isFile {
 		if strings.HasSuffix(destinationPattern, "/") || strings.HasSuffix(destinationPattern, "\\") {
 			destinationPattern += sourcePathStat.Name()
 		}
@@ -70,13 +78,8 @@ func main() {
 		return
 	}
 
-
 	if destinationPattern == "" {
 		searchIn := patternPath
-		if patternPath == "" {
-			searchIn = "./"
-		}
-
 		searchFor := ""
 		if pat != "" {
 			searchFor = pat
@@ -104,6 +107,8 @@ func main() {
 		compiledPattern, err = pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + "(" + pat + ")")
 	}
 
+	prntln(compiledPattern)
+
 	if err != nil {
 		prntln("could not compile source pattern, please use slashes to qualify paths (recognized path: " + patternPath + ", pattern" + pat + ")")
 		return
@@ -118,8 +123,23 @@ func main() {
 		}
 		matchingPaths, err = file.ReadAllLinesFunc(*filesFrom, file.SkipEmptyLines)
 	} else {
-		 //matchingPaths, err = file.WalkPathByPattern(patternPath, compiledPattern, progressHandlerWalkPathByPattern)
-		matchingFiles, _ := file.WalkPathFiltered(patternPath, func(f file.File, err error)(bool) {
+		if *minAge != "" {
+			minAgeTime, err = pattern.StrToAge(*minAge, time.Now())
+			if err != nil {
+				prntln("Could not parse --min-age: " + err.Error())
+				return
+			}
+		}
+		if *maxAge != "" {
+			maxAgeTime, err = pattern.StrToAge(*maxAge, time.Now())
+			if err != nil {
+				prntln("Could not parse --max-age: " + err.Error())
+				return
+			}
+		}
+
+		//matchingPaths, err = file.WalkPathByPattern(patternPath, compiledPattern, progressHandlerWalkPathByPattern)
+		matchingFiles, _ := file.WalkPathFiltered(patternPath, func(f file.File, err error) (bool) {
 			normalizedPath := pattern.NormalizeDirSep(f.Path)
 			if ! compiledPattern.MatchString(normalizedPath) {
 				return false
@@ -155,7 +175,7 @@ func main() {
 	var dst string
 	for _, element := range matchingPaths {
 		if dstPatt == "" {
-			dst = pattern.NormalizeDirSep(dstPath + element[len(patternPath)+1:])
+			dst = pattern.NormalizeDirSep(dstPath + element[len(patternPath) + 1:])
 		} else {
 			dst = compiledPattern.ReplaceAllString(pattern.NormalizeDirSep(element), pattern.NormalizeDirSep(destinationPattern))
 		}
@@ -170,30 +190,19 @@ func main() {
 	return
 }
 
-func minAgeFilter(f file.File)(bool) {
+func minAgeFilter(f file.File) (bool) {
 	if *minAge == "" {
 		return true
-	}
-
-	minAgeTime, err := pattern.StrToAge(*minAge, time.Now())
-	if err != nil {
-		return false
 	}
 	return minAgeTime.UnixNano() > f.ModTime().UnixNano()
 }
 
-func maxAgeFilter(f file.File)(bool) {
+func maxAgeFilter(f file.File) (bool) {
 	if *maxAge == "" {
 		return true
 	}
-
-	maxAgeTime, err := pattern.StrToAge(*maxAge, time.Now())
-	if err != nil {
-		return false
-	}
 	return maxAgeTime.UnixNano() < f.ModTime().UnixNano()
 }
-
 
 func progressHandlerWalkPathByPattern(entriesWalked, entriesMatched int64, finished bool) (int64) {
 	var progress string;
@@ -208,12 +217,11 @@ func progressHandlerWalkPathByPattern(entriesWalked, entriesMatched int64, finis
 		prntln("")
 		prntln("")
 	}
-	if(entriesWalked > 1000) {
+	if (entriesWalked > 1000) {
 		return 500
 	}
 	return 100
 }
-
 
 func exportFile(file string, lines []string) {
 	f, err := os.Create(*exportTo)
@@ -235,7 +243,6 @@ func appendRemoveDir(dir string) {
 	}
 }
 
-
 var timerLastUpdate time.Time
 var reportInterval int64
 var bytesLastUpdate int64
@@ -250,7 +257,7 @@ func startTimer(bytesTransferred, interval int64) {
 
 func getReportStatus(bytesTransferred, size int64) (bool, float64, float64) {
 	timeDiffNano := time.Now().UnixNano() - timerLastUpdate.UnixNano()
-	 timeDiffSeconds := float64(timeDiffNano) / float64(time.Second)
+	timeDiffSeconds := float64(timeDiffNano) / float64(time.Second)
 	// if timeDiffSeconds >= float64(reportInterval) {
 	if timeDiffNano >= reportInterval {
 		bytesDiff := bytesTransferred - bytesLastUpdate
@@ -265,8 +272,6 @@ func getReportStatus(bytesTransferred, size int64) (bool, float64, float64) {
 
 	return false, 0, 0
 }
-
-
 
 func handleProgress(bytesTransferred, size, chunkSize int64) (int64) {
 
@@ -285,7 +290,7 @@ func handleProgress(bytesTransferred, size, chunkSize int64) (int64) {
 		if bytesPerSecond == 0 {
 			bandwidthOutput = ""
 		}
-		progressBar := fmt.Sprintf("[%-" + strconv.Itoa(charCountWhenFullyTransmitted + 1)+ "s] " +percentOutput +  "%%" + bandwidthOutput, strings.Repeat("=", progressChars) + ">")
+		progressBar := fmt.Sprintf("[%-" + strconv.Itoa(charCountWhenFullyTransmitted + 1) + "s] " + percentOutput + "%%" + bandwidthOutput, strings.Repeat("=", progressChars) + ">")
 
 		prnt("\r" + progressBar)
 	}

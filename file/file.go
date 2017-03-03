@@ -305,6 +305,17 @@ func SkipEmptyLines(line string)(bool) {
 	return strings.Trim(line, " \r\n\t") != ""
 }
 
+func IsFile(filepath string)(bool, os.FileInfo, error) {
+	sourcePathStat, err := os.Stat(filepath)
+	if err != nil {
+		return false, nil, err
+	}
+	if sourcePathStat.Mode().IsRegular() {
+		return true, sourcePathStat, nil
+	}
+	return false, sourcePathStat, nil
+}
+
 //func MkdirAll(p string, perm os.FileMode) (error) {
 //	pathParts := strings.Split(filepath.ToSlash(p), "/")
 //	path := ""

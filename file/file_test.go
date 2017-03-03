@@ -206,7 +206,22 @@ func TestReadAllLinesFunc(t *testing.T) {
 	expect.Equal(fileWithEmptySkipped[6], "line 10")
 }
 
+func TestIsFile(t *testing.T) {
+	expect := assert.New(t)
 
+	isFile, _, err := file.IsFile("../data/fixtures/global/not-exists.txt")
+	expect.False(isFile)
+	expect.NotNil(err)
+
+	isFile, _, err = file.IsFile("../data/fixtures/global/textfile.txt")
+	expect.True(isFile)
+	expect.Nil(err)
+
+	isFile, _, err = file.IsFile("../data/fixtures/global/")
+	expect.False(isFile)
+	expect.Nil(err)
+
+}
 
 //func TestMkdirAll(t *testing.T) {
 //	expect := assert.New(t)

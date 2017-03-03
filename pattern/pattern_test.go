@@ -28,6 +28,10 @@ func TestParsePathPattern(t *testing.T) {
 	expect.Equal("../data/fixtures/global/file.txt", path)
 	expect.Equal("", pat)
 
+	path, pat = pattern.ParsePathPattern("*")
+	expect.Equal(".", path)
+	expect.Equal("*", pat)
+
 }
 
 func TestGlobToRegex(t *testing.T) {
@@ -59,6 +63,10 @@ func TestCompileNormalizedPathPattern(t *testing.T) {
 
 
 	compiled, _ = pattern.CompileNormalizedPathPattern("", "(.*\\.jpg)")
+	expect.Equal("(.*\\.jpg)", compiled.String())
+	expect.Regexp(compiled, "data/fixtures/global/test.jpg")
+
+	compiled, _ = pattern.CompileNormalizedPathPattern(".", "(.*\\.jpg)")
 	expect.Equal("(.*\\.jpg)", compiled.String())
 	expect.Regexp(compiled, "data/fixtures/global/test.jpg")
 
