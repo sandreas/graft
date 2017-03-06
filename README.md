@@ -63,13 +63,7 @@ graft '/tmp/*.jpg'
 Recursive copy every jpg file from tmp to /home/johndoe/pictures
 
 ```
-graft '/tmp/*.jpg' '/home/johndoe/pictures/$1.jpeg'
-```
-
-Recursive rename all files with extension jpeg to jpg:
-
-```
-graft '/tmp/*.jpeg' '/tmp/$1.jpg' --move
+graft '/tmp/*.jpg' '/home/johndoe/pictures/$1'
 ```
 
 ### Submatches and more complex examples 
@@ -160,4 +154,4 @@ If the build is successful, the directory should contain a binary named `graft`
 
 ## IDE recommendation
 
-***graft*** is developed with JetBrains IntelliJ IDEA, so this is the recommended IDE
+***graft*** is developed with JetBrains IntelliJ IDEA using the golang plugin, so this is the recommended IDE

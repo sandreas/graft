@@ -35,6 +35,7 @@
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/regexp" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/hash" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/bufio" />
+      <root url="file://$PROJECT_DIR$/../../../code.cloudfoundry.org" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/runtime" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/syscall" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/expvar" />
@@ -83,6 +84,7 @@
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/regexp" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/hash" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/bufio" />
+      <root url="file://$PROJECT_DIR$/../../../code.cloudfoundry.org" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/runtime" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/syscall" />
       <root url="file:///usr/local/Cellar/go/1.7.5/libexec/src/expvar" />
