@@ -148,16 +148,16 @@ func StrToAge(t string, reference time.Time) (time.Time, error) {
 
 		unit := strings.ToLower(submatches[2])
 
-		if(strings.HasPrefix(unit, "day")) {
+		if(strings.HasPrefix(unit, "d")) {
 			return reference.AddDate(0, 0, modifier), nil
 		}
-		if(strings.HasPrefix(unit, "week")) {
+		if(strings.HasPrefix(unit, "w")) {
 			return reference.AddDate(0, 0, modifier * 7), nil
 		}
-		if(strings.HasPrefix(unit, "month")) {
+		if(strings.HasPrefix(unit, "mon")) {
 			return reference.AddDate(0, modifier, 0), nil
 		}
-		if(strings.HasPrefix(unit, "year")) {
+		if(strings.HasPrefix(unit, "y")) {
 			return reference.AddDate(modifier, 0, 0), nil
 		}
 

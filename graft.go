@@ -20,11 +20,11 @@ var (
 	sourcePatternParameter = app.Arg("source-pattern", "source pattern - used to locate files (e.g. src/*)").Required().String()
 	destinationPatternParameter = app.Arg("destination-pattern", "destination pattern for transfer (e.g. dst/$1)").Default("").String()
 
-	exportTo = app.Flag("export-to", "export source listing to file, one line per found item").Default("").String()
+	exportTo = app.Flag("export-to", "export source listing to file, one line per item").Default("").String()
 	filesFrom = app.Flag("files-from", "import source listing from file, one line per item").Default("").String()
 
-	minAge = app.Flag("min-age", " minimum age (e.g. -2 days, -8 weeks, 2015-10-10, etc.)").Default("").String()
-	maxAge = app.Flag("max-age", "maximum age (e.g. 2 days, 8 weeks, 2015-10-10, etc.)").Default("").String()
+	minAge = app.Flag("min-age", " minimum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)").Default("").String()
+	maxAge = app.Flag("max-age", "maximum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)").Default("").String()
 
 
 	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
@@ -100,6 +100,11 @@ func main() {
 	caseInsensitiveQualifier := "(?i)"
 	if *caseSensitive {
 		caseInsensitiveQualifier = ""
+	}
+
+	// append $ for end of string
+	if (!strings.HasSuffix(pat, "$")) || strings.HasSuffix(pat, "\\$") {
+		pat += "$"
 	}
 
 	compiledPattern, err := pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + pat)
