@@ -82,11 +82,21 @@ graft '/tmp/(*).(jpeg)' '/home/johndoe/pictures/$1_new.$2'
 
 will copy following source files to their destination:
 
+```
 /tmp/test.jpeg          => /home/johndoe/pictures/test_new.jpeg
 /tmp/subdir/other.jpeg  => /home/johndoe/pictures/subdir/other_new.jpeg
+```
+If you do not specify a submatch using ***()***, the whole pattern is treated as submatch.
 
+```
+graft '/tmp/*.jpg'
 
-If you would like to match `()` in directorynames or filenames, they have to be escaped via backslash (\\):
+# is same as
+
+graft '/tmp/(*.jpg)'
+```
+
+If you would like to match ***()*** in directory names or file names, they have to be escaped via backslash (\\):
 ```
 graft '/tmp/videos \(2016\)' '/home/johndoe/'
 ```
