@@ -9,7 +9,7 @@ but for now it already is a useful tool that works well in most cases.
 
 ## Installation
 
-***graft*** should support Windows, MacOS and Linux, although the usage instructions might be different for each operating system. You can download the latest pre-compiled binary from the [release page](releases/latest) or if you already installed go development tools, install graft via:
+***graft*** should support Windows, MacOS and Linux, although the usage instructions might be different for each operating system. You can download the latest pre-compiled binary from the [release page](https://github.com/sandreas/graft/releases) or if you already installed go development tools, install graft via:
 
 ```
 go get github.com/sandreas/graft
