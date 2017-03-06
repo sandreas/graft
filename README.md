@@ -63,7 +63,7 @@ graft '/tmp/*.jpg'
 Recursive copy every jpg file from tmp to /home/johndoe/pictures
 
 ```
-graft '/tmp/*.jpeg' '/home/johndoe/pictures/$1.jpeg'
+graft '/tmp/*.jpg' '/home/johndoe/pictures/$1.jpeg'
 ```
 
 Recursive rename all files with extension jpeg to jpg:
