@@ -9,7 +9,7 @@ but for now it already is a useful tool that works well in most cases.
 
 ## Installation
 
-***graft*** should support Windows, MacOS and Linux, although the usage instructions might be different for each operating system. You can download the latest pre-compiled binary from the [release page](https://github.com/sandreas/graft/releases) or if you already installed go development tools, install graft via:
+***graft*** should support Windows, MacOS and Linux, although the usage instructions might be different for each operating system. After [installing go](https://golang.org/doc/install) you can get graft with following command:
 
 ```
 go get github.com/sandreas/graft
@@ -60,10 +60,10 @@ Recursive listing of all jpg files in /tmp directory using a simple glob pattern
 graft '/tmp/*.jpg'
 ```
 
-Recursive copy every jpg file from tmp to /home/johndoe/pictures
+Recursive copy every jpg file from tmp to /home/johndoe/pictures (dry-run)
 
 ```
-graft '/tmp/*.jpg' '/home/johndoe/pictures/$1'
+graft '/tmp/*.jpg' '/home/johndoe/pictures/$1' --dry-run
 ```
 
 ### Submatches and more complex examples 
@@ -95,9 +95,9 @@ If you would like to match ***()*** in directory names or file names, they have 
 graft '/tmp/videos \(2016\)' '/home/johndoe/'
 ```
 
-You could also use braces to match groups of chars:
+You could also use brackets to match groups of chars:
 ```
-graft '/tmp/*.{jpg,png}' '/home/johndoe/$1'
+graft '/tmp/(*.)(jpg|png)' '/home/johndoe/$1$2'
 ```
 
 #### Option reference

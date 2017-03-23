@@ -112,7 +112,7 @@ func main() {
 		compiledPattern, err = pattern.CompileNormalizedPathPattern(patternPath, caseInsensitiveQualifier + "(" + pat + ")")
 	}
 
-	prntln(compiledPattern)
+	//prntln(compiledPattern)
 
 	if err != nil {
 		prntln("could not compile source pattern, please use slashes to qualify paths (recognized path: " + patternPath + ", pattern" + pat + ")")
@@ -177,6 +177,12 @@ func main() {
 	}
 
 	dstPath, dstPatt := pattern.ParsePathPattern(destinationPattern)
+
+	// replace $1_ with ${1}_ to prevent problems
+	dollarUnderscore, _ := regexp.Compile("\\$([1-9][0-9]*)_")
+	dstPatt = dollarUnderscore.ReplaceAllString(dstPatt, "${$1}_")
+
+
 	var dst string
 	for _, element := range matchingPaths {
 		if dstPatt == "" {

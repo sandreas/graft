@@ -38,7 +38,8 @@ func TestGlobToRegex(t *testing.T) {
 	expect := assert.New(t)
 	expect.Equal(".*\\.jpg", pattern.GlobToRegex("*.jpg"))
 	expect.Equal("star-file-\\*\\.jpg", pattern.GlobToRegex("star-file-\\*.jpg"))
-	expect.Equal("test\\.(jpg|png)", pattern.GlobToRegex("test.{jpg,png}"))
+	expect.Equal("test\\.(jpg|png)", pattern.GlobToRegex("test.(jpg|png)"))
+	expect.Equal("test\\.{1,}", pattern.GlobToRegex("test.{1,}"))
 
 	expect.Equal("fixtures\\(\\..*)", pattern.GlobToRegex("fixtures\\(.*)"))
 }

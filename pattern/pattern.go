@@ -51,7 +51,7 @@ func GlobToRegex(glob string) (string) {
 	r := strings.NewReader(glob)
 
 	escape := false
-	braceOpen := 0
+	//braceOpen := 0
 	for {
 		r, _, err := r.ReadRune()
 		if (err != nil) {
@@ -80,22 +80,22 @@ func GlobToRegex(glob string) (string) {
 			continue
 		}
 
-		if (r == '{') {
-			buffer.WriteString("(")
-			braceOpen++
-			continue
-		}
-
-		if (r == '}') {
-			buffer.WriteString(")")
-			braceOpen--
-			continue
-		}
-
-		if (r == ',' && braceOpen > 0) {
-			buffer.WriteString("|")
-			continue
-		}
+		//if (r == '{') {
+		//	buffer.WriteString("(")
+		//	braceOpen++
+		//	continue
+		//}
+		//
+		//if (r == '}') {
+		//	buffer.WriteString(")")
+		//	braceOpen--
+		//	continue
+		//}
+		//
+		//if (r == ',' && braceOpen > 0) {
+		//	buffer.WriteString("|")
+		//	continue
+		//}
 
 		buffer.WriteRune(r)
 	}
