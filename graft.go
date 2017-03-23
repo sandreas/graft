@@ -180,7 +180,7 @@ func main() {
 
 	// replace $1_ with ${1}_ to prevent problems
 	dollarUnderscore, _ := regexp.Compile("\\$([1-9][0-9]*)_")
-	dstPatt = dollarUnderscore.ReplaceAllString(dstPatt, "${$1}_")
+	destinationPattern = dollarUnderscore.ReplaceAllString(destinationPattern, "${$1}_")
 
 
 	var dst string
