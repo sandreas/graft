@@ -31,7 +31,7 @@ import (
 func main() {
 
 	var (
-		readOnly    bool
+		readOnly bool
 		debugStderr bool
 	)
 
@@ -62,7 +62,7 @@ func main() {
 	graftHomePath := usr.HomeDir + "/.graft";
 	mode := int(0755)
 	if _, err := os.Stat(graftHomePath); err != nil {
-		err := os.Mkdir(graftHomePath, 	os.FileMode(mode))
+		err := os.Mkdir(graftHomePath, os.FileMode(mode))
 		if err != nil {
 			println("Could not create home directory " + graftHomePath)
 			os.Exit(1)
@@ -95,79 +95,79 @@ func main() {
 	}
 	fmt.Printf("Listening on %v\n", listener.Addr())
 
-	nConn, err := listener.Accept()
-	if err != nil {
-		log.Fatal("failed to accept incoming connection", err)
-	}
-
-	// Before use, a handshake must be performed on the incoming net.Conn.
-	sconn, chans, reqs, err := ssh.NewServerConn(nConn, config)
-	if err != nil {
-		log.Fatal("failed to handshake", err)
-	}
-	log.Println("login detected:", sconn.User())
-	fmt.Fprintf(debugStream, "SSH server established\n")
-
-	// The incoming Request channel must be serviced.
-	go ssh.DiscardRequests(reqs)
-
-
-
-	// Service the incoming Channel channel.
-	for newChannel := range chans {
-		// Channels have a type, depending on the application level
-		// protocol intended. In the case of an SFTP session, this is "subsystem"
-		// with a payload string of "<length=4>sftp"
-		fmt.Fprintf(debugStream, "Incoming channel: %s\n", newChannel.ChannelType())
-		if newChannel.ChannelType() != "session" {
-			newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
-			fmt.Fprintf(debugStream, "Unknown channel type: %s\n", newChannel.ChannelType())
-			continue
-		}
-		channel, requests, err := newChannel.Accept()
+	for {
+		nConn, err := listener.Accept()
 		if err != nil {
-			log.Fatal("could not accept channel.", err)
+			log.Fatal("failed to accept incoming connection", err)
 		}
-		fmt.Fprintf(debugStream, "Channel accepted\n")
 
-		// Sessions have out-of-band requests such as "shell",
-		// "pty-req" and "env".  Here we handle only the
-		// "subsystem" request.
-		go func(in <-chan *ssh.Request) {
-			for req := range in {
-				fmt.Fprintf(debugStream, "Request: %v\n", req.Type)
-				ok := false
-				switch req.Type {
-				case "subsystem":
-					fmt.Fprintf(debugStream, "Subsystem: %s\n", req.Payload[4:])
-					if string(req.Payload[4:]) == "sftp" {
-						ok = true
-					}
-				}
-				fmt.Fprintf(debugStream, " - accepted: %v\n", ok)
-				req.Reply(ok, nil)
+		// Before use, a handshake must be performed on the incoming net.Conn.
+		sconn, chans, reqs, err := ssh.NewServerConn(nConn, config)
+		if err != nil {
+			log.Fatal("failed to handshake", err)
+		}
+		log.Println("login detected:", sconn.User())
+		fmt.Fprintf(debugStream, "SSH server established\n")
+
+		// The incoming Request channel must be serviced.
+		go ssh.DiscardRequests(reqs)
+
+
+
+		// Service the incoming Channel channel.
+		for newChannel := range chans {
+			// Channels have a type, depending on the application level
+			// protocol intended. In the case of an SFTP session, this is "subsystem"
+			// with a payload string of "<length=4>sftp"
+			fmt.Fprintf(debugStream, "Incoming channel: %s\n", newChannel.ChannelType())
+			if newChannel.ChannelType() != "session" {
+				newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
+				fmt.Fprintf(debugStream, "Unknown channel type: %s\n", newChannel.ChannelType())
+				continue
 			}
-		}(requests)
+			channel, requests, err := newChannel.Accept()
+			if err != nil {
+				log.Fatal("could not accept channel.", err)
+			}
+			fmt.Fprintf(debugStream, "Channel accepted\n")
 
+			// Sessions have out-of-band requests such as "shell",
+			// "pty-req" and "env".  Here we handle only the
+			// "subsystem" request.
+			go func(in <-chan *ssh.Request) {
+				for req := range in {
+					fmt.Fprintf(debugStream, "Request: %v\n", req.Type)
+					ok := false
+					switch req.Type {
+					case "subsystem":
+						fmt.Fprintf(debugStream, "Subsystem: %s\n", req.Payload[4:])
+						if string(req.Payload[4:]) == "sftp" {
+							ok = true
+						}
+					}
+					fmt.Fprintf(debugStream, " - accepted: %v\n", ok)
+					req.Reply(ok, nil)
+				}
+			}(requests)
 
-		var matchingPaths []string
-		matchingPaths = append(matchingPaths, "graft.go")
+			var matchingPaths []string
+			matchingPaths = append(matchingPaths, "graft.go")
+			matchingPaths = append(matchingPaths, "LICENSE")
+			matchingPaths = append(matchingPaths, "README.md")
 
-		root := sftphandler.CustomHandler(matchingPaths)
-		server := sftp.NewRequestServer(channel, root)
-		if err := server.Serve(); err == io.EOF {
-			server.Close()
-			log.Print("sftp client exited session.")
-		} else if err != nil {
-			log.Fatal("sftp server completed with error:", err)
+			root := sftphandler.CustomHandler(matchingPaths)
+			server := sftp.NewRequestServer(channel, root)
+			if err := server.Serve(); err == io.EOF {
+				server.Close()
+				log.Print("sftp client exited session.")
+			} else if err != nil {
+				log.Fatal("sftp server completed with error:", err)
+			}
 		}
 	}
 }
 
-
 func generateKeysIfNotExist(homeDir string) {
-
-
 
 	privateKeyFile := homeDir + "/id_rsa"
 	publicKeyFile := homeDir + "/id_rsa.pub"
@@ -196,7 +196,6 @@ func generateKeysIfNotExist(homeDir string) {
 }
 
 func makeSSHKeyPair(pubKeyPath, privateKeyPath string) error {
-
 
 	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {

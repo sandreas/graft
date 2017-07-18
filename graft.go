@@ -26,7 +26,6 @@ var (
 	minAge = app.Flag("min-age", " minimum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)").Default("").String()
 	maxAge = app.Flag("max-age", "maximum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)").Default("").String()
 
-
 	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
 	dryRun = app.Flag("dry-run", "dry-run / simulation mode").Bool()
 	hideMatches = app.Flag("hide-matches", "hide matches in search mode ($1: ...)").Bool()
@@ -34,6 +33,7 @@ var (
 	quiet = app.Flag("quiet", "quiet mode - do not show any output").Bool()
 	regex = app.Flag("regex", "use a real regex instead of glob patterns (e.g. src/.*\\.jpg)").Bool()
 	times = app.Flag("times", "transfer source modify times to destination").Bool()
+	serve = app.Flag("serve", "start a server on this port").Default("0").String()
 )
 
 var dirsToRemove = make([]string, 0)
@@ -60,6 +60,12 @@ func main() {
 	sourcePattern := *sourcePatternParameter
 	destinationPattern := *destinationPatternParameter
 
+	serveOnPort, err := strconv.Atoi(*serve)
+	if err != nil {
+		prntln("Invalid argument for serve: " + err.Error())
+		return
+	}
+
 	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
 
 
@@ -76,6 +82,10 @@ func main() {
 		}
 		transferElementHandler(sourcePattern, destinationPattern)
 		return
+	}
+
+	if serveOnPort != 0 {
+		destinationPattern = ""
 	}
 
 	if destinationPattern == "" {
@@ -173,6 +183,11 @@ func main() {
 		for _, element := range matchingPaths {
 			findElementHandler(element, compiledPattern)
 		}
+
+		if (serveOnPort != 0) {
+			// startServerForMatchingPaths(serveOnPort, matchingPaths)
+
+		}
 		return
 	}
 
@@ -181,7 +196,6 @@ func main() {
 	// replace $1_ with ${1}_ to prevent problems
 	dollarUnderscore, _ := regexp.Compile("\\$([1-9][0-9]*)_")
 	destinationPattern = dollarUnderscore.ReplaceAllString(destinationPattern, "${$1}_")
-
 
 	var dst string
 	for _, element := range matchingPaths {
