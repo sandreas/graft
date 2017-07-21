@@ -5,14 +5,48 @@ import (
 	"io"
 	"github.com/pkg/sftp"
 	"path/filepath"
+	"sort"
+	"fmt"
 )
 
 type vfs struct {
 	files []string
 }
 
+
+/*
+graft.go
+LICENSE
+README.md
+data
+data/fixtures
+data/fixtures/global/file.txt
+
+
+vfs {
+	path = /
+	parent = nil
+	chilren
+}
+parent = nil
+path = /
+children {
+	graft.go
+
+}
+
+
+ */
+
 func TestHandler(matchingPaths []string) sftp.Handlers {
 	virtualFileSystem := &vfs{}
+
+	sort.Strings(matchingPaths)
+
+	fmt.Println("Strings:", matchingPaths)
+
+	os.Exit(0)
+
 	virtualFileSystem.files = matchingPaths
 	//for _, element := range matchingPaths {
 	//	stat, err := os.Stat(element)
@@ -79,12 +113,31 @@ func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
 			println("fn:", fn)
 			println("r.Filepath:", r.Filepath)
 			println("dirname(" + fn +"): ", filepath.Dir(fn))
+			println("dirname(" + r.Filepath +"): ", filepath.Dir(r.Filepath))
 
-			if filepath.Dir(fn) == r.Filepath {
+			dirname := filepath.Dir(fn)
+			if dirname == "." {
+				dirname = ""
+			}
+
+			dirname = "/" + dirname
+
+			if dirname == r.Filepath {
 				println("   match!")
 				ordered_names = append(ordered_names, fn)
 			}
 		}
+		list := make([]os.FileInfo, len(ordered_names))
+
+		for _, n := range ordered_names {
+			stat, _ := os.Stat(n)
+			list = append(list, stat)
+		}
+
+
+
+
+		return list, nil
 		//println(ordered_names)
 		//
 		//sort.Sort(sort.StringSlice(ordered_names))

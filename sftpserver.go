@@ -209,6 +209,9 @@ func handleConn(conn net.Conn, config *ssh.ServerConfig) error {
 		matchingPaths = append(matchingPaths, "graft.go")
 		matchingPaths = append(matchingPaths, "LICENSE")
 		matchingPaths = append(matchingPaths, "README.md")
+		matchingPaths = append(matchingPaths, "data/fixtures/global/file.txt")
+		matchingPaths = append(matchingPaths, "data/fixtures")
+		matchingPaths = append(matchingPaths, "data")
 
 		root := sftphandler.TestHandler(matchingPaths)
 		server := sftp.NewRequestServer(channel, root)
