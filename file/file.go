@@ -330,7 +330,7 @@ func MakePathMap(matchingPaths []string) map[string][]string {
 		key, parentPath := normalizePathMapItem(path)
 
 		for  {
-			println("append: ", key, " => ", path)
+			// println("append: ", key, " => ", path)
 			pathMap[key] = append(pathMap[key], path)
 			path = parentPath
 			//println("before => key:", key, "parentPath:", parentPath)

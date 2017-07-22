@@ -4,13 +4,15 @@ import (
 	"os"
 	"io"
 	"github.com/pkg/sftp"
-	"path/filepath"
 	"sort"
-	"fmt"
+	"github.com/sandreas/graft/file"
+	"path/filepath"
+	"strings"
 )
 
 type vfs struct {
 	files []string
+	pathMap map[string][]string
 }
 
 
@@ -43,11 +45,9 @@ func TestHandler(matchingPaths []string) sftp.Handlers {
 
 	sort.Strings(matchingPaths)
 
-	fmt.Println("Strings:", matchingPaths)
-
-	os.Exit(0)
 
 	virtualFileSystem.files = matchingPaths
+	virtualFileSystem.pathMap = file.MakePathMap(matchingPaths)
 	//for _, element := range matchingPaths {
 	//	stat, err := os.Stat(element)
 	//	if err == nil {
@@ -76,14 +76,25 @@ func dumpSftpRequest(message string, r sftp.Request) {
 func (fs *vfs) Fileread(r sftp.Request) (io.ReaderAt, error) {
 	dumpSftpRequest("Fileread: ", r)
 
+	foundFile := fetch(fs, r.Filepath)
+	if(foundFile == "") {
+		return nil, os.ErrInvalid
+	}
 
-	return nil, nil
+	f, err := os.Open(foundFile)
+
+	if err != nil {
+		return nil, os.ErrInvalid
+	}
+	// defer f.Close()
+
+	return f, nil
 }
 
 func (fs *vfs) Filewrite(r sftp.Request) (io.WriterAt, error) {
 	dumpSftpRequest("Filewrite: ", r)
 
-	return nil, nil
+	return nil, os.ErrInvalid
 
 	//return nil, os.ErrInvalid
 }
@@ -91,7 +102,7 @@ func (fs *vfs) Filewrite(r sftp.Request) (io.WriterAt, error) {
 func (fs *vfs) Filecmd(r sftp.Request) error {
 	dumpSftpRequest("Filecmd: ", r)
 
-	return nil
+	return os.ErrInvalid
 }
 
 func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
@@ -99,77 +110,48 @@ func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
 
 	switch r.Method {
 	case "List":
-		//var err error
-		//batch_size := 10
-		//current_offset := 0
-		//if token := r.LsNext(); token != "" {
-		//	current_offset, err = strconv.Atoi(token)
-		//	if err != nil {
-		//		return nil, os.ErrInvalid
-		//	}
-		//}
-		ordered_names := []string{}
-		for _, fn := range fs.files {
-			println("fn:", fn)
-			println("r.Filepath:", r.Filepath)
-			println("dirname(" + fn +"): ", filepath.Dir(fn))
-			println("dirname(" + r.Filepath +"): ", filepath.Dir(r.Filepath))
-
-			dirname := filepath.Dir(fn)
-			if dirname == "." {
-				dirname = ""
-			}
-
-			dirname = "/" + dirname
-
-			if dirname == r.Filepath {
-				println("   match!")
-				ordered_names = append(ordered_names, fn)
-			}
+		ordered_names, ok := fs.pathMap[r.Filepath]
+		if ! ok {
+			println("did not find requested Filepath", r.Filepath)
+			return nil, os.ErrInvalid
 		}
+
+
 		list := make([]os.FileInfo, len(ordered_names))
-
-		for _, n := range ordered_names {
-			stat, _ := os.Stat(n)
-			list = append(list, stat)
+		for i, fileName := range ordered_names {
+			stat, _ := os.Stat(fileName)
+			list[i] = stat
 		}
-
-
-
-
 		return list, nil
-		//println(ordered_names)
-		//
-		//sort.Sort(sort.StringSlice(ordered_names))
-		//list := make([]os.FileInfo, len(ordered_names))
-		//for i, fn := range ordered_names {
-		//	stat, err := os.Stat(fs.files[fn])
-		//	if err != nil {
-		//		list[i] = stat
-		//	}
-		//}
-		//if len(list) < current_offset {
-		//	return nil, io.EOF
-		//}
-		//new_offset := current_offset + batch_size
-		//if new_offset > len(list) {
-		//	new_offset = len(list)
-		//}
-		//r.LsSave(strconv.Itoa(new_offset))
-		//return list[current_offset:new_offset], nil
-	//case "Stat":
-	//	file, err := fs.fetch(r.Filepath)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//
-	//	tmp := []os.FileInfo{file}
-	//	println("tmp", tmp)
-	//	return tmp, nil
-
+	case "Stat":
+		println("Stat filepath: ", r.Filepath)
+		foundFile := fetch(fs, r.Filepath)
+		if foundFile != "" {
+			println("foundFile: ", foundFile)
+			stat, _ := os.Stat(foundFile)
+			return []os.FileInfo{stat}, nil
+		}
+		return nil, os.ErrInvalid
 	}
-	return nil, nil
-
-	return nil, nil
+	return nil, os.ErrInvalid
 }
 
+
+func fetch(fs *vfs, requestedPath string) string {
+	key := filepath.Dir(requestedPath)
+	ordered_names, ok := fs.pathMap[key]
+	if ok == false {
+		println("did not find requested Filepath", requestedPath)
+		return ""
+	}
+
+	var foundFile = ""
+
+	for _, b := range ordered_names {
+		if b == requestedPath || b == strings.TrimLeft(requestedPath, "/") {
+			foundFile = b
+			break
+		}
+	}
+	return foundFile
+}
