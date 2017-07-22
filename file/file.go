@@ -10,6 +10,7 @@ import (
 	"io"
 	"bufio"
 	"strings"
+	"sort"
 )
 
 type File struct {
@@ -315,6 +316,63 @@ func IsFile(filepath string)(bool, os.FileInfo, error) {
 	}
 	return false, sourcePathStat, nil
 }
+
+func MakePathMap(matchingPaths []string) map[string][]string {
+	pathMap := make(map[string][]string)
+
+	sort.Strings(matchingPaths)
+
+	//if val, ok := dict["foo"]; ok {
+	//	//do something here
+	//}
+
+	for _, path := range matchingPaths {
+		key, parentPath := normalizePathMapItem(path)
+
+		for  {
+			println("append: ", key, " => ", path)
+			pathMap[key] = append(pathMap[key], path)
+			path = parentPath
+			//println("before => key:", key, "parentPath:", parentPath)
+			key, parentPath = normalizePathMapItem(parentPath)
+			//println("after  => key:", key, "parentPath:", parentPath)
+			_, ok := pathMap[key]
+
+			//println("is present?", key, ok)
+			if ok {
+				break
+			}
+		}
+	}
+
+
+
+	return pathMap
+}
+
+func normalizePathMapItem(path string) (string, string) {
+	parentPath := filepath.Dir(path)
+	key := parentPath
+	if parentPath == "." {
+		key = "/"
+	}
+
+	firstChar := string([]rune(key)[0])
+	if firstChar != "/" {
+		key = "/" + key
+	}
+	return key, parentPath
+}
+
+//func main() {
+//	x := make(map[string][]string)
+//
+//	x["key"] = append(x["key"], "value")
+//	x["key"] = append(x["key"], "value1")
+//
+//	fmt.Println(x["key"][0])
+//	fmt.Println(x["key"][1])
+//}
 
 //func MkdirAll(p string, perm os.FileMode) (error) {
 //	pathParts := strings.Split(filepath.ToSlash(p), "/")

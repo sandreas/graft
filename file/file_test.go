@@ -8,6 +8,7 @@ import (
 	"os"
 	"github.com/sandreas/graft/pattern"
 	"path/filepath"
+	"sort"
 )
 
 func TestExists(t *testing.T) {
@@ -220,6 +221,34 @@ func TestIsFile(t *testing.T) {
 	isFile, _, err = file.IsFile("../data/fixtures/global/")
 	expect.False(isFile)
 	expect.Nil(err)
+
+}
+
+func TestMakePathMap(t *testing.T){
+	expect := assert.New(t)
+
+	var matchingPaths []string
+	matchingPaths = append(matchingPaths, "graft.go")
+	matchingPaths = append(matchingPaths, "LICENSE")
+	matchingPaths = append(matchingPaths, "README.md")
+	matchingPaths = append(matchingPaths, "data/fixtures/global/file.txt")
+	matchingPaths = append(matchingPaths, "data/fixtures")
+	matchingPaths = append(matchingPaths, "data")
+
+	pathMap := file.MakePathMap(matchingPaths)
+	expected := []string{ "data", "graft.go", "LICENSE", "README.md"}
+	sort.Strings(expected)
+	expect.Equal(pathMap["/"], expected)
+
+	expected = []string{"data/fixtures"}
+	expect.Equal(pathMap["/data"], expected)
+
+
+	expected = []string{"data/fixtures/global"}
+	expect.Equal(pathMap["/data/fixtures"], expected)
+
+	expected = []string{"data/fixtures/global/file.txt"}
+	expect.Equal(pathMap["/data/fixtures/global"], expected)
 
 }
 
