@@ -120,7 +120,7 @@ func fetch(fs *vfs, requestedPath string) string {
 
 	for _, b := range ordered_names {
 		if b == requestedPath || b == strings.TrimLeft(requestedPath, "/") {
-			foundFile = b
+			foundFile = filepath.ToSlash(b)
 			break
 		}
 	}
