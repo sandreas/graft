@@ -19,7 +19,7 @@ import (
 )
 
 
-func NewSimpleServer(graftHomePath, listenAddress string, listenPort int, username, password string,  matchingPaths []string, debug bool) {
+func NewSimpleServer(graftHomePath, listenAddress string, listenPort int, username, password string,  matchingPaths []string) {
 	// An SSH server is represented by a ServerConfig, which holds
 	// certificate details and handles authentication of ServerConns.
 	config := &ssh.ServerConfig{
@@ -27,7 +27,7 @@ func NewSimpleServer(graftHomePath, listenAddress string, listenPort int, userna
 			// Should use constant-time compare (or better, salt+hash) in
 			// a production setting.
 
-			println( "Login: %s\n", c.User())
+			log.Printf( "Login: %s\n", c.User())
 
 			if subtle.ConstantTimeCompare([]byte(username), []byte(c.User())) == 1 &&  subtle.ConstantTimeCompare(pass, []byte(password)) == 1  {
 				return nil, nil
@@ -36,8 +36,6 @@ func NewSimpleServer(graftHomePath, listenAddress string, listenPort int, userna
 		},
 	}
 
-
-	createGraftHomePathIfNotExists(graftHomePath)
 	generateKeysIfNotExist(graftHomePath)
 
 	// graftHomePath = "/Users/andreas/.ssh"
@@ -70,19 +68,19 @@ func NewSimpleServer(graftHomePath, listenAddress string, listenPort int, userna
 		if e != nil {
 			os.Exit(2)
 		}
-		go HandleConn(conn, config,  matchingPaths, debug)
+		go HandleConn(conn, config,  matchingPaths)
 	}
 
 }
 
-func HandleConn(conn net.Conn, config *ssh.ServerConfig,  matchingPaths []string, debug bool) {
+func HandleConn(conn net.Conn, config *ssh.ServerConfig,  matchingPaths []string) {
 	defer conn.Close()
-	e := handleConn(conn, config, matchingPaths, debug)
+	e := handleConn(conn, config, matchingPaths)
 	if e != nil {
 		log.Println("sftpd connection errored:", e)
 	}
 }
-func handleConn(conn net.Conn, config *ssh.ServerConfig,  matchingPaths []string, debug bool) error {
+func handleConn(conn net.Conn, config *ssh.ServerConfig,  matchingPaths []string) error {
 	sconn, chans, reqs, e := ssh.NewServerConn(conn, config)
 	if e != nil {
 		return e
@@ -90,8 +88,7 @@ func handleConn(conn net.Conn, config *ssh.ServerConfig,  matchingPaths []string
 	defer sconn.Close()
 
 	// The incoming Request channel must be serviced.
-	println( "login detected:", sconn.User())
-	println( "SSH server established\n")
+	log.Println( "login detected:", sconn.User())
 
 	// The incoming Request channel must be serviced.
 	go ssh.DiscardRequests(reqs)
@@ -109,22 +106,22 @@ func handleConn(conn net.Conn, config *ssh.ServerConfig,  matchingPaths []string
 
 		go func(in <-chan *ssh.Request) {
 			for req := range in {
-				println( "Request: %v\n", req.Type)
+				log.Printf( "Request: %v\n", req.Type)
 				ok := false
 				switch req.Type {
 				case "subsystem":
-					println( "Subsystem: %s\n", req.Payload[4:])
+					log.Printf( "Subsystem: %s\n", req.Payload[4:])
 					if string(req.Payload[4:]) == "sftp" {
 						ok = true
 					}
 				}
-				println( " - accepted: %v\n", ok)
+				log.Printf( " - accepted: %v\n", ok)
 				req.Reply(ok, nil)
 			}
 		}(requests)
 
 
-		root := VfsHandler(matchingPaths, debug)
+		root := VfsHandler(matchingPaths)
 		server := sftp.NewRequestServer(channel, root)
 		if err := server.Serve(); err == io.EOF {
 			server.Close()
@@ -138,19 +135,7 @@ func handleConn(conn net.Conn, config *ssh.ServerConfig,  matchingPaths []string
 }
 
 
-func createGraftHomePathIfNotExists(graftHomePath string) string {
 
-	mode := int(0755)
-	if _, err := os.Stat(graftHomePath); err != nil {
-		err := os.Mkdir(graftHomePath, os.FileMode(mode))
-		if err != nil {
-			println("Could not create home directory " + graftHomePath)
-			os.Exit(1)
-		}
-	}
-	return graftHomePath
-
-}
 
 func generateKeysIfNotExist(homeDir string) {
 

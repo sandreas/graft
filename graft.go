@@ -15,6 +15,8 @@ import (
 	"time"
 	"github.com/sandreas/graft/sftpd"
 	"os/user"
+	"log"
+	"io"
 )
 
 var (
@@ -37,16 +39,25 @@ var (
 	times = app.Flag("times", "transfer source modify times to destination").Bool()
 	serve = app.Flag("serve", "start a server on this port").Default("0").String()
 
+	debug = app.Flag("debug", "enable debug logging").Bool()
+
 )
 
 var dirsToRemove = make([]string, 0)
 var minAgeTime time.Time
 var maxAgeTime time.Time
+
+
 func main() {
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	sourcePattern := *sourcePatternParameter
 	destinationPattern := *destinationPatternParameter
+
+	if *debug {
+		initDebug()
+	}
+
 
 	serveOnPort, err := strconv.Atoi(*serve)
 	if err != nil {
@@ -175,7 +186,8 @@ func main() {
 		}
 
 		if (serveOnPort != 0) {
-			sftpd.NewSimpleServer(graftHomeDir, "0.0.0.0", 2022, "graft", "graft", matchingPaths, false)
+			createGraftHomePathIfNotExists()
+			sftpd.NewSimpleServer(graftHomeDir, "0.0.0.0", 2022, "graft", "graft", matchingPaths)
 		}
 		return
 	}
@@ -203,6 +215,18 @@ func main() {
 	}
 	return
 }
+func initDebug() {
+	createGraftHomePathIfNotExists()
+
+	logFile, err := os.OpenFile(getGraftHomeDirectory() + "/graft.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+
+	}
+	defer logFile.Close()
+
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
+}
 
 func getGraftHomeDirectory() string {
 	usr, err := user.Current()
@@ -212,6 +236,20 @@ func getGraftHomeDirectory() string {
 		os.Exit(1)
 	}
 	return usr.HomeDir + "/.graft"
+}
+
+func createGraftHomePathIfNotExists() string {
+	graftHomePath := getGraftHomeDirectory()
+	mode := int(0755)
+	if _, err := os.Stat(graftHomePath); err != nil {
+		err := os.Mkdir(graftHomePath, os.FileMode(mode))
+		if err != nil {
+			println("Could not create home directory " + graftHomePath)
+			os.Exit(1)
+		}
+	}
+	return graftHomePath
+
 }
 
 func minAgeFilter(f file.File) (bool) {

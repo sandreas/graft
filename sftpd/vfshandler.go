@@ -8,18 +8,15 @@ import (
 	"sort"
 	"github.com/sandreas/graft/file"
 	"io"
+	"log"
 )
-
-var debug bool
 
 type vfs struct {
 	files []string
 	pathMap map[string][]string
 }
 
-func VfsHandler(matchingPaths []string, dbg bool) sftp.Handlers {
-	debug = dbg
-
+func VfsHandler(matchingPaths []string) sftp.Handlers {
 	virtualFileSystem := &vfs{}
 
 	sort.Strings(matchingPaths)
@@ -39,20 +36,14 @@ func VfsHandler(matchingPaths []string, dbg bool) sftp.Handlers {
 
 
 func dumpSftpRequest(message string, r sftp.Request) {
-	if debug {
-		println(message)
-		println("    Filepath: " , r.Filepath)
-		println("    Target: " , r.Target)
-		println("    Method: " , r.Method)
-		println("    Attrs: " , r.Attrs)
-		println("    Flags: " , r.Flags)
-	}
+	log.Println(message, "Filepath: " , r.Filepath, ", Target: ", r.Target, ", Method: ", r.Method)
 }
 
 func (fs *vfs) Fileread(r sftp.Request) (io.ReaderAt, error) {
 	dumpSftpRequest("Fileread: ", r)
 
 	foundFile := fetch(fs, r.Filepath)
+	log.Println("foundFile: ", foundFile)
 	if(foundFile == "") {
 		return nil, os.ErrInvalid
 	}
@@ -60,18 +51,19 @@ func (fs *vfs) Fileread(r sftp.Request) (io.ReaderAt, error) {
 	f, err := os.Open(foundFile)
 
 	if err != nil {
+		log.Println("Could not open file", foundFile, err)
 		return nil, os.ErrInvalid
 	}
 	return f, nil
 }
 
 func (fs *vfs) Filewrite(r sftp.Request) (io.WriterAt, error) {
-	dumpSftpRequest("Filewrite: ", r)
+	dumpSftpRequest("Filewrite (disabled): ", r)
 	return nil, os.ErrInvalid
 }
 
 func (fs *vfs) Filecmd(r sftp.Request) error {
-	dumpSftpRequest("Filecmd: ", r)
+	dumpSftpRequest("Filecmd (disabled): ", r)
 	return os.ErrInvalid
 }
 
@@ -79,29 +71,42 @@ func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
 	dumpSftpRequest("Fileinfo: ", r)
 	
 	requestedPath := filepath.ToSlash(r.Filepath)
-	
+	log.Println("requestedPath: ", requestedPath)
+
 	switch r.Method {
 	case "List":
 		ordered_names, ok := fs.pathMap[requestedPath]
 		if ! ok {
-			println("did not find requested Filepath", requestedPath)
+			log.Println("did not find pathMapping for requestedPath", requestedPath)
 			return nil, os.ErrInvalid
 		}
+		log.Println("pathMapping for " + requestedPath + " contains: ", len(ordered_names))
 
 		list := make([]os.FileInfo, len(ordered_names))
 		for i, fileName := range ordered_names {
-			stat, _ := os.Stat(fileName)
+			stat, err := os.Stat(fileName)
+			if err != nil {
+				log.Println("Could not stat file", fileName, err)
+				continue
+			}
+
 			list[i] = stat
+			log.Println("Stat for file " + fileName + ": isDir=>",stat.IsDir(), "size=>", stat.Size())
 		}
 		return list, nil
 	case "Stat":
-		println("Stat filepath: ", requestedPath)
+		log.Println("Stat filepath: ", requestedPath)
 		foundFile := fetch(fs, requestedPath)
 		if foundFile != "" {
-			println("foundFile: ", foundFile)
-			stat, _ := os.Stat(foundFile)
+			log.Println("foundFile: ", foundFile)
+			stat, err := os.Stat(foundFile)
+			if err != nil {
+				log.Println("Could not stat file", foundFile, err)
+				return nil, os.ErrInvalid
+			}
 			return []os.FileInfo{stat}, nil
 		}
+		log.Println("Could not 'fetch' file for " + requestedPath)
 		return nil, os.ErrInvalid
 	}
 	return nil, os.ErrInvalid
@@ -109,10 +114,15 @@ func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
 
 
 func fetch(fs *vfs, requestedPath string) string {
+	log.Println("fetch requestedPath:  ", requestedPath)
+
 	key := filepath.ToSlash(filepath.Dir(requestedPath))
+	log.Println("mapping key:  ", key)
+
 	ordered_names, ok := fs.pathMap[key]
+
 	if ok == false {
-		println("did not find requested Filepath", requestedPath)
+		log.Println("did not find key in pathMap", key)
 		return ""
 	}
 
