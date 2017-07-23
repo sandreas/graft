@@ -77,11 +77,14 @@ func (fs *vfs) Filecmd(r sftp.Request) error {
 
 func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
 	dumpSftpRequest("Fileinfo: ", r)
+	
+	requestedPath := filepath.ToSlash(r.Filepath)
+	
 	switch r.Method {
 	case "List":
-		ordered_names, ok := fs.pathMap[r.Filepath]
+		ordered_names, ok := fs.pathMap[requestedPath]
 		if ! ok {
-			println("did not find requested Filepath", r.Filepath)
+			println("did not find requested Filepath", requestedPath)
 			return nil, os.ErrInvalid
 		}
 
@@ -92,8 +95,8 @@ func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
 		}
 		return list, nil
 	case "Stat":
-		println("Stat filepath: ", r.Filepath)
-		foundFile := fetch(fs, r.Filepath)
+		println("Stat filepath: ", requestedPath)
+		foundFile := fetch(fs, requestedPath)
 		if foundFile != "" {
 			println("foundFile: ", foundFile)
 			stat, _ := os.Stat(foundFile)
@@ -106,7 +109,7 @@ func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
 
 
 func fetch(fs *vfs, requestedPath string) string {
-	key := filepath.Dir(requestedPath)
+	key := filepath.ToSlash(filepath.Dir(requestedPath))
 	ordered_names, ok := fs.pathMap[key]
 	if ok == false {
 		println("did not find requested Filepath", requestedPath)
