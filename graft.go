@@ -13,6 +13,8 @@ import (
 	"strings"
 	"math"
 	"time"
+	"github.com/sandreas/graft/sftpd"
+	"os/user"
 )
 
 var (
@@ -34,6 +36,7 @@ var (
 	regex = app.Flag("regex", "use a real regex instead of glob patterns (e.g. src/.*\\.jpg)").Bool()
 	times = app.Flag("times", "transfer source modify times to destination").Bool()
 	serve = app.Flag("serve", "start a server on this port").Default("0").String()
+
 )
 
 var dirsToRemove = make([]string, 0)
@@ -41,21 +44,6 @@ var minAgeTime time.Time
 var maxAgeTime time.Time
 func main() {
 	kingpin.MustParse(app.Parse(os.Args[1:]))
-
-	//firstBytes := int64(1003838300);
-	//size := firstBytes * 5;
-	//chunkSize:= int64(32*1024);
-	//
-	//handleProgress(firstBytes, size, chunkSize)
-	//time.Sleep(3 * time.Second)
-	//handleProgress(firstBytes*2, size, chunkSize)
-	//time.Sleep(3 * time.Second)
-	//handleProgress(firstBytes*3, size, chunkSize)
-	//time.Sleep(3 * time.Second)
-	//handleProgress(firstBytes*4, size, chunkSize)
-	//time.Sleep(3 * time.Second)
-	//handleProgress(firstBytes*5, size, chunkSize)
-	//os.Exit(0)
 
 	sourcePattern := *sourcePatternParameter
 	destinationPattern := *destinationPatternParameter
@@ -65,6 +53,8 @@ func main() {
 		prntln("Invalid argument for serve: " + err.Error())
 		return
 	}
+
+	graftHomeDir := getGraftHomeDirectory()
 
 	patternPath, pat := pattern.ParsePathPattern(sourcePattern)
 
@@ -185,8 +175,7 @@ func main() {
 		}
 
 		if (serveOnPort != 0) {
-			// startServerForMatchingPaths(serveOnPort, matchingPaths)
-
+			sftpd.NewSimpleServer(graftHomeDir, "0.0.0.0", 2022, "graft", "graft", matchingPaths, false)
 		}
 		return
 	}
@@ -213,6 +202,16 @@ func main() {
 		}
 	}
 	return
+}
+
+func getGraftHomeDirectory() string {
+	usr, err := user.Current()
+
+	if err != nil {
+		println("Could not determine current user ", err)
+		os.Exit(1)
+	}
+	return usr.HomeDir + "/.graft"
 }
 
 func minAgeFilter(f file.File) (bool) {
@@ -343,7 +342,7 @@ func prnt(a...interface{}) (n int, err error) {
 
 func findElementHandler(element string, compiledPattern *regexp.Regexp) {
 	prntln(element)
-	if *hideMatches {
+	if *hideMatches || *serve != "0" {
 		return
 	}
 	elementMatches := pattern.BuildMatchList(compiledPattern, element)
