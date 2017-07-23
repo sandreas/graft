@@ -351,7 +351,7 @@ func MakePathMap(matchingPaths []string) map[string][]string {
 }
 
 func normalizePathMapItem(path string) (string, string) {
-	parentPath := filepath.Dir(path)
+	parentPath := filepath.ToSlash(filepath.Dir(path))
 	key := parentPath
 	if parentPath == "." {
 		key = "/"
