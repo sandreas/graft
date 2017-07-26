@@ -3,8 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
-
 	"github.com/alexflint/go-arg"
+	"os/user"
+	"log"
+	"io"
+	"github.com/sandreas/graft/pattern"
+	"github.com/sandreas/graft/newpattern"
 )
 
 //var (
@@ -71,6 +75,7 @@ type PositionalArguments struct {
 
 type BooleanFlags struct {
 	Verbose bool `arg:"-v,help:be verbose"`
+	Debug bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
 }
 
 var args struct {
@@ -84,19 +89,64 @@ func main() {
 	}
 	arg.MustParse(&args)
 
-	fmt.Printf("Source: %v\n", args.Source)
-	fmt.Printf("Destination: %v\n", args.Destination)
-	fmt.Printf("Verbose: %v\n", args.Verbose)
+	initLogging()
+	log.Printf("graft is starting...")
+
+	sourcePattern := newpattern.NewSourcePattern(args.Source)
+	sourceFiles := findFilesForPattern(sourcePattern)
+
+	for key, value := range sourceFiles {
+		println(key)
+		println(value)
+	}
+
+	//fmt.Printf("Source: %v\n", args.Source)
+	//fmt.Printf("Destination: %v\n", args.Destination)
+	//fmt.Printf("Verbose: %v\n", args.Verbose)
 
 }
+func findFilesForPattern(sourcePattern *newpattern.SourcePattern) map[string]string {
+	m := make(map[string]string)
 
-//func (PositionalArguments) Version() string {
-//	return "graft - version 0.2"
-//}
-//
-//func (PositionalArguments) Description() string {
-//	return "graft is a command line application to search for and transfer files"
-//}
+	return m
+}
+
+func (PositionalArguments) Description() string {
+	return "graft 0.2 - a command line application to search for and transfer files\n"
+}
+
+func initLogging() {
+	if ! args.Debug {
+		return
+	}
+	log.SetOutput(os.Stdout)
+
+	homeDir, err := createHomeDirectoryIfNotExists()
+	if err != nil {
+		log.Println("could not create home directory: ", homeDir, err)
+	}
+	logFileName := homeDir + "/graft.log"
+	os.Remove(logFileName)
+	logFile, err := os.OpenFile(logFileName, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+		log.Println("could not open logfile: ", logFile, err)
+	}
+	defer logFile.Close()
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
+}
+
+func createHomeDirectoryIfNotExists() (string, error) {
+	u, _ := user.Current()
+	homeDir := u.HomeDir + "/.graft"
+	if _, err := os.Stat(homeDir); err != nil {
+		if err := os.Mkdir(homeDir, os.FileMode(0755)); err != nil {
+			return homeDir, err
+		}
+	}
+	return homeDir, nil
+}
+
 
 //kingpin.MustParse(app.Parse(os.Args[1:]))
 //
