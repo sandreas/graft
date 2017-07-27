@@ -7,8 +7,8 @@ import (
 	"os/user"
 	"log"
 	"io"
-	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/newpattern"
+	"github.com/sandreas/graft/newfile"
 )
 
 //var (
@@ -93,7 +93,12 @@ func main() {
 	log.Printf("graft is starting...")
 
 	sourcePattern := newpattern.NewSourcePattern(args.Source)
-	sourceFiles := findFilesForPattern(sourcePattern)
+	sourceFiles, err := newfile.FindFilesBySourcePattern(*sourcePattern)
+
+	if err != nil {
+		println("Error: ", err)
+		os.Exit(2)
+	}
 
 	for key, value := range sourceFiles {
 		println(key)
@@ -104,11 +109,6 @@ func main() {
 	//fmt.Printf("Destination: %v\n", args.Destination)
 	//fmt.Printf("Verbose: %v\n", args.Verbose)
 
-}
-func findFilesForPattern(sourcePattern *newpattern.SourcePattern) map[string]string {
-	m := make(map[string]string)
-
-	return m
 }
 
 func (PositionalArguments) Description() string {
@@ -204,7 +204,7 @@ func createHomeDirectoryIfNotExists() (string, error) {
 //prntln("")
 //
 //if ! *regex {
-//	pat = pattern.GlobToRegex(pat)
+//	pat = pattern.GlobToRegexString(pat)
 //}
 //
 //caseInsensitiveQualifier := "(?i)"

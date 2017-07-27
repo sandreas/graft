@@ -5,5 +5,5 @@ type CompositeInterface interface{
 }
 
 type MatcherInterface interface {
-	Matches(pattern string) bool
+	Matches(pattern interface{}) bool
 }
