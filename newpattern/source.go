@@ -52,7 +52,8 @@ func (p *SourcePattern) parse(patternString string) {
 
 			startIndex := len(p.Path)+1
 			if path == "." {
-				p.Pattern = strings.TrimPrefix(patternString, "./")
+				p.Pattern = strings.TrimPrefix(patternString, ".")
+				p.Pattern = strings.TrimPrefix(p.Pattern, "/")
 			} else if len(patternString) > startIndex {
 				p.Pattern = patternString[startIndex:]
 			}
