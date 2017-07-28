@@ -72,6 +72,7 @@ import (
 
 const (
 	ERROR_PARSING_SOURCE_PATTERN = 1
+	ERROR_FINDING_FILES = 2
 )
 
 type PositionalArguments struct {
@@ -98,28 +99,17 @@ func main() {
 	arg.MustParse(&args)
 
 	initLogging()
-	log.Printf("graft is starting...")
 
-	var patternFlags newpattern.Flag
-	if args.CaseSensitive {
-		patternFlags |= newpattern.CASE_SENSITIVE
-	}
-	if args.Regex {
-		patternFlags |= newpattern.USE_REAL_REGEX
-	}
-
-	sourcePattern := newpattern.NewSourcePattern(args.Source, patternFlags)
+	sourcePattern := newpattern.NewSourcePattern(args.Source, getSourcePatternFlags())
 	log.Printf("SourcePattern: %+v", sourcePattern)
 	compiledRegex, err := sourcePattern.Compile()
 	log.Printf("compiledRegex: %s", compiledRegex)
 	exitOnError(ERROR_PARSING_SOURCE_PATTERN, err)
 
-
-
-
 	compositeMatcher := newmatcher.NewCompositeMatcher()
 	compositeMatcher.Add(newmatcher.NewRegexMatcher(*compiledRegex))
 	sourceFiles, err := newfile.FindFilesBySourcePattern(*sourcePattern, compositeMatcher)
+	exitOnError(ERROR_FINDING_FILES, err)
 
 
 	for key := range sourceFiles {
@@ -160,6 +150,17 @@ func initLogging() {
 	log.SetOutput(mw)
 }
 
+func getSourcePatternFlags() newpattern.Flag {
+	var patternFlags newpattern.Flag
+	if args.CaseSensitive {
+		patternFlags |= newpattern.CASE_SENSITIVE
+	}
+	if args.Regex {
+		patternFlags |= newpattern.USE_REAL_REGEX
+	}
+	return patternFlags
+}
+
 func createHomeDirectoryIfNotExists() (string, error) {
 	u, _ := user.Current()
 	homeDir := u.HomeDir + "/.graft"
@@ -177,10 +178,11 @@ func exitOnError(exitCode int, err error){
 	}
 
 	_, fn, line, _ := runtime.Caller(1)
-	if ! args.Debug {
+	if args.Debug {
+		log.Printf("[error] %s:%d %v (Code: %d)", fn, line, err, exitCode)
+	} else {
 		println(err, exitCode)
 	}
-	log.Printf("[error] %s:%d %v (Code: %d)", fn, line, err, exitCode)
 	os.Exit(exitCode)
 }
 
