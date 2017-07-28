@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"github.com/alexflint/go-arg"
 	"os/user"
@@ -9,6 +8,9 @@ import (
 	"io"
 	"github.com/sandreas/graft/newpattern"
 	"github.com/sandreas/graft/newfile"
+	"github.com/sandreas/graft/newmatcher"
+	"runtime"
+	"io/ioutil"
 )
 
 //var (
@@ -22,11 +24,11 @@ import (
 //	minAge = app.Flag("min-age", " minimum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)").Default("").String()
 //	maxAge = app.Flag("max-age", "maximum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)").Default("").String()
 //
-//	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
 //	dryRun = app.Flag("dry-run", "dry-run / simulation mode").Bool()
 //	hideMatches = app.Flag("hide-matches", "hide matches in search mode ($1: ...)").Bool()
 //	move = app.Flag("move", "move / rename files - do not make a copy").Bool()
 //	quiet = app.Flag("quiet", "quiet mode - do not show any output").Bool()
+//	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
 //	regex = app.Flag("regex", "use a real regex instead of glob patterns (e.g. src/.*\\.jpg)").Bool()
 //	times = app.Flag("times", "transfer source modify times to destination").Bool()
 //	serve = app.Flag("serve", "start a server on this port").Default("0").String()
@@ -68,12 +70,18 @@ import (
 //	arg.MustParse(&args)
 //}
 
+const (
+	ERROR_PARSING_SOURCE_PATTERN = 1
+)
+
 type PositionalArguments struct {
 	Source      string `arg:"positional"`
 	Destination string `arg:"positional"`
 }
 
 type BooleanFlags struct {
+	CaseSensitive bool `arg:"-z,help:be case sensitive when matching files and folders"`
+	Regex bool `arg:"-x,help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
 	Verbose bool `arg:"-v,help:be verbose"`
 	Debug bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
 }
@@ -92,17 +100,31 @@ func main() {
 	initLogging()
 	log.Printf("graft is starting...")
 
-	sourcePattern := newpattern.NewSourcePattern(args.Source)
-	sourceFiles, err := newfile.FindFilesBySourcePattern(*sourcePattern)
-
-	if err != nil {
-		println("Error: ", err)
-		os.Exit(2)
+	var patternFlags newpattern.Flag
+	if args.CaseSensitive {
+		patternFlags |= newpattern.CASE_SENSITIVE
+	}
+	if args.Regex {
+		patternFlags |= newpattern.USE_REAL_REGEX
 	}
 
-	for key, value := range sourceFiles {
+	sourcePattern := newpattern.NewSourcePattern(args.Source, patternFlags)
+	log.Printf("SourcePattern: %+v", sourcePattern)
+	compiledRegex, err := sourcePattern.Compile()
+	log.Printf("compiledRegex: %s", compiledRegex)
+	exitOnError(ERROR_PARSING_SOURCE_PATTERN, err)
+
+
+
+
+	compositeMatcher := newmatcher.NewCompositeMatcher()
+	compositeMatcher.Add(newmatcher.NewRegexMatcher(*compiledRegex))
+	sourceFiles, err := newfile.FindFilesBySourcePattern(*sourcePattern, compositeMatcher)
+
+
+	for key := range sourceFiles {
 		println(key)
-		println(value)
+		//println(value)
 	}
 
 	//fmt.Printf("Source: %v\n", args.Source)
@@ -117,6 +139,8 @@ func (PositionalArguments) Description() string {
 
 func initLogging() {
 	if ! args.Debug {
+		log.SetFlags(0)
+		log.SetOutput(ioutil.Discard)
 		return
 	}
 	log.SetOutput(os.Stdout)
@@ -145,6 +169,19 @@ func createHomeDirectoryIfNotExists() (string, error) {
 		}
 	}
 	return homeDir, nil
+}
+
+func exitOnError(exitCode int, err error){
+	if err == nil {
+		return
+	}
+
+	_, fn, line, _ := runtime.Caller(1)
+	if ! args.Debug {
+		println(err, exitCode)
+	}
+	log.Printf("[error] %s:%d %v (Code: %d)", fn, line, err, exitCode)
+	os.Exit(exitCode)
 }
 
 

@@ -61,6 +61,8 @@ func (p *SourcePattern) parse(patternString string) {
 		}
 		path = filepath.Dir(path)
 	}
+
+	p.Path = strings.TrimSuffix(p.Path, "/")
 }
 
 func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
@@ -75,6 +77,11 @@ func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 
 	// path handling
 	regexPath := p.Path
+
+	if regexPath == "." {
+		regexPath = ""
+	}
+
 	if regexPath != "" {
 		regexPath = regexp.QuoteMeta(p.Path)
 		if regexPath[len(regexPath)-1:] != "/" {

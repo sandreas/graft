@@ -4,9 +4,10 @@ import (
 	"github.com/sandreas/graft/newpattern"
 	"os"
 	"path/filepath"
+	"github.com/sandreas/graft/newmatcher"
 )
 
-func FindFilesBySourcePattern(p newpattern.SourcePattern) (map[string]string, error) {
+func FindFilesBySourcePattern(p newpattern.SourcePattern, matcher newmatcher.MatcherInterface) (map[string]string, error) {
 	m := make(map[string]string)
 
 	if p.IsFile() {
@@ -14,12 +15,10 @@ func FindFilesBySourcePattern(p newpattern.SourcePattern) (map[string]string, er
 		return m, nil
 	}
 
-	compiledPattern, err := p.Compile()
-	if err != nil {
-		return nil, err
-	}
-
 	filepath.Walk(p.Path, func(innerPath string, info os.FileInfo, err error) error {
+		if innerPath == "." || innerPath == ".." {
+			return nil
+		}
 		//entriesWalked++
 		//if reportEvery == 0 || entriesWalked % reportEvery == 0 {
 		//	progressHandlerFunc(entriesWalked, entriesMatched, false)
@@ -39,9 +38,7 @@ func FindFilesBySourcePattern(p newpattern.SourcePattern) (map[string]string, er
 			normalizedInnerPath += "/"
 		}
 
-		match := compiledPattern.MatchString(normalizedInnerPath)
-
-		if match {
+		if matcher.Matches(normalizedInnerPath) {
 			m[normalizedInnerPath] = normalizedInnerPath
 		}
 
