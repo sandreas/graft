@@ -16,7 +16,7 @@ func TestFindFilesBySourcePatternWithFile(t *testing.T) {
 
 	foundFiles,_ := FindFilesBySourcePattern(*sourcePattern, matcher)
 	expect.Equal(1, len(foundFiles))
-	expect.Equal("../data/fixtures/global/file.txt", foundFiles["../data/fixtures/global/file.txt"])
+	expect.Equal("../data/fixtures/global/file.txt", foundFiles[0])
 }
 
 func TestFindFilesBySourcePatternWithDirectory(t *testing.T) {
@@ -28,10 +28,10 @@ func TestFindFilesBySourcePatternWithDirectory(t *testing.T) {
 
 	foundFiles, _ := FindFilesBySourcePattern(*sourcePattern, matcher)
 	expect.Equal(4, len(foundFiles))
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/", foundFiles["../data/fixtures/file/WalkPathByPattern/dir/"])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", foundFiles["../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt"])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/", foundFiles["../data/fixtures/file/WalkPathByPattern/dir/subdir/"])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", foundFiles["../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log"])
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/", foundFiles[0])
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", foundFiles[1])
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/", foundFiles[2])
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", foundFiles[3])
 }
 
 func TestFindFilesBySourcePatternWithGlob(t *testing.T) {
@@ -43,6 +43,6 @@ func TestFindFilesBySourcePatternWithGlob(t *testing.T) {
 
 	foundFiles, _ := FindFilesBySourcePattern(*sourcePattern, matcher)
 	expect.Equal(2, len(foundFiles))
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", foundFiles["../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt"])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", foundFiles["../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log"])
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", foundFiles[0])
+	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", foundFiles[1])
 }

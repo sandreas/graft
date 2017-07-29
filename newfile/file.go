@@ -7,11 +7,10 @@ import (
 	"github.com/sandreas/graft/newmatcher"
 )
 
-func FindFilesBySourcePattern(p newpattern.SourcePattern, matcher newmatcher.MatcherInterface) (map[string]string, error) {
-	m := make(map[string]string)
-
+func FindFilesBySourcePattern(p newpattern.SourcePattern, matcher newmatcher.MatcherInterface) ([]string, error) {
+	var m []string
 	if p.IsFile() {
-		m[p.Path] = p.Path
+		m = append(m, p.Path)
 		return m, nil
 	}
 
@@ -39,7 +38,7 @@ func FindFilesBySourcePattern(p newpattern.SourcePattern, matcher newmatcher.Mat
 		}
 
 		if matcher.Matches(normalizedInnerPath) {
-			m[normalizedInnerPath] = normalizedInnerPath
+			m = append(m, normalizedInnerPath)
 		}
 
 		return nil
