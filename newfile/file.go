@@ -5,12 +5,17 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/sandreas/graft/newmatcher"
+	"github.com/sandreas/graft/newprogress"
 )
 
-func FindFilesBySourcePattern(p newpattern.SourcePattern, matcher newmatcher.MatcherInterface) ([]string, error) {
+
+func FindFilesBySourcePattern(p newpattern.SourcePattern, matcher newmatcher.MatcherInterface, progressHandler newprogress.ProgressHandler) ([]string, error) {
 	var m []string
 	if p.IsFile() {
 		m = append(m, p.Path)
+
+		progressHandler.IncreaseMatches()
+		progressHandler.Finish()
 		return m, nil
 	}
 
@@ -18,19 +23,7 @@ func FindFilesBySourcePattern(p newpattern.SourcePattern, matcher newmatcher.Mat
 		if innerPath == "." || innerPath == ".." {
 			return nil
 		}
-		//entriesWalked++
-		//if reportEvery == 0 || entriesWalked % reportEvery == 0 {
-		//	progressHandlerFunc(entriesWalked, entriesMatched, false)
-		//}
-		//
-		//file := File{info, innerPath}
-		//if ! filterFunc(file, err) {
-		//	return nil
-		//}
-		//
-		//entriesMatched++
-		//list = append(list, file)
-		//return nil
+
 
 		normalizedInnerPath := filepath.ToSlash(innerPath)
 		if info.IsDir() {
@@ -39,10 +32,16 @@ func FindFilesBySourcePattern(p newpattern.SourcePattern, matcher newmatcher.Mat
 
 		if matcher.Matches(normalizedInnerPath) {
 			m = append(m, normalizedInnerPath)
+			progressHandler.IncreaseMatches()
+		} else {
+			progressHandler.IncreaseItems()
 		}
 
 		return nil
 	})
+
+	progressHandler.Finish()
+
 	return m, nil
 }
 

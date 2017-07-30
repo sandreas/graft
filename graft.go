@@ -7,11 +7,13 @@ import (
 	"log"
 	"io"
 	"github.com/sandreas/graft/newpattern"
-	"github.com/sandreas/graft/newfile"
 	"github.com/sandreas/graft/newmatcher"
 	"runtime"
 	"io/ioutil"
 	"time"
+	"github.com/sandreas/graft/newprogress"
+	"fmt"
+	"github.com/sandreas/graft/newfile"
 )
 
 //var (
@@ -90,8 +92,8 @@ type BooleanFlags struct {
 }
 
 type StringParameters struct {
-	MinAge string `arg:"-m,help:minimum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)"`
-	MaxAge string `arg:"-n,help:maximum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)"`
+	MinAge string `arg:"-m,help:minimum age"`
+	MaxAge string `arg:"-n,help:maximum age"`
 }
 
 
@@ -118,21 +120,25 @@ func main() {
 	compositeMatcher := newmatcher.NewCompositeMatcher()
 	compositeMatcher.Add(newmatcher.NewRegexMatcher(*compiledRegex))
 
-	if args.MinAge {
+	if args.MinAge != "" {
 		minAge, err := newpattern.StrToAge(args.MinAge, time.Now())
 		exitOnError(ERROR_PARSING_MIN_AGE, err)
 		compositeMatcher.Add(newmatcher.NewMinAgeMatcher(minAge))
 	}
 
-	if args.MaxAge {
+	if args.MaxAge != "" {
 		maxAge, err := newpattern.StrToAge(args.MaxAge, time.Now())
 		exitOnError(ERROR_PARSING_MIN_AGE, err)
 		compositeMatcher.Add(newmatcher.NewMaxAgeMatcher(maxAge))
 	}
 
-	sourceFiles, err := newfile.FindFilesBySourcePattern(*sourcePattern, compositeMatcher)
+	progressHandler := newprogress.NewWalkProgressHandler(fmt.Printf)
+
+
+	sourceFiles, err := newfile.FindFilesBySourcePattern(*sourcePattern, compositeMatcher, progressHandler)
 	exitOnError(ERROR_FINDING_FILES, err)
 
+	log.Printf("found files: ", len(sourceFiles))
 
 	for _, path := range sourceFiles {
 		println(path)
