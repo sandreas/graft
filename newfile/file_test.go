@@ -64,7 +64,6 @@ func TestFindFilesBySourcePatternWithDirectory(t *testing.T) {
 	expect.Equal(int64(0), progressHandler.increaseItemsCalls)
 	expect.Equal(int64(4), progressHandler.increaseMatchesCalls)
 	expect.Equal(int64(1), progressHandler.finishCalls)
-
 }
 
 func TestFindFilesBySourcePatternWithGlob(t *testing.T) {

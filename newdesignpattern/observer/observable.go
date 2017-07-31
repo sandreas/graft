@@ -16,7 +16,7 @@ func (p *Observable) RegisterObserver(observer ObserverInterface) {
 	p.observers = append(p.observers, observer)
 }
 
-func (p *Observable) notifyObservers(args...interface{}) {
+func (p *Observable) NotifyObservers(args...interface{}) {
 	for _, o := range p.observers {
 		o.Notify(args...)
 	}

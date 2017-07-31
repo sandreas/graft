@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"io/ioutil"
 	"time"
-	"github.com/sandreas/graft/newprogress"
 	"fmt"
 	"github.com/sandreas/graft/newfile"
 )
@@ -75,7 +74,7 @@ import (
 
 const (
 	ERROR_PARSING_SOURCE_PATTERN = 1
-	ERROR_FINDING_FILES = 2
+	//ERROR_FINDING_FILES = 2
 	ERROR_PARSING_MIN_AGE = 3
 )
 
@@ -132,15 +131,18 @@ func main() {
 		compositeMatcher.Add(newmatcher.NewMaxAgeMatcher(maxAge))
 	}
 
-	progressHandler := newprogress.NewWalkProgressHandler(fmt.Printf)
+	transfer := newfile.NewTransfer(*sourcePattern)
+	transfer.RegisterObserver(newfile.NewWalkObserver(fmt.Printf))
+	transfer.Find(compositeMatcher)
+
+	//sourceFiles, err := newfile.FindFilesBySourcePattern(*sourcePattern, compositeMatcher, progressHandler)
+	//exitOnError(ERROR_FINDING_FILES, err)
 
 
-	sourceFiles, err := newfile.FindFilesBySourcePattern(*sourcePattern, compositeMatcher, progressHandler)
-	exitOnError(ERROR_FINDING_FILES, err)
 
-	log.Printf("found files: ", len(sourceFiles))
+	log.Printf("found files: ", len(transfer.SourceFiles))
 
-	for _, path := range sourceFiles {
+	for _, path := range transfer.SourceFiles {
 		println(path)
 		//println(value)
 	}
