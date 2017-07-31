@@ -1,9 +1,6 @@
 package newpattern
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
 	"regexp"
 )
 
@@ -15,9 +12,7 @@ const (
 )
 
 type SourcePattern struct {
-	Path string
-	Pattern string
-	isDirectory bool
+	BasePattern
 	caseSensitive bool
 	useRealRegex bool
 }
@@ -41,29 +36,29 @@ func NewSourcePattern(patternString string, params ...Flag) *SourcePattern {
 }
 
 
-func (p *SourcePattern) parse(patternString string) {
-	path := patternString
-	for {
-		if fi, err := os.Stat(path); err == nil {
-			p.Path = filepath.ToSlash(path)
-
-			p.isDirectory = fi.IsDir()
-
-
-			startIndex := len(p.Path)+1
-			if path == "." {
-				p.Pattern = strings.TrimPrefix(patternString, ".")
-				p.Pattern = strings.TrimPrefix(p.Pattern, "/")
-			} else if len(patternString) > startIndex {
-				p.Pattern = patternString[startIndex:]
-			}
-			break
-		}
-		path = filepath.Dir(path)
-	}
-
-	p.Path = strings.TrimSuffix(p.Path, "/")
-}
+//func (p *SourcePattern) parse(patternString string) {
+//	path := patternString
+//	for {
+//		if fi, err := os.Stat(path); err == nil {
+//			p.Path = filepath.ToSlash(path)
+//
+//			p.isDirectory = fi.IsDir()
+//
+//
+//			startIndex := len(p.Path)+1
+//			if path == "." {
+//				p.Pattern = strings.TrimPrefix(patternString, ".")
+//				p.Pattern = strings.TrimPrefix(p.Pattern, "/")
+//			} else if len(patternString) > startIndex {
+//				p.Pattern = patternString[startIndex:]
+//			}
+//			break
+//		}
+//		path = filepath.Dir(path)
+//	}
+//
+//	p.Path = strings.TrimSuffix(p.Path, "/")
+//}
 
 func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 	// pattern handling
@@ -103,10 +98,10 @@ func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 	return compiledPattern, err
 }
 
-func (p *SourcePattern) IsDir() bool {
-	return !p.IsFile()
-}
-
-func (p *SourcePattern) IsFile() bool {
-	return !p.isDirectory && p.Pattern == ""
-}
+//func (p *SourcePattern) IsDir() bool {
+//	return !p.IsFile()
+//}
+//
+//func (p *SourcePattern) IsFile() bool {
+//	return !p.isDirectory && p.Pattern == ""
+//}

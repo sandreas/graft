@@ -63,7 +63,11 @@ func (t *Transfer) Find(matcher *newmatcher.CompositeMatcher) {
 }
 
 
-func (t *Transfer) copyTo(dst string) {
+func (t *Transfer) CopyTo(dst *newpattern.BasePattern) {
+
+	if dst.IsFile() {
+
+	}
 
 }
 

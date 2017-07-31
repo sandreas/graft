@@ -84,15 +84,17 @@ type PositionalArguments struct {
 }
 
 type BooleanFlags struct {
-	CaseSensitive bool `arg:"-z,help:be case sensitive when matching files and folders"`
-	Regex bool `arg:"-x,help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
+	CaseSensitive bool `arg:"help:be case sensitive when matching files and folders"`
+	Regex bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
 	Verbose bool `arg:"-v,help:be verbose"`
 	Debug bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
+	Move bool `arg:"help:move / rename files - do not make a copy"`
+	Delete bool `arg:"help:delete found files"`
 }
 
 type StringParameters struct {
-	MinAge string `arg:"-m,help:minimum age"`
-	MaxAge string `arg:"-n,help:maximum age"`
+	MinAge string `arg:"help:minimum age"`
+	MaxAge string `arg:"help:maximum age"`
 }
 
 
@@ -134,6 +136,26 @@ func main() {
 	transfer := newfile.NewTransfer(*sourcePattern)
 	transfer.RegisterObserver(newfile.NewWalkObserver(fmt.Printf))
 	transfer.Find(compositeMatcher)
+
+
+	/*
+Todo:
+- Copy / Move (+dry run)
+- Import / Export
+- Serve
+*/
+
+	if args.Destination == "" {
+		// print matches
+	//} else if args.Delete {
+	// transfer.Delete()
+	//} else if args.Move{
+	// transfer.MoveTo()
+	} else {
+		//transfer.CopyTo(args.Destination)
+	}
+
+
 
 	//sourceFiles, err := newfile.FindFilesBySourcePattern(*sourcePattern, compositeMatcher, progressHandler)
 	//exitOnError(ERROR_FINDING_FILES, err)
@@ -217,7 +239,7 @@ func exitOnError(exitCode int, err error){
 }
 
 
-//kingpin.MustParse(app.Parse(os.Args[1:]))
+//kingpin.MustParse(app.parse(os.Args[1:]))
 //
 //sourcePattern := *sourcePatternParameter
 //destinationPattern := *destinationPatternParameter
