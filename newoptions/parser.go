@@ -22,6 +22,6 @@ func (parser *BitFlagParser) parse(params []BitFlag) {
 	}
 }
 
-func (parser *BitFlagParser) hasFlag(flagToCheck BitFlag) bool {
+func (parser *BitFlagParser) HasFlag(flagToCheck BitFlag) bool {
 	return parser.activeFlags & flagToCheck != 0
 }

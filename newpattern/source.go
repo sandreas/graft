@@ -2,12 +2,12 @@ package newpattern
 
 import (
 	"regexp"
+	"github.com/sandreas/graft/newoptions"
 )
 
-type Flag byte
 
 const (
-	CASE_SENSITIVE Flag = 1 << iota
+	CASE_SENSITIVE newoptions.BitFlag = 1 << iota
 	USE_REAL_REGEX
 )
 
@@ -17,20 +17,14 @@ type SourcePattern struct {
 	useRealRegex bool
 }
 
-func NewSourcePattern(patternString string, params ...Flag) *SourcePattern {
+func NewSourcePattern(patternString string, params ...newoptions.BitFlag) *SourcePattern {
 	sourcePattern := &SourcePattern{}
 	sourcePattern.parse(patternString)
 
-	size := len(params)
 
-	var flags Flag
-	flags = 0x00
-	for i := 0; i < size; i++ {
-		flags |= params[i]
-	}
-
-	sourcePattern.caseSensitive = flags & CASE_SENSITIVE != 0
-	sourcePattern.useRealRegex = flags & USE_REAL_REGEX != 0
+	bitFlags := newoptions.NewBitFlagParser(params...)
+	sourcePattern.caseSensitive = bitFlags.HasFlag(CASE_SENSITIVE)
+	sourcePattern.useRealRegex = bitFlags.HasFlag(USE_REAL_REGEX)
 
 	return sourcePattern
 }

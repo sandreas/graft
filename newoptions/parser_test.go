@@ -17,10 +17,10 @@ func TestParseSingleOrConcatBitFlagParam(t *testing.T) {
 
 	subject := NewBitFlagParser(FLAG_ONE|FLAG_FOUR)
 
-	expect.True(subject.hasFlag(FLAG_ONE))
-	expect.False(subject.hasFlag(FLAG_TWO))
-	expect.False(subject.hasFlag(FLAG_THREE))
-	expect.True(subject.hasFlag(FLAG_FOUR))
+	expect.True(subject.HasFlag(FLAG_ONE))
+	expect.False(subject.HasFlag(FLAG_TWO))
+	expect.False(subject.HasFlag(FLAG_THREE))
+	expect.True(subject.HasFlag(FLAG_FOUR))
 }
 
 
@@ -29,10 +29,10 @@ func TestParseMultipleBitFlagParams(t *testing.T) {
 
 	subject := NewBitFlagParser(FLAG_ONE, FLAG_FOUR)
 
-	expect.True(subject.hasFlag(FLAG_ONE))
-	expect.False(subject.hasFlag(FLAG_TWO))
-	expect.False(subject.hasFlag(FLAG_THREE))
-	expect.True(subject.hasFlag(FLAG_FOUR))
+	expect.True(subject.HasFlag(FLAG_ONE))
+	expect.False(subject.HasFlag(FLAG_TWO))
+	expect.False(subject.HasFlag(FLAG_THREE))
+	expect.True(subject.HasFlag(FLAG_FOUR))
 }
 
 func TestParseNoFlags(t *testing.T) {
@@ -40,8 +40,8 @@ func TestParseNoFlags(t *testing.T) {
 
 	subject := NewBitFlagParser()
 
-	expect.False(subject.hasFlag(FLAG_ONE))
-	expect.False(subject.hasFlag(FLAG_TWO))
-	expect.False(subject.hasFlag(FLAG_THREE))
-	expect.False(subject.hasFlag(FLAG_FOUR))
+	expect.False(subject.HasFlag(FLAG_ONE))
+	expect.False(subject.HasFlag(FLAG_TWO))
+	expect.False(subject.HasFlag(FLAG_THREE))
+	expect.False(subject.HasFlag(FLAG_FOUR))
 }
