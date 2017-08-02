@@ -133,9 +133,12 @@ func main() {
 		compositeMatcher.Add(newmatcher.NewMaxAgeMatcher(maxAge))
 	}
 
-	transfer := newfile.NewTransfer(*sourcePattern)
-	transfer.RegisterObserver(newfile.NewWalkObserver(fmt.Printf))
-	transfer.Find(compositeMatcher)
+	locator := newfile.NewLocator(*sourcePattern)
+	locator.RegisterObserver(newfile.NewWalkObserver(fmt.Printf))
+	locator.Find(compositeMatcher)
+
+
+
 
 
 	/*
@@ -148,11 +151,11 @@ Todo:
 	if args.Destination == "" {
 		// print matches
 	//} else if args.Delete {
-	// transfer.Delete()
+	// locator.Delete()
 	//} else if args.Move{
-	// transfer.MoveTo()
+	// locator.MoveTo()
 	} else {
-		//transfer.CopyTo(args.Destination)
+		//locator.copyTo(args.Destination)
 	}
 
 
@@ -162,9 +165,9 @@ Todo:
 
 
 
-	log.Printf("found files: ", len(transfer.SourceFiles))
+	log.Printf("found files: ", len(locator.SourceFiles))
 
-	for _, path := range transfer.SourceFiles {
+	for _, path := range locator.SourceFiles {
 		println(path)
 		//println(value)
 	}

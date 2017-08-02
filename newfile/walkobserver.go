@@ -19,24 +19,24 @@ func NewWalkObserver(handle func(format string, a ...interface{}) (int, error)) 
 }
 
 func (ph *WalkObserver) Notify(a...interface{}) {
-	if a[0] == OBSERVER_INCREASE_ITEMS {
+	if a[0] == LOCATOR_INCREASE_ITEMS {
 		ph.forceShow = ph.itemCount == 0
 		ph.itemCount++
 	}
 
-	if a[0] == OBSERVER_INCREASE_MATCHES {
+	if a[0] == LOCATOR_INCREASE_MATCHES {
 		ph.forceShow = ph.matchCount == 0
 		ph.itemCount++
 		ph.matchCount++
 	}
 
-	if a[0] == OBSERVER_FINISH {
+	if a[0] == LOCATOR_FINISH {
 		ph.forceShow = true
 	}
 
 	ph.showProgress()
 
-	if a[0] == OBSERVER_FINISH {
+	if a[0] == LOCATOR_FINISH {
 		ph.outputCallback("\n")
 	}
 }

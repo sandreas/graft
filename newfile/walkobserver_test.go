@@ -23,29 +23,29 @@ func TestParse(t *testing.T) {
 	expect := assert.New(t)
 	handler := NewWalkObserver(FakePrintf)
 	handler.Interval = 2
-	handler.Notify(OBSERVER_INCREASE_ITEMS)
+	handler.Notify(LOCATOR_INCREASE_ITEMS)
 
 	expect.Equal("\rscanning - total: %d", lastFakePrintfString)
 	expect.Len(lastFakePrintfParams, 1)
 
-	handler.Notify(OBSERVER_INCREASE_ITEMS)
+	handler.Notify(LOCATOR_INCREASE_ITEMS)
 
 	expect.Equal("\rscanning - total: %d", lastFakePrintfString)
 	expect.Len(lastFakePrintfParams, 1)
 
-	handler.Notify(OBSERVER_INCREASE_ITEMS)
-	handler.Notify(OBSERVER_INCREASE_MATCHES)
+	handler.Notify(LOCATOR_INCREASE_ITEMS)
+	handler.Notify(LOCATOR_INCREASE_MATCHES)
 
 	expect.Equal("\rscanning - total: %d,  matches: %d", lastFakePrintfString)
 	expect.Len(lastFakePrintfParams, 2)
 
 	for i := 0; i < 20; i++ {
-		handler.Notify(OBSERVER_INCREASE_ITEMS)
+		handler.Notify(LOCATOR_INCREASE_ITEMS)
 	}
 
 	expect.Equal(int64(500), handler.Interval)
 
-	handler.Notify(OBSERVER_FINISH)
+	handler.Notify(LOCATOR_FINISH)
 	expect.Equal("\n", lastFakePrintfString)
 	expect.Len(lastFakePrintfParams, 0)
 

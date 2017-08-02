@@ -16,24 +16,24 @@ type FakeObserver struct {
 }
 
 func(ph *FakeObserver) Notify(a...interface{}){
-	if a[0] == OBSERVER_INCREASE_MATCHES {
+	if a[0] == LOCATOR_INCREASE_MATCHES {
 		ph.increaseMatchesCalls++
 		return
 	}
 
-	if a[0] == OBSERVER_INCREASE_ITEMS {
+	if a[0] == LOCATOR_INCREASE_ITEMS {
 		ph.increaseItemsCalls++
 		return
 	}
 
-	if a[0] == OBSERVER_FINISH {
+	if a[0] == LOCATOR_FINISH {
 		ph.finishCalls++
 		return
 	}
 }
 
 
-func preparePattern(patternString string) (*Transfer, *FakeObserver, *newmatcher.CompositeMatcher) {
+func preparePattern(patternString string) (*Locator, *FakeObserver, *newmatcher.CompositeMatcher) {
 	sourcePattern := newpattern.NewSourcePattern(patternString)
 	compiledRegex, _ := sourcePattern.Compile()
 	matcher := newmatcher.NewRegexMatcher(*compiledRegex)
@@ -41,7 +41,7 @@ func preparePattern(patternString string) (*Transfer, *FakeObserver, *newmatcher
 	composite.Add(matcher)
 	fakeObserver := &FakeObserver{}
 
-	subject := NewTransfer(*sourcePattern)
+	subject := NewLocator(*sourcePattern)
 	subject.RegisterObserver(fakeObserver)
 
 	return subject, fakeObserver, composite
