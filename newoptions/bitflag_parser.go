@@ -1,5 +1,6 @@
 package newoptions
 
+
 type BitFlag byte
 
 
@@ -20,6 +21,10 @@ func (parser *BitFlagParser) parse(params []BitFlag) {
 	for i := 0; i < size; i++ {
 		parser.activeFlags |= params[i]
 	}
+}
+
+func (parser *BitFlagParser) SetFlag(flagToSet BitFlag) {
+	parser.activeFlags |= flagToSet
 }
 
 func (parser *BitFlagParser) HasFlag(flagToCheck BitFlag) bool {

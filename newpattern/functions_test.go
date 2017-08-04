@@ -4,6 +4,7 @@ import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"time"
+	"regexp"
 )
 
 func TestGlobToRegex(t *testing.T) {
@@ -63,4 +64,16 @@ func TestStrToAge(t *testing.T) {
 	actualTime, _ = StrToAge("2 years", referenceTime)
 	expectedTime  = referenceTime.AddDate(-2, 0, 0)
 	expect.Equal(expectedTime.UnixNano(), actualTime.UnixNano())
+}
+
+func TestBuildMatchList(t *testing.T) {
+	expect := assert.New(t)
+	compiled, _ := regexp.Compile("data/fixtures/global/(.*)(\\.txt)$")
+
+	list := BuildMatchList(compiled, "data/fixtures/global/documents (2010)/document (2010).txt")
+
+
+	expect.Equal(2, len(list))
+	expect.Equal("documents (2010)/document (2010)", list[0])
+	expect.Equal(".txt", list[1])
 }

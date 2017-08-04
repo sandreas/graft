@@ -9,7 +9,7 @@ import (
 	"github.com/sandreas/graft/newdesignpattern/observer"
 )
 
-type FileCopier struct {
+type CopyStrategy struct {
 	newdesignpattern.Observable
 	Fs afero.Fs
 	ProgressHandler *CopyProgressHandler
@@ -17,8 +17,8 @@ type FileCopier struct {
 }
 
 
-func NewFileCopier() *FileCopier {
-	copier := &FileCopier{
+func NewCopyStrategy() *CopyStrategy {
+	copier := &CopyStrategy{
 		Fs: afero.NewOsFs(),
 		ProgressHandler: nil,
 		bufferSize: 1024 * 32,
@@ -27,7 +27,7 @@ func NewFileCopier() *FileCopier {
 }
 
 
-func (c *FileCopier) Copy(s, d string)  error {
+func (c *CopyStrategy) Copy(s, d string)  error {
 
 	srcStats, err := c.Fs.Stat(s)
 	if err != nil {
@@ -96,7 +96,7 @@ func (c *FileCopier) Copy(s, d string)  error {
 	return nil
 }
 
-func(c *FileCopier) handleProgress(bytesTransferred, srcSize, bufferSize int64) (int64) {
+func(c *CopyStrategy) handleProgress(bytesTransferred, srcSize, bufferSize int64) (int64) {
 	if c.ProgressHandler == nil {
 		return bufferSize
 	}

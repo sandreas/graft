@@ -6,6 +6,7 @@ import (
 	"time"
 	"strconv"
 	"regexp"
+	"path/filepath"
 )
 
 func GlobToRegexString(glob string) (string) {
@@ -108,4 +109,20 @@ func StrToAge(t string, reference time.Time) (time.Time, error) {
 
 	layout := "2006-01-02T15:04:05.000Z"
 	return time.Parse(layout, t)
+}
+
+func BuildMatchList(sourcePattern *regexp.Regexp, subject string)([]string) {
+	list := make([]string, 0)
+	normalizedPath := filepath.ToSlash(subject)
+	sourcePattern.ReplaceAllStringFunc(normalizedPath, func(m string) string {
+		parts := sourcePattern.FindStringSubmatch(m)
+		i := 1
+		for range parts[1:] {
+			list = append(list, parts[i])
+			i++
+
+		}
+		return m
+	})
+	return list
 }

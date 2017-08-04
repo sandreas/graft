@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"fmt"
+
 	"strings"
 )
 
@@ -16,6 +17,7 @@ type CopyProgressHandler struct {
 	timerLastUpdate time.Time
 	reportInterval time.Duration
 	bytesLastUpdate int64
+
 }
 
 func NewCopyProgressHandler(bufSize int64, repInterval time.Duration) (*CopyProgressHandler) {
@@ -28,8 +30,13 @@ func NewCopyProgressHandler(bufSize int64, repInterval time.Duration) (*CopyProg
 
 func (s *CopyProgressHandler) Update(bytesTransferred, size, chunkSize int64, now time.Time) (int64, string) {
 	s.startTimer(bytesTransferred, 1 * int64(time.Second), now)
-	shouldReport, bytesPerSecond, percent := s.getReportStatus(bytesTransferred, size, now)
+	shouldReport := true
+	bytesPerSecond := float64(0)
+	percent := float64(0)
 
+	shouldReport, bytesPerSecond, percent = s.getReportStatus(bytesTransferred, size, now)
+
+	fmt.Printf("bytesPerSecond: %+v", bytesPerSecond)
 	messageSuffix := ""
 
 	if bytesTransferred == 0 {
@@ -51,6 +58,8 @@ func (s *CopyProgressHandler) Update(bytesTransferred, size, chunkSize int64, no
 		if bytesPerSecond == 0 {
 			bandwidthOutput = ""
 		}
+		//log.Printf("bandwidthOutput: %v, progressChars: %v, percentOutput: %v, messageSuffix: %v", bandwidthOutput, progressChars, percentOutput, messageSuffix)
+		//return chunkSize, ""
 		progressBar := fmt.Sprintf("[%-" + strconv.Itoa(charCountWhenFullyTransmitted + 1) + "s] " + percentOutput + "%%" + bandwidthOutput, strings.Repeat("=", progressChars) + ">")
 
 		return chunkSize, "\r" + progressBar + messageSuffix
@@ -85,5 +94,5 @@ func (s *CopyProgressHandler) getReportStatus(bytesTransferred, size int64, now 
 		return true, bytesPerSecond, percent
 	}
 
-	return false, 0, 0
+	return false, float64(0), float64(0)
 }

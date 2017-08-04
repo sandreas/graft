@@ -31,7 +31,7 @@ func prepareFilesystemTest(src, srcContent, dst, dstContent string) afero.Fs {
 func TestCopyNewFile(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewFileCopier()
+	subject := NewCopyStrategy()
 	subject.ProgressHandler = NewCopyProgressHandler(2, 1 * time.Nanosecond)
 	observer := &FakeObserver{}
 	subject.RegisterObserver(observer)
@@ -54,7 +54,7 @@ func TestCopyNewFile(t *testing.T) {
 func TestCopyLargerSourceError(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewFileCopier()
+	subject := NewCopyStrategy()
 
 	srcFile := "test-src.txt"
 	srcContents := "this is a small src with larger dst"
@@ -70,7 +70,7 @@ func TestCopyLargerSourceError(t *testing.T) {
 func TestCopyPartial(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewFileCopier()
+	subject := NewCopyStrategy()
 
 	srcFile := "test-src.txt"
 	srcContents := "this is the full content of a file with a partial existing destination"
@@ -86,7 +86,7 @@ func TestCopyPartial(t *testing.T) {
 func TestCopyExistingCompleted(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewFileCopier()
+	subject := NewCopyStrategy()
 
 	srcFile := "test-src.txt"
 	srcContents := "this is a file where src and dst are fully equal"
