@@ -41,7 +41,7 @@ func TestCopyNewFile(t *testing.T) {
 	destinationFile := "test1-dst.txt"
 
 	subject.Fs = prepareFilesystemTest(srcFile, srcContents, destinationFile, "")
-	err := subject.Copy(srcFile, destinationFile)
+	err := subject.Transfer(srcFile, destinationFile)
 	expect.Equal(nil, err)
 
 	dstContents, _ := afero.ReadFile(subject.Fs, destinationFile)
@@ -61,7 +61,7 @@ func TestCopyLargerSourceError(t *testing.T) {
 	destinationFile := "test-dst.txt"
 	dstContents := "this is a dst that is larger than its source and therefore cannot be copied"
 	subject.Fs = prepareFilesystemTest(srcFile, srcContents, destinationFile, dstContents)
-	err := subject.Copy(srcFile, destinationFile)
+	err := subject.Transfer(srcFile, destinationFile)
 	expect.Error(err)
 	contents, _ := afero.ReadFile(subject.Fs, destinationFile)
 	expect.Equal(dstContents, string(contents))
@@ -77,7 +77,7 @@ func TestCopyPartial(t *testing.T) {
 	destinationFile := "test-dst.txt"
 	dstContents := "this is the full content of a file with a partial"
 	subject.Fs = prepareFilesystemTest(srcFile, srcContents, destinationFile, dstContents)
-	err := subject.Copy(srcFile, destinationFile)
+	err := subject.Transfer(srcFile, destinationFile)
 	expect.Equal(nil, err)
 	contents, _ := afero.ReadFile(subject.Fs, destinationFile)
 	expect.Equal(srcContents, string(contents))
@@ -93,7 +93,7 @@ func TestCopyExistingCompleted(t *testing.T) {
 	destinationFile := "test-dst.txt"
 	dstContents := "this is a file where src and dst are fully equal"
 	subject.Fs = prepareFilesystemTest(srcFile, srcContents, destinationFile, dstContents)
-	err := subject.Copy(srcFile, destinationFile)
+	err := subject.Transfer(srcFile, destinationFile)
 	expect.Equal(nil, err)
 	contents, _ := afero.ReadFile(subject.Fs, destinationFile)
 	expect.Equal(srcContents, string(contents))

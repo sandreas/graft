@@ -13,33 +13,29 @@ import (
 
 const DRY_RUN = 1
 
-type CopyAction struct {
+type TransferAction struct {
 	newdesignpattern.Observable
 	Fs            afero.Fs
 	src           newpattern.SourcePattern
 	sourceFiles   []string
-	copyStrategy  newtransfer.CopyStrategy
-	currentSrc    os.FileInfo
-	currentSrcErr error
-	currentDst    os.FileInfo
-	currentDstErr error
+	transferStrategy  newtransfer.CopyStrategy
 	dryRun        bool
 }
 
-func NewCopyAction(sourceFiles []string, copyStrategy newtransfer.CopyStrategy, params ...newoptions.BitFlag) *CopyAction {
-	copyAction := &CopyAction{
+func NewTransferAction(sourceFiles []string, transferStrategy newtransfer.CopyStrategy, params ...newoptions.BitFlag) *TransferAction {
+	tranferAction := &TransferAction{
 		Fs:           afero.NewOsFs(),
 		sourceFiles:  sourceFiles,
-		copyStrategy: copyStrategy,
+		transferStrategy: transferStrategy,
 	}
 
 	bitFlags := newoptions.NewBitFlagParser(params...)
-	copyAction.dryRun = bitFlags.HasFlag(DRY_RUN)
+	tranferAction.dryRun = bitFlags.HasFlag(DRY_RUN)
 
-	return copyAction
+	return tranferAction
 }
 
-func (act *CopyAction) Copy(srcPattern *newpattern.SourcePattern, dstPattern *newpattern.DestinationPattern) error {
+func (act *TransferAction) Copy(srcPattern *newpattern.SourcePattern, dstPattern *newpattern.DestinationPattern) error {
 	compiledPattern, err := srcPattern.Compile()
 	if err != nil {
 		return err
@@ -69,7 +65,7 @@ func (act *CopyAction) Copy(srcPattern *newpattern.SourcePattern, dstPattern *ne
 	}
 	return err
 }
-func (act *CopyAction) transfer(src string, dst string) error {
+func (act *TransferAction) transfer(src string, dst string) error {
 	srcStat, srcStatErr := act.Fs.Stat(src)
 	if srcStatErr != nil {
 		return errors.New("Could not read source file " + src)
@@ -106,5 +102,5 @@ func (act *CopyAction) transfer(src string, dst string) error {
 		}
 	}
 
-	return act.copyStrategy.Copy(src, dst)
+	return act.transferStrategy.Transfer(src, dst)
 }

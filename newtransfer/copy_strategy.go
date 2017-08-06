@@ -27,7 +27,7 @@ func NewCopyStrategy() *CopyStrategy {
 }
 
 
-func (c *CopyStrategy) Copy(s, d string)  error {
+func (c *CopyStrategy) Transfer(s, d string)  error {
 
 	srcStats, err := c.Fs.Stat(s)
 	if err != nil {

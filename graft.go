@@ -133,7 +133,7 @@ func main() {
 
 	/*
 Todo:
-- Copy / Move (+dry run)
+- Transfer / Move (+dry run)
 - Import / Export
 - Serve
 */
@@ -163,7 +163,7 @@ Todo:
 	copyStrategy.ProgressHandler = newtransfer.NewCopyProgressHandler(int64(32*1024), 2 * time.Second)
 	copyStrategy.RegisterObserver(messagePrinter)
 
-	copyAction := newaction.NewCopyAction(locator.SourceFiles, *copyStrategy, actionBitFlags)
+	copyAction := newaction.NewTransferAction(locator.SourceFiles, *copyStrategy, actionBitFlags)
 	copyAction.RegisterObserver(messagePrinter)
 	err = copyAction.Copy(sourcePattern, destinationPattern)
 
