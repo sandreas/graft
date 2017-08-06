@@ -18,28 +18,15 @@ import (
 	"github.com/sandreas/graft/newoptions"
 	"strconv"
 )
-//	sourcePatternParameter = app.Arg("source-pattern", "source pattern - used to locate files (e.g. src/*)").Required().String()
-//	destinationPatternParameter = app.Arg("destination-pattern", "destination pattern for transfer (e.g. dst/$1)").Default("").String()
-//	exportTo = app.Flag("export-to", "export source listing to file, one line per item").Default("").String()
-//	filesFrom = app.Flag("files-from", "import source listing from file, one line per item").Default("").String()
-//	minAge = app.Flag("min-age", " minimum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)").Default("").String()
-//	maxAge = app.Flag("max-age", "maximum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)").Default("").String()
-//	quiet = app.Flag("quiet", "quiet mode - do not show any output").Bool()
-//	caseSensitive = app.Flag("case-sensitive", "be case sensitive when matching files and folders").Bool()
-//	debug = app.Flag("debug", "enable debug logging").Bool()
-//	regex = app.Flag("regex", "use a real regex instead of glob patterns (e.g. src/.*\\.jpg)").Bool()
-//	hideMatches = app.Flag("hide-matches", "hide matches in search mode ($1: ...)").Bool()
-
 
 // TODO:
-//	dryRun = app.Flag("dry-run", "dry-run / simulation mode").Bool()
-//	move = app.Flag("move", "move / rename files - do not make a copy").Bool()
-//	times = app.Flag("times", "transfer source modify times to destination").Bool()
 //	serve = app.Flag("serve", "start a server on this port").Default("0").String()
 //
 // Input / Colors:
 // https://github.com/dixonwille/wlog
 //)
+
+
 const (
 	ERROR_PARSING_SOURCE_PATTERN = 1
 	//ERROR_FINDING_FILES = 2
@@ -60,8 +47,9 @@ type BooleanFlags struct {
 	Quiet bool `arg:"help:do not show any output"`
 	ShowMatches bool `arg:"--show-matches,help:show pattern matches for each found file"`
 	DryRun bool `arg:"--dry-run,help:simulation mode output only files remain unaffected"`
+	Times bool `arg:"help:transfer source modify times to destination"`
+	Move bool `arg:"help:move / rename files - do not make a copy"`
 	//Verbose bool `arg:"-v,help:be verbose"`
-	// Move bool `arg:"help:move / rename files - do not make a copy"`
 	// Delete bool `arg:"help:delete found files"`
 }
 
@@ -131,12 +119,7 @@ func main() {
 		}
 	}
 
-	/*
-Todo:
-- Transfer / Move (+dry run)
-- Import / Export
-- Serve
-*/
+
 
 	if args.Destination == "" {
 		for _, path := range locator.SourceFiles {
@@ -148,24 +131,27 @@ Todo:
 		}
 		return
 	}
-		// print matches
-	//} else if args.Delete {
-	// locator.Delete()
-	//} else if args.Move{
-	// locator.MoveTo()
 
 	destinationPattern := newpattern.NewDestinationPattern(args.Destination)
 	messagePrinter := newtransfer.NewMessagePrinterObserver(suppressablePrintf)
 	actionBitFlags :=  parseActionBitFlags()
 
+	if args.Move {
+		moveStrategy := newtransfer.NewMoveStrategy()
 
-	copyStrategy := newtransfer.NewCopyStrategy()
-	copyStrategy.ProgressHandler = newtransfer.NewCopyProgressHandler(int64(32*1024), 2 * time.Second)
-	copyStrategy.RegisterObserver(messagePrinter)
+		moveAction := newaction.NewTransferAction(locator.SourceFiles, moveStrategy, actionBitFlags)
+		moveAction.RegisterObserver(messagePrinter)
+		err = moveAction.Execute(sourcePattern, destinationPattern)
+	} else {
+		copyStrategy := newtransfer.NewCopyStrategy()
+		copyStrategy.ProgressHandler = newtransfer.NewCopyProgressHandler(int64(32*1024), 2 * time.Second)
+		copyStrategy.RegisterObserver(messagePrinter)
 
-	copyAction := newaction.NewTransferAction(locator.SourceFiles, copyStrategy, actionBitFlags)
-	copyAction.RegisterObserver(messagePrinter)
-	err = copyAction.Execute(sourcePattern, destinationPattern)
+		copyAction := newaction.NewTransferAction(locator.SourceFiles, copyStrategy, actionBitFlags)
+		copyAction.RegisterObserver(messagePrinter)
+		err = copyAction.Execute(sourcePattern, destinationPattern)
+	}
+
 
 	if err != nil {
 		suppressablePrintf(err.Error())
@@ -222,7 +208,11 @@ func parseSourcePatternBitFlags() newoptions.BitFlag {
 func parseActionBitFlags() newoptions.BitFlag {
 	var actionFlags newoptions.BitFlag
 	if args.DryRun {
-		actionFlags |= newaction.DRY_RUN
+		actionFlags |= newaction.FLAG_DRY_RUN
+	}
+
+	if args.Times {
+		actionFlags |= newaction.FLAG_TIMES
 	}
 	return actionFlags
 }
