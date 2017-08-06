@@ -98,3 +98,22 @@ func TestCopyExistingCompleted(t *testing.T) {
 	contents, _ := afero.ReadFile(subject.Fs, destinationFile)
 	expect.Equal(srcContents, string(contents))
 }
+
+
+func TestCopyZeroBytesFile(t *testing.T) {
+	expect := assert.New(t)
+
+	subject := NewCopyStrategy()
+
+	srcFile := "test-src.txt"
+	srcContents := ""
+	destinationFile := "test-dst.txt"
+	dstContents := ""
+	subject.Fs = prepareFilesystemTest(srcFile, srcContents, destinationFile, dstContents)
+	err := subject.Transfer(srcFile, destinationFile)
+	expect.Equal(nil, err)
+	contents, _ := afero.ReadFile(subject.Fs, destinationFile)
+	expect.Equal(srcContents, string(contents))
+	_, err = subject.Fs.Stat(destinationFile)
+	expect.Nil(err)
+}

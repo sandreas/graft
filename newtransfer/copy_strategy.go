@@ -36,10 +36,14 @@ func (c *CopyStrategy) Transfer(s, d string)  error {
 	srcSize := srcStats.Size()
 	dstSize := int64(0)
 	dstStats, err := c.Fs.Stat(d)
+
+	dstExists := true
 	if err == nil {
 		dstSize = dstStats.Size()
 	} else if !os.IsNotExist(err) {
 		return err
+	} else {
+		dstExists = false
 	}
 
 
@@ -47,7 +51,7 @@ func (c *CopyStrategy) Transfer(s, d string)  error {
 		return errors.New("File cannot be resumed, destination is larger than source")
 	}
 
-	if srcSize == dstSize {
+	if dstExists && srcSize == dstSize {
 		c.handleProgress(dstSize, srcSize, c.bufferSize)
 		return nil
 	}

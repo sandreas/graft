@@ -123,7 +123,10 @@ func (act *TransferAction) transfer(src string, dst string) error {
 		}
 
 		if act.keepTimes {
-			return act.transferTimes(dstDirName, srcDirStat)
+			err := act.transferTimes(dstDirName, srcDirStat)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -140,6 +143,6 @@ func (act *TransferAction) transfer(src string, dst string) error {
 }
 
 func (act *TransferAction) transferTimes(dst string, inStats os.FileInfo) error {
-	return os.Chtimes(dst, inStats.ModTime(), inStats.ModTime())
+	return act.Fs.Chtimes(dst, inStats.ModTime(), inStats.ModTime())
 
 }
