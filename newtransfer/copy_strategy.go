@@ -11,21 +11,24 @@ import (
 
 type CopyStrategy struct {
 	newdesignpattern.Observable
-	Fs afero.Fs
-	ProgressHandler *CopyProgressHandler
-	bufferSize int64
+	Fs              afero.Fs
+	progressHandler *CopyProgressHandler
+	bufferSize      int64
 }
 
 
 func NewCopyStrategy() *CopyStrategy {
 	copier := &CopyStrategy{
-		Fs: afero.NewOsFs(),
-		ProgressHandler: nil,
-		bufferSize: 1024 * 32,
+		Fs:              afero.NewOsFs(),
+		progressHandler: nil,
+		bufferSize:      1024 * 32,
 	}
 	return copier
 }
 
+func (c *CopyStrategy) SetProgressHandler(h *CopyProgressHandler) {
+	c.progressHandler = h
+}
 
 func (c *CopyStrategy) Transfer(s, d string)  error {
 
@@ -97,10 +100,10 @@ func (c *CopyStrategy) Transfer(s, d string)  error {
 }
 
 func(c *CopyStrategy) handleProgress(bytesTransferred, srcSize, bufferSize int64) (int64) {
-	if c.ProgressHandler == nil {
+	if c.progressHandler == nil {
 		return bufferSize
 	}
-	newBufferSize, message := c.ProgressHandler.Update(bytesTransferred, srcSize, bufferSize, time.Now())
+	newBufferSize, message := c.progressHandler.Update(bytesTransferred, srcSize, bufferSize, time.Now())
 	c.NotifyObservers(message)
 	return newBufferSize
 }

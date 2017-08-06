@@ -23,19 +23,19 @@ type TransferAction struct {
 }
 
 func NewTransferAction(sourceFiles []string, transferStrategy newtransfer.CopyStrategy, params ...newoptions.BitFlag) *TransferAction {
-	tranferAction := &TransferAction{
+	transferAction := &TransferAction{
 		Fs:           afero.NewOsFs(),
 		sourceFiles:  sourceFiles,
 		transferStrategy: transferStrategy,
 	}
 
 	bitFlags := newoptions.NewBitFlagParser(params...)
-	tranferAction.dryRun = bitFlags.HasFlag(DRY_RUN)
+	transferAction.dryRun = bitFlags.HasFlag(DRY_RUN)
 
-	return tranferAction
+	return transferAction
 }
 
-func (act *TransferAction) Copy(srcPattern *newpattern.SourcePattern, dstPattern *newpattern.DestinationPattern) error {
+func (act *TransferAction) Execute(srcPattern *newpattern.SourcePattern, dstPattern *newpattern.DestinationPattern) error {
 	compiledPattern, err := srcPattern.Compile()
 	if err != nil {
 		return err
