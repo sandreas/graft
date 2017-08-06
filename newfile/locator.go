@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"os"
 	"github.com/sandreas/graft/newmatcher"
+	"strings"
 )
 
 const (
@@ -42,9 +43,13 @@ func (t *Locator) Find(matcher *newmatcher.CompositeMatcher) {
 		if innerPath == "." || innerPath == ".." {
 			return nil
 		}
+		normalizedInnerPath := strings.TrimRight(filepath.ToSlash(innerPath), "/")
 
+		// skip direct path matches (data/* should not match data/ itself)
+		if normalizedInnerPath == t.src.Path && t.src.Pattern != "" {
+			return nil
+		}
 
-		normalizedInnerPath := filepath.ToSlash(innerPath)
 		if info.IsDir() {
 			normalizedInnerPath += "/"
 		}

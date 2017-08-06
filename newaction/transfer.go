@@ -10,8 +10,8 @@ import (
 	"github.com/sandreas/graft/newpattern"
 	"github.com/sandreas/graft/newtransfer"
 	"github.com/spf13/afero"
+	"strings"
 )
-
 
 const (
 	FLAG_DRY_RUN newoptions.BitFlag = 1 << iota
@@ -26,6 +26,7 @@ type TransferAction struct {
 	transferStrategy newtransfer.TransferStrategyInterface
 	dryRun           bool
 	keepTimes        bool
+	transferredDirs  []string
 }
 
 func NewTransferAction(sourceFiles []string, transferStrategy newtransfer.TransferStrategyInterface, params ...newoptions.BitFlag) *TransferAction {
@@ -33,6 +34,7 @@ func NewTransferAction(sourceFiles []string, transferStrategy newtransfer.Transf
 		Fs:               afero.NewOsFs(),
 		sourceFiles:      sourceFiles,
 		transferStrategy: transferStrategy,
+		transferredDirs:  []string{},
 	}
 
 	bitFlags := newoptions.NewBitFlagParser(params...)
@@ -70,75 +72,55 @@ func (act *TransferAction) Execute(srcPattern *newpattern.SourcePattern, dstPatt
 		}
 
 	}
+
+	act.transferStrategy.CleanUp(act.transferredDirs)
+
 	return err
 }
 func (act *TransferAction) transfer(src string, dst string) error {
-	srcStat, srcStatErr := act.Fs.Stat(src)
-	if srcStatErr != nil {
-		return errors.New("Could not read source file " + src)
+	srcStat, err := act.Fs.Stat(src)
+	if err != nil {
+		return err
 	}
 
-	dstStat, dstStatErr := os.Stat(dst)
 	if srcStat.IsDir() {
-		if os.IsNotExist(dstStatErr) {
-			e := act.Fs.MkdirAll(dst, srcStat.Mode())
-			if e != nil {
-				return e
-			}
-
-			if act.keepTimes {
-				return act.transferTimes(dst, srcStat)
-			}
-
-			return nil
-		}
-
-		if !dstStat.IsDir() {
-			return errors.New("transfer failed: " + src + " is a directory, " + dst + " exists and is not a directory")
-		}
-
-		if act.keepTimes {
-			return act.transferTimes(dst, srcStat)
-		}
-
-		return nil
+		return act.transferDir(src, dst, srcStat, true)
 	}
-	if !os.IsNotExist(dstStatErr) && dstStat.IsDir() {
-		return errors.New("transfer failed: " + src + " is a file, " + dst + " is a directory")
-	}
+
+	_, err = os.Stat(dst)
 
 	// Ensure directory of file exists
-	if os.IsNotExist(dstStatErr) || act.keepTimes {
+	if os.IsNotExist(err) || act.keepTimes {
 		srcDirName := filepath.Dir(src)
-		srcDirStat, srcDirStatErr := os.Stat(srcDirName)
-		if srcDirStatErr != nil {
-			return errors.New("Could not stat " + srcDirName + " of file " + src + ": " + srcDirStatErr.Error())
+		srcDirStat, err := os.Stat(srcDirName)
+		if err != nil {
+			return errors.New("Could not stat " + srcDirName + " of file " + src + ": " + err.Error())
 		}
 
 		dstDirName := filepath.Dir(dst)
-		mkdirErr := act.Fs.MkdirAll(dstDirName, srcDirStat.Mode())
-		if mkdirErr != nil {
-			return mkdirErr
-		}
-
-		if act.keepTimes {
-			err := act.transferTimes(dstDirName, srcDirStat)
-			if err != nil {
-				return err
-			}
+		err = act.transferDir(srcDirName, dstDirName, srcDirStat, false)
+		if err != nil {
+			return err
 		}
 	}
 
-	e := act.transferStrategy.Transfer(src, dst)
+	err = act.transferStrategy.Transfer(src, dst)
 
-	if e != nil {
-		return e
-	}
-
-	if act.keepTimes {
+	if err == nil && act.keepTimes {
 		return act.transferTimes(dst, srcStat)
 	}
 	return nil
+}
+
+func (act *TransferAction) transferDir(src, dst string, srcStat os.FileInfo, shouldRemoveAfterTransfer bool) error {
+	err := act.Fs.MkdirAll(dst, srcStat.Mode())
+	if err == nil && shouldRemoveAfterTransfer {
+		act.transferredDirs = append(act.transferredDirs, strings.TrimRight(src, "/"))
+	}
+	if err == nil && act.keepTimes {
+		err = act.transferTimes(dst, srcStat)
+	}
+	return err
 }
 
 func (act *TransferAction) transferTimes(dst string, inStats os.FileInfo) error {

@@ -47,53 +47,72 @@ func preparePattern(patternString string) (*Locator, *FakeObserver, *newmatcher.
 	return subject, fakeObserver, composite
 }
 
-func TestFindWithFile(t *testing.T) {
+//func TestFindWithFile(t *testing.T) {
+//	expect := assert.New(t)
+//
+//	subject, fakeObserver, composite := preparePattern("../data/fixtures/global/file.txt")
+//
+//	subject.Find(composite)
+//
+//	expect.Equal(1, len(subject.SourceFiles))
+//	expect.Equal("../data/fixtures/global/file.txt", subject.SourceFiles[0])
+//
+//	expect.Equal(int64(0), fakeObserver.increaseItemsCalls)
+//	expect.Equal(int64(1), fakeObserver.increaseMatchesCalls)
+//	expect.Equal(int64(1), fakeObserver.finishCalls)
+//}
+//
+//
+//func TestFindFilesWithDirectory(t *testing.T) {
+//	expect := assert.New(t)
+//
+//	subject, fakeObserver, composite := preparePattern("../data/fixtures/file/WalkPathByPattern/dir")
+//
+//	subject.Find(composite)
+//
+//	expect.Equal(4, len(subject.SourceFiles))
+//	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/", subject.SourceFiles[0])
+//	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[1])
+//	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/", subject.SourceFiles[2])
+//	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[3])
+//
+//	expect.Equal(int64(0), fakeObserver.increaseItemsCalls)
+//	expect.Equal(int64(4), fakeObserver.increaseMatchesCalls)
+//	expect.Equal(int64(1), fakeObserver.finishCalls)
+//}
+
+//func TestFindFilesWithGlob(t *testing.T) {
+//	expect := assert.New(t)
+//
+//	subject, fakeObserver, composite := preparePattern("../data/fixtures/file/WalkPathByPattern/dir/*irfile*")
+//
+//	subject.Find(composite)
+//
+//
+//	expect.Equal(2, len(subject.SourceFiles))
+//	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[0])
+//	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[1])
+//
+//	expect.Equal(int64(1), fakeObserver.increaseItemsCalls)
+//	expect.Equal(int64(2), fakeObserver.increaseMatchesCalls)
+//	expect.Equal(int64(1), fakeObserver.finishCalls)
+//}
+
+func TestFind(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, fakeObserver, composite := preparePattern("../data/fixtures/global/file.txt")
+	subject, fakeObserver, composite := preparePattern("../data/fixtures/file/WalkPathByPattern/dir/")
 
 	subject.Find(composite)
 
-	expect.Equal(1, len(subject.SourceFiles))
-	expect.Equal("../data/fixtures/global/file.txt", subject.SourceFiles[0])
-
-	expect.Equal(int64(0), fakeObserver.increaseItemsCalls)
-	expect.Equal(int64(1), fakeObserver.increaseMatchesCalls)
-	expect.Equal(int64(1), fakeObserver.finishCalls)
-}
-
-
-func TestFindFilesWithDirectory(t *testing.T) {
-	expect := assert.New(t)
-
-	subject, fakeObserver, composite := preparePattern("../data/fixtures/file/WalkPathByPattern/dir")
-
-	subject.Find(composite)
 
 	expect.Equal(4, len(subject.SourceFiles))
 	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/", subject.SourceFiles[0])
 	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[1])
 	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/", subject.SourceFiles[2])
 	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[3])
-
+	//
 	expect.Equal(int64(0), fakeObserver.increaseItemsCalls)
 	expect.Equal(int64(4), fakeObserver.increaseMatchesCalls)
-	expect.Equal(int64(1), fakeObserver.finishCalls)
-}
-
-func TestFindFilesWithGlob(t *testing.T) {
-	expect := assert.New(t)
-
-	subject, fakeObserver, composite := preparePattern("../data/fixtures/file/WalkPathByPattern/dir/*irfile*")
-
-	subject.Find(composite)
-
-
-	expect.Equal(2, len(subject.SourceFiles))
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[0])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[1])
-
-	expect.Equal(int64(2), fakeObserver.increaseItemsCalls)
-	expect.Equal(int64(2), fakeObserver.increaseMatchesCalls)
 	expect.Equal(int64(1), fakeObserver.finishCalls)
 }

@@ -122,5 +122,5 @@ func TestCleanupIsAlwaysNil(t *testing.T) {
 
 	subject := NewCopyStrategy()
 
-	expect.Nil(subject.CleanUp())
+	expect.Nil(subject.CleanUp([]string{"a", "b", "c"}))
 }

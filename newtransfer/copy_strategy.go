@@ -105,6 +105,6 @@ func (c *CopyStrategy) handleProgress(bytesTransferred, srcSize, bufferSize int6
 	return newBufferSize
 }
 
-func (c *CopyStrategy) CleanUp() error {
+func (c *CopyStrategy) CleanUp(dirsToRemove []string) error {
 	return nil
 }

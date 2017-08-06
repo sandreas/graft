@@ -9,36 +9,37 @@ import (
 
 type MoveStrategy struct {
 	TransferStrategyInterface
-	Fs           afero.Fs
-	dirsToRemove []string
-}
+	Fs           afero.Fs}
 
 func NewMoveStrategy() *MoveStrategy {
 	return &MoveStrategy{
 		Fs:           afero.NewOsFs(),
-		dirsToRemove: []string{},
 	}
 }
 
 func (c *MoveStrategy) Transfer(s, d string) error {
-	stat, err := c.Fs.Stat(s)
+	_, err := c.Fs.Stat(s)
 	if err != nil {
 		return err
-	}
-
-	if stat.IsDir() {
-		c.dirsToRemove = append(c.dirsToRemove, s)
 	}
 
 	return os.Rename(s, d)
 }
 
-func (c *MoveStrategy) CleanUp() error {
+func (c *MoveStrategy) CleanUp(dirsToRemove []string) error {
 	// sort and reverse iterate over dirs to remove
-	sort.Strings(c.dirsToRemove)
-	sliceLen := len(c.dirsToRemove)
+	sort.Strings(dirsToRemove)
+	sliceLen := len(dirsToRemove)
+	lastDir := ""
 	for i := sliceLen - 1; i >= 0; i-- {
-		if err := c.Fs.Remove(c.dirsToRemove[i]); err != nil {
+		if dirsToRemove[i] == lastDir {
+			continue
+		}
+		err := c.Fs.Remove(dirsToRemove[i])
+		lastDir = dirsToRemove[i]
+		if err != nil {
+			str := err.Error()
+			println(str)
 			return err
 		}
 	}
