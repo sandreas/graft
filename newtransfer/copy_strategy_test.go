@@ -117,3 +117,10 @@ func TestCopyZeroBytesFile(t *testing.T) {
 	_, err = subject.Fs.Stat(destinationFile)
 	expect.Nil(err)
 }
+func TestCleanupIsAlwaysNil(t *testing.T) {
+	expect := assert.New(t)
+
+	subject := NewCopyStrategy()
+
+	expect.Nil(subject.CleanUp())
+}

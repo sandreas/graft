@@ -108,10 +108,9 @@ func (act *TransferAction) transfer(src string, dst string) error {
 	}
 
 	// Ensure directory of file exists
-	if os.IsNotExist(dstStatErr) {
+	if os.IsNotExist(dstStatErr) || act.keepTimes {
 		srcDirName := filepath.Dir(src)
 		srcDirStat, srcDirStatErr := os.Stat(srcDirName)
-
 		if srcDirStatErr != nil {
 			return errors.New("Could not stat " + srcDirName + " of file " + src + ": " + srcDirStatErr.Error())
 		}

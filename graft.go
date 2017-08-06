@@ -1,38 +1,44 @@
 package main
 
 import (
+	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
 	"os"
 	"os/user"
-	"log"
-	"io"
 	"runtime"
-	"io/ioutil"
-	"time"
-	"fmt"
-	"github.com/alexflint/go-arg"
-	"github.com/sandreas/graft/newpattern"
-	"github.com/sandreas/graft/newmatcher"
-	"github.com/sandreas/graft/newfile"
-	"github.com/sandreas/graft/newaction"
-	"github.com/sandreas/graft/newtransfer"
-	"github.com/sandreas/graft/newoptions"
 	"strconv"
+	"time"
+
+	"github.com/alexflint/go-arg"
+	"github.com/sandreas/graft/newaction"
+	"github.com/sandreas/graft/newfile"
+	"github.com/sandreas/graft/newmatcher"
+	"github.com/sandreas/graft/newoptions"
+	"github.com/sandreas/graft/newpattern"
+	"github.com/sandreas/graft/newtransfer"
 )
 
 // TODO:
+// move: add CleanUp to TransferStrategyInterface to remove directories, that are moved
 //	serve = app.Flag("serve", "start a server on this port").Default("0").String()
 //
+
+// fishy:
+// graft xxx/* yyy/$1 when xxx does not exist could result in:
+// 		(xxx/.*$) => yyy/$1 which may not be intended
+
 // Input / Colors:
 // https://github.com/dixonwille/wlog
 //)
 
-
 const (
 	ERROR_PARSING_SOURCE_PATTERN = 1
 	//ERROR_FINDING_FILES = 2
-	ERROR_PARSING_MIN_AGE = 3
+	ERROR_PARSING_MIN_AGE    = 3
 	ERROR_LOADING_FILES_FROM = 4
-	ERROR_EXPORT_TO = 5
+	ERROR_EXPORT_TO          = 5
 )
 
 type PositionalArguments struct {
@@ -42,24 +48,23 @@ type PositionalArguments struct {
 
 type BooleanFlags struct {
 	CaseSensitive bool `arg:"--case-sensitive,help:be case sensitive when matching files and folders"`
-	Regex bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
-	Debug bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
-	Quiet bool `arg:"help:do not show any output"`
-	ShowMatches bool `arg:"--show-matches,help:show pattern matches for each found file"`
-	DryRun bool `arg:"--dry-run,help:simulation mode output only files remain unaffected"`
-	Times bool `arg:"help:transfer source modify times to destination"`
-	Move bool `arg:"help:move / rename files - do not make a copy"`
+	Regex         bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
+	Debug         bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
+	Quiet         bool `arg:"help:do not show any output"`
+	ShowMatches   bool `arg:"--show-matches,help:show pattern matches for each found file"`
+	DryRun        bool `arg:"--dry-run,help:simulation mode output only files remain unaffected"`
+	Times         bool `arg:"help:transfer source modify times to destination"`
+	Move          bool `arg:"help:move / rename files - do not make a copy"`
+	Delete        bool `arg:"help:delete found files"`
 	//Verbose bool `arg:"-v,help:be verbose"`
-	// Delete bool `arg:"help:delete found files"`
 }
 
 type StringParameters struct {
-	MinAge string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
-	MaxAge string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
+	MinAge    string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
+	MaxAge    string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
 	FilesFrom string `arg:"--files-from,help:import source listing from file - one line per item"`
-	ExportTo string `arg:"--export-to,help:export source listing to file - one line per item"`
+	ExportTo  string `arg:"--export-to,help:export source listing to file - one line per item"`
 }
-
 
 var args struct {
 	PositionalArguments
@@ -83,8 +88,6 @@ func main() {
 	compiledRegex, err := sourcePattern.Compile()
 	log.Printf("compiledRegex: %s", compiledRegex)
 	exitOnError(ERROR_PARSING_SOURCE_PATTERN, err)
-
-
 
 	locator := newfile.NewLocator(*sourcePattern)
 	locator.RegisterObserver(newfile.NewWalkObserver(suppressablePrintf))
@@ -119,22 +122,39 @@ func main() {
 		}
 	}
 
-
-
 	if args.Destination == "" {
 		for _, path := range locator.SourceFiles {
-			suppressablePrintf(path+"\n")
+			suppressablePrintf(path + "\n")
 			elementMatches := newpattern.BuildMatchList(compiledRegex, path)
 			for i := 0; i < len(elementMatches); i++ {
-				suppressablePrintf("    $" + strconv.Itoa(i + 1) + ": " + elementMatches[i] + "\n")
+				suppressablePrintf("    $" + strconv.Itoa(i+1) + ": " + elementMatches[i] + "\n")
+			}
+
+			// delete
+			if args.Delete && !args.DryRun {
+				var dirsToRemove = []string{}
+				stat, err := os.Stat(path)
+
+				if !os.IsNotExist(err) {
+					if stat.Mode().IsRegular() {
+						os.Remove(path)
+					} else if stat.Mode().IsDir() {
+						dirsToRemove = append(dirsToRemove, path)
+					}
+				}
+
+				for _, path := range dirsToRemove {
+					os.Remove(path)
+				}
 			}
 		}
+
 		return
 	}
 
 	destinationPattern := newpattern.NewDestinationPattern(args.Destination)
 	messagePrinter := newtransfer.NewMessagePrinterObserver(suppressablePrintf)
-	actionBitFlags :=  parseActionBitFlags()
+	actionBitFlags := parseActionBitFlags()
 
 	if args.Move {
 		moveStrategy := newtransfer.NewMoveStrategy()
@@ -144,14 +164,13 @@ func main() {
 		err = moveAction.Execute(sourcePattern, destinationPattern)
 	} else {
 		copyStrategy := newtransfer.NewCopyStrategy()
-		copyStrategy.ProgressHandler = newtransfer.NewCopyProgressHandler(int64(32*1024), 2 * time.Second)
+		copyStrategy.ProgressHandler = newtransfer.NewCopyProgressHandler(int64(32*1024), 2*time.Second)
 		copyStrategy.RegisterObserver(messagePrinter)
 
 		copyAction := newaction.NewTransferAction(locator.SourceFiles, copyStrategy, actionBitFlags)
 		copyAction.RegisterObserver(messagePrinter)
 		err = copyAction.Execute(sourcePattern, destinationPattern)
 	}
-
 
 	if err != nil {
 		suppressablePrintf(err.Error())
@@ -163,7 +182,7 @@ func (PositionalArguments) Description() string {
 }
 
 func initLogging() {
-	if ! args.Debug {
+	if !args.Debug {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 		return
@@ -176,7 +195,7 @@ func initLogging() {
 	}
 	logFileName := homeDir + "/graft.log"
 	os.Remove(logFileName)
-	logFile, err := os.OpenFile(logFileName, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Println("could not open logfile: ", logFile, err)
 	}
@@ -186,13 +205,12 @@ func initLogging() {
 }
 
 func suppressablePrintf(format string, a ...interface{}) (n int, err error) {
-	if ! args.Quiet {
+	if !args.Quiet {
 		return fmt.Printf(format, a...)
 	}
 	log.Printf(format, a...)
 	return 0, nil
 }
-
 
 func parseSourcePatternBitFlags() newoptions.BitFlag {
 	var patternFlags newoptions.BitFlag
@@ -217,7 +235,6 @@ func parseActionBitFlags() newoptions.BitFlag {
 	return actionFlags
 }
 
-
 func createHomeDirectoryIfNotExists() (string, error) {
 	u, _ := user.Current()
 	homeDir := u.HomeDir + "/.graft"
@@ -229,7 +246,7 @@ func createHomeDirectoryIfNotExists() (string, error) {
 	return homeDir, nil
 }
 
-func exitOnError(exitCode int, err error){
+func exitOnError(exitCode int, err error) {
 	if err == nil {
 		return
 	}
@@ -238,7 +255,7 @@ func exitOnError(exitCode int, err error){
 	if args.Debug {
 		log.Printf("[error] %s:%d %v (Code: %d)", fn, line, err, exitCode)
 	} else {
-		suppressablePrintf(err.Error() + " (Code: %d)", exitCode)
+		suppressablePrintf(err.Error()+" (Code: %d)", exitCode)
 	}
 	os.Exit(exitCode)
 }

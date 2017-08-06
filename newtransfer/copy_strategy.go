@@ -1,12 +1,13 @@
 package newtransfer
 
 import (
-	"github.com/spf13/afero"
+	"errors"
 	"io"
 	"os"
-	"errors"
 	"time"
+
 	"github.com/sandreas/graft/newdesignpattern/observer"
+	"github.com/spf13/afero"
 )
 
 type CopyStrategy struct {
@@ -17,7 +18,6 @@ type CopyStrategy struct {
 	bufferSize      int64
 }
 
-
 func NewCopyStrategy() *CopyStrategy {
 	return &CopyStrategy{
 		Fs:              afero.NewOsFs(),
@@ -26,7 +26,7 @@ func NewCopyStrategy() *CopyStrategy {
 	}
 }
 
-func (c *CopyStrategy) Transfer(s, d string)  error {
+func (c *CopyStrategy) Transfer(s, d string) error {
 
 	srcStats, err := c.Fs.Stat(s)
 	if err != nil {
@@ -46,7 +46,6 @@ func (c *CopyStrategy) Transfer(s, d string)  error {
 		dstExists = false
 	}
 
-
 	if dstSize > srcSize {
 		return errors.New("File cannot be resumed, destination is larger than source")
 	}
@@ -62,16 +61,14 @@ func (c *CopyStrategy) Transfer(s, d string)  error {
 	}
 	defer src.Close()
 
-	dst, err := c.Fs.OpenFile(d, os.O_RDWR | os.O_CREATE, srcStats.Mode())
+	dst, err := c.Fs.OpenFile(d, os.O_RDWR|os.O_CREATE, srcStats.Mode())
 	if err != nil {
 		return err
 	}
 	defer dst.Close()
 
-
 	src.Seek(dstSize, 0)
 	dst.Seek(dstSize, 0)
-
 
 	buf := make([]byte, c.bufferSize)
 	bytesTransferred := dstSize
@@ -87,7 +84,7 @@ func (c *CopyStrategy) Transfer(s, d string)  error {
 		if _, err := dst.Write(buf[:n]); err != nil {
 			return err
 		}
-		bytesTransferred += int64(n);
+		bytesTransferred += int64(n)
 		newBufferSize := c.handleProgress(bytesTransferred, srcSize, c.bufferSize)
 		if newBufferSize != c.bufferSize {
 			c.bufferSize = newBufferSize
@@ -99,11 +96,15 @@ func (c *CopyStrategy) Transfer(s, d string)  error {
 	return nil
 }
 
-func(c *CopyStrategy) handleProgress(bytesTransferred, srcSize, bufferSize int64) (int64) {
+func (c *CopyStrategy) handleProgress(bytesTransferred, srcSize, bufferSize int64) int64 {
 	if c.ProgressHandler == nil {
 		return bufferSize
 	}
 	newBufferSize, message := c.ProgressHandler.Update(bytesTransferred, srcSize, bufferSize, time.Now())
 	c.NotifyObservers(message)
 	return newBufferSize
+}
+
+func (c *CopyStrategy) CleanUp() error {
+	return nil
 }
