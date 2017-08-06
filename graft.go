@@ -160,10 +160,10 @@ Todo:
 
 
 	copyStrategy := newtransfer.NewCopyStrategy()
-	copyStrategy.SetProgressHandler(newtransfer.NewCopyProgressHandler(int64(32*1024), 2 * time.Second))
+	copyStrategy.ProgressHandler = newtransfer.NewCopyProgressHandler(int64(32*1024), 2 * time.Second)
 	copyStrategy.RegisterObserver(messagePrinter)
 
-	copyAction := newaction.NewTransferAction(locator.SourceFiles, *copyStrategy, actionBitFlags)
+	copyAction := newaction.NewTransferAction(locator.SourceFiles, copyStrategy, actionBitFlags)
 	copyAction.RegisterObserver(messagePrinter)
 	err = copyAction.Execute(sourcePattern, destinationPattern)
 

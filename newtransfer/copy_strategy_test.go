@@ -32,7 +32,7 @@ func TestCopyNewFile(t *testing.T) {
 	expect := assert.New(t)
 
 	subject := NewCopyStrategy()
-	subject.SetProgressHandler(NewCopyProgressHandler(2, 1 * time.Nanosecond))
+	subject.ProgressHandler = NewCopyProgressHandler(2, 1 * time.Nanosecond)
 	observer := &FakeObserver{}
 	subject.RegisterObserver(observer)
 

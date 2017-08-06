@@ -18,11 +18,11 @@ type TransferAction struct {
 	Fs            afero.Fs
 	src           newpattern.SourcePattern
 	sourceFiles   []string
-	transferStrategy  newtransfer.CopyStrategy
+	transferStrategy  newtransfer.TransferStrategyInterface
 	dryRun        bool
 }
 
-func NewTransferAction(sourceFiles []string, transferStrategy newtransfer.CopyStrategy, params ...newoptions.BitFlag) *TransferAction {
+func NewTransferAction(sourceFiles []string, transferStrategy newtransfer.TransferStrategyInterface, params ...newoptions.BitFlag) *TransferAction {
 	transferAction := &TransferAction{
 		Fs:           afero.NewOsFs(),
 		sourceFiles:  sourceFiles,
