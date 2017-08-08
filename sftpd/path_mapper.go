@@ -9,7 +9,7 @@ import (
 )
 
 type PathMapper struct {
-	tree map[string][]string
+	tree     map[string][]string
 	basePath string
 }
 
@@ -67,7 +67,6 @@ func (mapper *PathMapper) slashify(path string) string {
 	return "/" + trimmed
 }
 
-
 func (mapper *PathMapper) buildTree(matchingPaths []string) {
 	mapper.tree = make(map[string][]string)
 
@@ -75,17 +74,34 @@ func (mapper *PathMapper) buildTree(matchingPaths []string) {
 
 	for _, path := range matchingPaths {
 		normalizedPath := mapper.normalizePath(path)
-		key, parentPath := mapper.normalizePathMapItem(normalizedPath)
-
+		key := mapper.slashify(strings.TrimPrefix(normalizedPath, mapper.basePath))
 		for {
-			pathToAppend := strings.TrimPrefix(mapper.normalizePath(path), mapper.basePath)
-			mapper.tree[key] = append(mapper.tree[key], pathToAppend)
-			path = parentPath
-			key, parentPath = mapper.normalizePathMapItem(parentPath)
-			if _, ok := mapper.tree[key]; ok {
+
+
+			mapper.tree[key] = []string{}
+			idx := strings.LastIndex(key, "/")
+			key = key[0:idx]
+			if key == "" {
 				break
 			}
 		}
+		mapper.tree["/"] = []string{}
+	}
+
+	for key := range mapper.tree {
+		if key == "/" {
+			continue
+		}
+		idx := strings.LastIndex(key, "/")
+		dir := key[0:idx]
+		if dir == "" {
+			dir = "/"
+		}
+		mapper.tree[dir] = append(mapper.tree[dir], key)
+	}
+
+	for key := range mapper.tree {
+		sort.Strings(mapper.tree[key])
 	}
 }
 
@@ -95,4 +111,3 @@ func (mapper *PathMapper) normalizePathMapItem(path string) (string, string) {
 	key := mapper.slashify(parentWithoutBaseDir)
 	return key, parentPath
 }
-
