@@ -11,6 +11,9 @@ import (
 	"strconv"
 	"time"
 
+	"errors"
+	"strings"
+
 	"github.com/alexflint/go-arg"
 	"github.com/sandreas/graft/newaction"
 	"github.com/sandreas/graft/newfile"
@@ -19,8 +22,6 @@ import (
 	"github.com/sandreas/graft/newpattern"
 	"github.com/sandreas/graft/newtransfer"
 	"github.com/sandreas/graft/sftpd"
-	"errors"
-	"strings"
 )
 
 // TODO:
@@ -39,6 +40,7 @@ const (
 	ERROR_LOADING_FILES_FROM       = 4
 	ERROR_EXPORT_TO                = 5
 	ERROR_CREATE_HOME_DIR          = 6
+	ERROR_STAT_SOURCE_PATTERN_PATH = 7
 )
 
 type PositionalArguments struct {
@@ -145,7 +147,15 @@ func main() {
 		if args.Serve {
 			homeDir, err := createHomeDirectoryIfNotExists()
 			exitOnError(ERROR_CREATE_HOME_DIR, err)
-			pathMapper := sftpd.NewPathMapper(locator.SourceFiles, sourcePattern.Path)
+
+			fi, err := os.Stat(sourcePattern.Path)
+			exitOnError(ERROR_STAT_SOURCE_PATTERN_PATH, err)
+			basePath := sourcePattern.Path
+			if fi.Mode().IsRegular() {
+				basePath = strings.TrimSuffix(basePath, "/" + fi.Name())
+			}
+
+			pathMapper := sftpd.NewPathMapper(locator.SourceFiles, basePath)
 
 			sftpd.NewGraftServer(homeDir, "0.0.0.0", args.Port, args.User, args.Password, pathMapper)
 			return

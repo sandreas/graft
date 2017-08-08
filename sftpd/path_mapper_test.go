@@ -83,6 +83,10 @@ var filesSpecial = []string{
 	"data/fixtures/global/documents (2010)/document (2010).txt",
 }
 
+var singleFile = []string {
+	"./test.txt",
+}
+
 func TestFiles(t *testing.T) {
 	expect := assert.New(t)
 
@@ -161,6 +165,7 @@ func TestFilesSpecial(t *testing.T) {
 
 }
 
+
 func TestPathTo(t *testing.T) {
 	expect := assert.New(t)
 
@@ -177,6 +182,18 @@ func TestPathTo(t *testing.T) {
 	path, err = mapper.PathTo("global")
 	expect.Equal(filepath.FromSlash("../data/fixtures/global"), path)
 	expect.Nil(err)
+}
+
+
+func TestPathToSingleFile(t *testing.T) {
+	expect := assert.New(t)
+
+	mapper := NewPathMapper(singleFile, ".")
+	result, ok := mapper.PathTo("/test.txt")
+	want := "test.txt"
+	expect.NoError(ok)
+	expect.Equal(want, result)
+
 }
 
 func TestStat(t *testing.T) {

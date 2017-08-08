@@ -50,7 +50,8 @@ func (mapper *PathMapper) PathTo(reference string) (string, error) {
 	if ! ok {
 		return "", errors.New("PathTo " + reference + " not found")
 	}
-	return filepath.FromSlash(mapper.normalizePath(mapper.basePath) + "/" + reference), nil
+
+	return filepath.FromSlash(mapper.normalizePath(mapper.basePath  + normalizedKey)), nil
 }
 
 func (mapper *PathMapper) Stat(reference string) (os.FileInfo, error) {
