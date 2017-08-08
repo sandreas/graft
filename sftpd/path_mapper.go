@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 	"errors"
+	"os"
 )
 
 type PathMapper struct {
@@ -52,6 +53,14 @@ func (mapper *PathMapper) PathTo(reference string) (string, error) {
 	return filepath.FromSlash(mapper.normalizePath(mapper.basePath) + "/" + reference), nil
 }
 
+func (mapper *PathMapper) Stat(reference string) (os.FileInfo, error) {
+	path, err := mapper.PathTo(reference)
+	if err != nil {
+		return nil, err
+	}
+	return os.Stat(path)
+}
+
 func (mapper *PathMapper) slashify(path string) string {
 	toSlash := filepath.ToSlash(path)
 	trimmed := strings.TrimLeft(toSlash, "/")
@@ -69,7 +78,7 @@ func (mapper *PathMapper) buildTree(matchingPaths []string) {
 		key, parentPath := mapper.normalizePathMapItem(normalizedPath)
 
 		for {
-			pathToAppend := strings.TrimPrefix(normalizedPath, mapper.basePath)
+			pathToAppend := strings.TrimPrefix(mapper.normalizePath(path), mapper.basePath)
 			mapper.tree[key] = append(mapper.tree[key], pathToAppend)
 			path = parentPath
 			key, parentPath = mapper.normalizePathMapItem(parentPath)

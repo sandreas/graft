@@ -30,6 +30,12 @@ var filesWithDot = []string{
 	"../data/fixtures/global/textfile.txt",
 }
 
+var filesOnly = []string {
+	"data/fixtures/file/CopyResumed/test2-dst-larger.txt",
+	"data/fixtures/file/CopyResumed/test3-dst-partial.txt",
+	"data/fixtures/file/CopyResumed/test4-dst-exists.txt",
+}
+
 func TestFiles(t *testing.T) {
 	expect := assert.New(t)
 
@@ -81,7 +87,20 @@ func TestDotSlash(t *testing.T) {
 }
 
 
-func TestRetrieve(t *testing.T) {
+func TestFilesOnly(t *testing.T) {
+	expect := assert.New(t)
+
+	mapper := NewPathMapper(filesOnly, "data/fixtures")
+	result, ok := mapper.List("\\")
+	want := []string{"/file"}
+	expect.True(ok)
+	expect.Equal(want, result)
+
+}
+
+
+
+func TestPathTo(t *testing.T) {
 	expect := assert.New(t)
 
 	mapper := NewPathMapper(files, "./data/fixtures")
@@ -99,5 +118,15 @@ func TestRetrieve(t *testing.T) {
 	path, err = mapper.PathTo("global")
 	expect.Equal(filepath.FromSlash("../data/fixtures/global"), path)
 	expect.Nil(err)
+}
 
+func TestStat(t *testing.T) {
+	expect := assert.New(t)
+
+	mapper := NewPathMapper(filesWithDot, "../data/fixtures")
+	_, err := mapper.Stat("global")
+	expect.Nil(err)
+
+	_, err = mapper.Stat("non-existing")
+	expect.Error(err)
 }
