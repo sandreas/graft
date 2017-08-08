@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"errors"
 )
 
 type PathMapper struct {
@@ -15,16 +16,40 @@ func NewPathMapper(files []string, basePath string) *PathMapper {
 	pathMapper := &PathMapper{
 		basePath: basePath,
 	}
+	pathMapper.normalizeBasePath()
 	pathMapper.buildTree(files)
 	return pathMapper
 }
 
-func (mapper *PathMapper) Get(key string) ([]string, bool) {
+func (mapper *PathMapper) normalizeBasePath() {
+	mapper.basePath = mapper.normalizePath(mapper.basePath)
+	if mapper.basePath == "" {
+		mapper.basePath = "."
+	}
+}
 
+func (mapper *PathMapper) normalizePath(basePath string) string {
+	basePath = filepath.ToSlash(basePath)
+	basePath = strings.TrimPrefix(basePath, "./")
+	if basePath == "." {
+		return ""
+	}
+	return strings.TrimRight(basePath, "/")
+}
+
+func (mapper *PathMapper) List(key string) ([]string, bool) {
 	normalizedKey := mapper.slashify(key)
-
 	value, ok := mapper.tree[normalizedKey]
 	return value, ok
+}
+
+func (mapper *PathMapper) PathTo(reference string) (string, error) {
+	normalizedKey := mapper.slashify(reference)
+	_, ok := mapper.tree[normalizedKey]
+	if ! ok {
+		return "", errors.New("PathTo " + reference + " not found")
+	}
+	return filepath.FromSlash(mapper.normalizePath(mapper.basePath) + "/" + reference), nil
 }
 
 func (mapper *PathMapper) slashify(path string) string {
@@ -39,24 +64,16 @@ func (mapper *PathMapper) buildTree(matchingPaths []string) {
 
 	sort.Strings(matchingPaths)
 
-	//if val, ok := dict["foo"]; ok {
-	//	//do something here
-	//}
-
 	for _, path := range matchingPaths {
-		key, parentPath := mapper.normalizePathMapItem(path)
+		normalizedPath := mapper.normalizePath(path)
+		key, parentPath := mapper.normalizePathMapItem(normalizedPath)
 
 		for {
-			// println("append: ", key, " => ", path)
-			mapper.tree[key] = append(mapper.tree[key], path)
+			pathToAppend := strings.TrimPrefix(normalizedPath, mapper.basePath)
+			mapper.tree[key] = append(mapper.tree[key], pathToAppend)
 			path = parentPath
-			//println("before => key:", key, "parentPath:", parentPath)
 			key, parentPath = mapper.normalizePathMapItem(parentPath)
-			//println("after  => key:", key, "parentPath:", parentPath)
-			_, ok := mapper.tree[key]
-
-			//println("is present?", key, ok)
-			if ok {
+			if _, ok := mapper.tree[key]; ok {
 				break
 			}
 		}
@@ -64,13 +81,9 @@ func (mapper *PathMapper) buildTree(matchingPaths []string) {
 }
 
 func (mapper *PathMapper) normalizePathMapItem(path string) (string, string) {
-	parentPath := filepath.ToSlash(filepath.Dir(path))
-	key := parentPath
-	if parentPath == "." {
-		key = "/"
-	}
-
-	key = mapper.slashify(key)
-
+	parentPath := mapper.normalizePath(filepath.Dir(path))
+	parentWithoutBaseDir := strings.TrimPrefix(parentPath, mapper.basePath)
+	key := mapper.slashify(parentWithoutBaseDir)
 	return key, parentPath
 }
+
