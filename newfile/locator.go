@@ -17,36 +17,36 @@ const (
 
 type Locator struct {
 	newdesignpattern.Observable
-	src newpattern.SourcePattern
+	Src         newpattern.SourcePattern
 	SourceFiles []string
 }
 
 
 func NewLocator(pattern newpattern.SourcePattern) *Locator {
 	return &Locator{
-		src: pattern,
+		Src: pattern,
 	}
 }
 
 
 func (t *Locator) Find(matcher *newmatcher.CompositeMatcher) {
 	t.SourceFiles = []string{}
-	if t.src.IsFile() {
-		t.SourceFiles = append(t.SourceFiles, t.src.Path)
+	if t.Src.IsFile() {
+		t.SourceFiles = append(t.SourceFiles, t.Src.Path)
 
 		t.NotifyObservers(LOCATOR_INCREASE_MATCHES)
 		t.NotifyObservers(LOCATOR_FINISH)
 		return
 	}
 
-	filepath.Walk(t.src.Path, func(innerPath string, info os.FileInfo, err error) error {
+	filepath.Walk(t.Src.Path, func(innerPath string, info os.FileInfo, err error) error {
 		if innerPath == "." || innerPath == ".." {
 			return nil
 		}
 		normalizedInnerPath := strings.TrimRight(filepath.ToSlash(innerPath), "/")
 
 		// skip direct path matches (data/* should not match data/ itself)
-		if normalizedInnerPath == t.src.Path && t.src.Pattern != "" {
+		if normalizedInnerPath == t.Src.Path && t.Src.Pattern != "" {
 			return nil
 		}
 

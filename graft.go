@@ -18,16 +18,19 @@ import (
 	"github.com/sandreas/graft/newoptions"
 	"github.com/sandreas/graft/newpattern"
 	"github.com/sandreas/graft/newtransfer"
+	"github.com/sandreas/graft/sftpd"
+	"errors"
+	"strings"
 )
 
 // TODO:
-// move: add CleanUp to TransferStrategyInterface to remove directories, that are moved
 //	serve = app.Flag("serve", "start a server on this port").Default("0").String()
 //
 
 // fishy:
 // graft xxx/* yyy/$1 when xxx does not exist could result in:
 // 		(xxx/.*$) => yyy/$1 which may not be intended
+// if pattern contains unmasked slash, suggest not searching, because directory does not exist
 
 // Input / Colors:
 // https://github.com/dixonwille/wlog
@@ -36,13 +39,15 @@ import (
 const (
 	ERROR_PARSING_SOURCE_PATTERN = 1
 	//ERROR_FINDING_FILES = 2
-	ERROR_PARSING_MIN_AGE    = 3
-	ERROR_LOADING_FILES_FROM = 4
-	ERROR_EXPORT_TO          = 5
+	ERROR_PARSING_MIN_AGE          = 3
+	ERROR_LOADING_FILES_FROM       = 4
+	ERROR_EXPORT_TO                = 5
+	ERROR_CREATE_HOME_DIR          = 6
+	ERROR_PASSWORT_CANNOT_BE_EMPTY = 7
 )
 
 type PositionalArguments struct {
-	Source      string `arg:"positional"`
+	Source      string `arg:"positional,required"`
 	Destination string `arg:"positional"`
 }
 
@@ -56,7 +61,13 @@ type BooleanFlags struct {
 	Times         bool `arg:"help:transfer source modify times to destination"`
 	Move          bool `arg:"help:move / rename files - do not make a copy"`
 	Delete        bool `arg:"help:delete found files"`
+
+	Serve bool `arg:"help:provide matching files via sftp"`
 	//Verbose bool `arg:"-v,help:be verbose"`
+}
+
+type IntParameters struct {
+	Port int `arg:"help:Specifies the port on which the server listens for connections"`
 }
 
 type StringParameters struct {
@@ -64,11 +75,14 @@ type StringParameters struct {
 	MaxAge    string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
 	FilesFrom string `arg:"--files-from,help:import source listing from file - one line per item"`
 	ExportTo  string `arg:"--export-to,help:export source listing to file - one line per item"`
+	User      string `arg:"help:Specify the username for the sftp server"`
+	Password  string `arg:"help:Specify the password for the sftp server"`
 }
 
 var args struct {
 	PositionalArguments
 	BooleanFlags
+	IntParameters
 	StringParameters
 }
 
@@ -79,7 +93,16 @@ func main() {
 		os.Args = append(os.Args, "--help")
 	}
 
+	args.Port = 2022
+	args.User = "graft"
+	args.Password = ""
 	arg.MustParse(&args)
+
+	args.Password = strings.TrimSpace(args.Password)
+
+	if args.Serve && args.Password == "" {
+		exitOnError(ERROR_PASSWORT_CANNOT_BE_EMPTY, errors.New("Password cannot be empty!"))
+	}
 
 	initLogging()
 
@@ -123,11 +146,21 @@ func main() {
 	}
 
 	if args.Destination == "" {
+
+		if args.Serve {
+			homeDir, err := createHomeDirectoryIfNotExists()
+			exitOnError(ERROR_CREATE_HOME_DIR, err)
+			sftpd.NewGraftServer(homeDir, "0.0.0.0", args.Port, args.User, args.Password, locator.SourceFiles)
+			return
+		}
+
 		for _, path := range locator.SourceFiles {
 			suppressablePrintf(path + "\n")
-			elementMatches := newpattern.BuildMatchList(compiledRegex, path)
-			for i := 0; i < len(elementMatches); i++ {
-				suppressablePrintf("    $" + strconv.Itoa(i+1) + ": " + elementMatches[i] + "\n")
+			if args.ShowMatches {
+				elementMatches := newpattern.BuildMatchList(compiledRegex, path)
+				for i := 0; i < len(elementMatches); i++ {
+					suppressablePrintf("    $" + strconv.Itoa(i+1) + ": " + elementMatches[i] + "\n")
+				}
 			}
 
 			// delete
