@@ -4,7 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"github.com/pkg/sftp"
+	"github.com/sandreas/sftp"
 )
 
 type vfs struct {
