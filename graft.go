@@ -14,18 +14,21 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/alexflint/go-arg"
+	"net"
+
 	"github.com/sandreas/graft/action"
+	"github.com/sandreas/graft/bitflag"
 	"github.com/sandreas/graft/file"
 	"github.com/sandreas/graft/matcher"
-	"github.com/sandreas/graft/bitflag"
 	"github.com/sandreas/graft/pattern"
-	"github.com/sandreas/graft/transfer"
 	"github.com/sandreas/graft/sftpd"
-	"net"
+	"github.com/sandreas/graft/transfer"
+	"github.com/alexflint/go-arg"
 )
 
 // TODO:
+// - update README.md
+// - password prompt
 // - improve progress-bar output
 // - sftp-server:
 // 		filesystem watcher for sftp server (https://godoc.org/github.com/fsnotify/fsnotify)
@@ -57,23 +60,23 @@ type PositionalArguments struct {
 type BooleanArguments struct {
 	CaseSensitive bool `arg:"--case-sensitive,help:be case sensitive when matching files and folders"`
 	Debug         bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
-	Delete        bool `arg:"help:delete found files"`
+	Delete        bool `arg:"help:delete found files (be careful with this one - use --dry-run before execution)"`
 	DryRun        bool `arg:"--dry-run,help:simulation mode output only files remain unaffected"`
-	Move          bool `arg:"help:move / rename files - do not make a copy"`
+	Move          bool `arg:"help:rename files instead of copy"`
 	Regex         bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
 	Quiet         bool `arg:"help:do not show any output"`
-	SftpPromote   bool `arg:"--sftp-promote,help:start sftp server providing matching files"`
+	SftpPromote   bool `arg:"--sftp-promote,help:start sftp server only providing matching files and directories"`
 	ShowMatches   bool `arg:"--show-matches,help:show pattern matches for each found file"`
 	Times         bool `arg:"help:transfer source modify times to destination"`
 }
 
 type IntArguments struct {
-	SftpPort int `arg:"--sftp-port,help:Specifies the port on which the server listens for connections"`
+	SftpPort int `arg:"--sftp-port,help:Specifies the port on which the server listens for connections (default: 2022)"`
 }
 
 type StringArguments struct {
-	ExportTo     string `arg:"--export-to,help:export source listing to file - one line per item"`
-	FilesFrom    string `arg:"--files-from,help:import source listing from file - one line per item"`
+	ExportTo     string `arg:"--export-to,help:export found matches to a text file - one line per item"`
+	FilesFrom    string `arg:"--files-from,help:import found matches from file - one line per item"`
 	MaxAge       string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
 	MinAge       string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
 	SftpPassword string `arg:"--sftp-password,help:Specify the password for the sftp server"`

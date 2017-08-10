@@ -1,10 +1,10 @@
-# graft
-graft is a command line application written in go to search directories and transfer files.
+- # graft
+graft is a command line application to search directories and transfer files.
  
 It supports glob patterns or regular expressions as well as resuming partial transferred files, preserving file attributes and exporting and importing lists.
 
 ***graft*** started as a learning project and it still is, so much of the code could be vastly improved and may contain bugs, 
-but for now it already is a useful tool that works well in most cases. 
+but for now it already is a useful tool. 
 
 
 ## Installation
@@ -13,6 +13,41 @@ but for now it already is a useful tool that works well in most cases.
 
 ```
 go get github.com/sandreas/graft
+```
+
+### Update
+
+To update graft, simply use the *-u* flag
+```
+go get -u github.com/sandreas/graft
+```
+
+## Quickstart
+
+###Important notes: 
+- ***Linux and Unix:*** Use single quotes (') to encapsulate patterns 
+- ***Windows:*** Use double quotes (") to encapsulate patterns
+
+### Examples
+```
+# recursively search all jpg files in current directory and export a textfile
+graft '*.jpg' --export-to=all-jpg-files.txt
+```
+
+```
+# recursively copy all png files in data/ to /tmp
+graft 'data/*.png' '/tmp/'
+```
+
+```
+# start an sftp server promoting all txt files in data/ in a chroot 
+graft 'data/*.txt' --serve --sftp-password=graft
+```
+
+```
+# rename all jpeg files in data/ to jpg (dry-run)
+graft '/tmp/(*).(jpeg)' '/home/johndoe/pictures/$1_new.$2' --dry-run
+
 ```
 
 ## Usage
@@ -104,23 +139,34 @@ graft '/tmp/(*.)(jpg|png)' '/home/johndoe/$1$2'
 
 Following options are available:
 ```
-Flags:
-  --help            Show context-sensitive help (also try --help-long and --help-man).
-  --export-to=""    export source listing to file, one line per item
-  --files-from=""   import source listing from file, one line per item
-  --min-age=""      minimum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)
-  --max-age=""      maximum age (e.g. 2d, 8w, 2016-12-24, etc. - see docs for valid time formats)
-  --case-sensitive  be case sensitive when matching files and folders
-  --dry-run         dry-run / simulation mode
-  --hide-matches    hide matches in search mode ($1: ...)
-  --move            move / rename files - do not make a copy
-  --quiet           quiet mode - do not show any output
-  --regex           use a real regex instead of glob patterns (e.g. src/.*\.jpg)
-  --times           transfer source modify times to destination
+positional arguments:
+  source
+  destination
 
-Args:
-  <source-pattern>         source pattern - used to locate files (e.g. src/*)
-  [<destination-pattern>]  destination pattern for transfer (e.g. dst/$1)
+options:
+  --case-sensitive       be case sensitive when matching files and folders
+  --debug, -d            debug mode with logging to Stdout and into $HOME/.graft/application.log
+  --delete               delete found files (be careful with this one - use --dry-run before execution)
+  --dry-run              simulation mode output only files remain unaffected
+  --move                 rename files instead of copy
+  --regex                use a real regex instead of glob patterns (e.g. src/.*\.jpg)
+  --quiet                do not show any output
+  --sftp-promote         start sftp server only providing matching files and directories
+  --show-matches         show pattern matches for each found file
+  --times                transfer source modify times to destination
+  --sftp-port SFTP-PORT
+                         Specifies the port on which the server listens for connections (default: 2022) [default: 2022]
+  --export-to EXPORT-TO
+                         export found matches to a text file - one line per item
+  --files-from FILES-FROM
+                         import found matches from file - one line per item
+  --max-age MAX-AGE      maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )
+  --min-age MIN-AGE      minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )
+  --sftp-password SFTP-PASSWORD
+                         Specify the password for the sftp server
+  --sftp-user SFTP-USER
+                         Specify the username for the sftp server (default: graft) [default: graft]
+  --help, -h             display this help and exit
 
 ```
 
