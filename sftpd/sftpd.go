@@ -18,18 +18,9 @@ import (
 )
 
 func NewGraftServer(graftHomePath, listenAddress string, listenPort int, username, password string, pathMapper *PathMapper) {
-	 //An SSH server is represented by a ServerConfig, which holds
-	 //certificate details and handles authentication of ServerConns.
-
-
-
 	config := &ssh.ServerConfig{
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			// Should use constant-time compare (or better, salt+hash) in
-			// a production setting.
-
 			log.Printf("Login: %s\n", c.User())
-
 			if subtle.ConstantTimeCompare([]byte(username), []byte(c.User())) == 1 && subtle.ConstantTimeCompare(pass, []byte(password)) == 1 {
 				return nil, nil
 			}
@@ -44,20 +35,13 @@ func NewGraftServer(graftHomePath, listenAddress string, listenPort int, usernam
 	if err != nil {
 		log.Fatal("Failed to load private key", err)
 	}
-	// println(privateBytes)
-	//
 	private, err := ssh.ParsePrivateKey(privateBytes)
 	if err != nil {
 		log.Fatal("Failed to parse private key", err)
 	}
-	//
 	config.AddHostKey(private)
-	// println("Server key generation worked")
 
-	// Once a ServerConfig has been configured, connections can be
-	// accepted.
 	listener, err := net.Listen("tcp", listenAddress+":"+strconv.Itoa(listenPort))
-	// listener, err := net.Listen("tcp", "0.0.0.0:2023")
 	if err != nil {
 		log.Fatal("failed to listen for connection", err)
 	}
@@ -65,6 +49,7 @@ func NewGraftServer(graftHomePath, listenAddress string, listenPort int, usernam
 
 	for {
 		conn, e := listener.Accept()
+
 		if e != nil {
 			os.Exit(2)
 		}
