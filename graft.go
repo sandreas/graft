@@ -199,6 +199,9 @@ func main() {
 			basePath := sourcePattern.Path
 			if fi.Mode().IsRegular() {
 				basePath = strings.TrimSuffix(basePath, "/"+fi.Name())
+				if basePath == fi.Name() {
+					basePath = "."
+				}
 			}
 
 			pathMapper := sftpd.NewPathMapper(locator.SourceFiles, basePath)
