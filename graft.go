@@ -10,12 +10,10 @@ import (
 	"runtime"
 	"strconv"
 	"time"
-
 	"errors"
 	"strings"
-
 	"net"
-
+	"github.com/alexflint/go-arg"
 	"github.com/sandreas/graft/action"
 	"github.com/sandreas/graft/bitflag"
 	"github.com/sandreas/graft/file"
@@ -23,33 +21,36 @@ import (
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/sftpd"
 	"github.com/sandreas/graft/transfer"
-	"github.com/alexflint/go-arg"
+	"github.com/howeyc/gopass"
 )
 
 // TODO:
-// - update README.md
-// - password prompt
-// - improve progress-bar output
+// - --files-only / --directories-only
+// - --hide-progress (for working like find)
+// - copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
+// - compare-strategy: quick, hash, full
+// - improve progress-bar output (progress speed is not accurate enough)
 // - sftp-server:
+// 	    filezilla takes long and produces 0 byte files
 // 		filesystem watcher for sftp server (https://godoc.org/github.com/fsnotify/fsnotify)
 //		accept connections from specific ip: 		conn, e := listener.Accept() clientAddr := conn.RemoteAddr() if clientAddr
 // - sftp client
-// - remove "new"-prefix for package names
 // - --max-depth parameter (?)
 // - limit-results when searching or moving
-// - graft xxx/* yyy/$1 when xxx does not exist could result in scanning whole directories:
-// 		(xxx/.*$) => yyy/$1 which may not be intended
-// 		if pattern contains unmasked slash, suggest not searching, because directory does not exist
 // - Input / Colors: https://github.com/dixonwille/wlog
 
 const (
-	ERROR_PASSWORD_CANNOT_BE_EMPTY = 1
-	ERROR_PARSING_SOURCE_PATTERN   = 2
-	ERROR_PARSING_MIN_AGE          = 3
-	ERROR_LOADING_FILES_FROM       = 4
-	ERROR_EXPORT_TO                = 5
-	ERROR_CREATE_HOME_DIR          = 6
-	ERROR_STAT_SOURCE_PATTERN_PATH = 7
+	ERROR_PARSING_SOURCE_PATTERN        = 2
+	ERROR_PARSING_MIN_AGE               = 3
+	ERROR_LOADING_FILES_FROM            = 4
+	ERROR_EXPORT_TO                     = 5
+	ERROR_CREATE_HOME_DIR               = 6
+	ERROR_STAT_SOURCE_PATTERN_PATH      = 7
+	ERROR_PREVENT_USING_SINGLE_QUOTES   = 8
+	ERROR_SOURCE_PATTERN_SEEMS_UNWANTED = 9
+	ERROR_READING_PASSWORD_FROM_INPUT   = 10
+	ERROR_PARSING_MIN_SIZE              = 11
+	ERROR_PARSING_MAX_SIZE              = 12
 )
 
 type PositionalArguments struct {
@@ -57,37 +58,48 @@ type PositionalArguments struct {
 	Destination string `arg:"positional"`
 }
 
-type BooleanArguments struct {
-	CaseSensitive bool `arg:"--case-sensitive,help:be case sensitive when matching files and folders"`
-	Debug         bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
-	Delete        bool `arg:"help:delete found files (be careful with this one - use --dry-run before execution)"`
-	DryRun        bool `arg:"--dry-run,help:simulation mode output only files remain unaffected"`
-	Move          bool `arg:"help:rename files instead of copy"`
+type TransferArguments struct {
+	Move   bool `arg:"help:rename files instead of copy"`
+	Delete bool `arg:"help:delete found files (be careful with this one - use --dry-run before execution)"`
+	DryRun bool `arg:"--dry-run,help:simulation mode - shows output but files remain unaffected"`
+	Times  bool `arg:"help:transfer source modify times to destination"`
+	Force  bool `arg:"help:force the requested action - even if it might be not a good idea"`
+}
+
+type FilterArguments struct {
+	MaxAge        string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
+	MinAge        string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
+	MaxSize       string `arg:"--max-size,help:maximum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
+	MinSize       string `arg:"--min-size,help:minimum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
 	Regex         bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
-	Quiet         bool `arg:"help:do not show any output"`
-	SftpPromote   bool `arg:"--sftp-promote,help:start sftp server only providing matching files and directories"`
-	ShowMatches   bool `arg:"--show-matches,help:show pattern matches for each found file"`
-	Times         bool `arg:"help:transfer source modify times to destination"`
+	CaseSensitive bool `arg:"--case-sensitive,help:be case sensitive when matching files and folders"`
 }
 
-type IntArguments struct {
-	SftpPort int `arg:"--sftp-port,help:Specifies the port on which the server listens for connections (default: 2022)"`
+type DisplayArguments struct {
+	Debug       bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
+	Quiet       bool `arg:"help:do not show any output"`
+	ShowMatches bool `arg:"--show-matches,help:show pattern matches for each found file"`
 }
 
-type StringArguments struct {
-	ExportTo     string `arg:"--export-to,help:export found matches to a text file - one line per item"`
-	FilesFrom    string `arg:"--files-from,help:import found matches from file - one line per item"`
-	MaxAge       string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
-	MinAge       string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
+type ImExportArguments struct {
+	ExportTo  string `arg:"--export-to,help:export found matches to a text file - one line per item"`
+	FilesFrom string `arg:"--files-from,help:import found matches from file - one line per item"`
+}
+
+type SftpArguments struct {
+	Sftpd        bool `arg:"help:start sftp server providing only matching files and directories"`
 	SftpPassword string `arg:"--sftp-password,help:Specify the password for the sftp server"`
-	SftpUser     string `arg:"--sftp-user,help:Specify the username for the sftp server (default: graft)"`
+	SftpUsername string `arg:"--sftp-username,help:Specify the username for the sftp server"`
+	SftpPort     int `arg:"--sftp-port,help:Specifies the port on which the server listens for connections"`
 }
 
 var args struct {
 	PositionalArguments
-	BooleanArguments
-	IntArguments
-	StringArguments
+	TransferArguments
+	DisplayArguments
+	ImExportArguments
+	FilterArguments
+	SftpArguments
 }
 
 func main() {
@@ -98,23 +110,34 @@ func main() {
 	}
 
 	args.SftpPort = 2022
-	args.SftpUser = "graft"
+	args.SftpUsername = "graft"
 	args.SftpPassword = ""
 	arg.MustParse(&args)
 
 	args.SftpPassword = strings.TrimSpace(args.SftpPassword)
 
-	if args.SftpPromote && args.SftpPassword == "" {
-		exitOnError(ERROR_PASSWORD_CANNOT_BE_EMPTY, errors.New("sftp-password cannot be empty!"))
+	if args.Sftpd && args.SftpPassword == "" {
+		println("Enter password for sftp-server:")
+		pass, err := gopass.GetPasswd()
+		exitOnError(ERROR_READING_PASSWORD_FROM_INPUT, err)
+		args.SftpPassword = string(pass)
 	}
 
 	initLogging()
+
+	if runtime.GOOS == "windows" && (strings.HasPrefix(args.Source, "'") || strings.HasPrefix(args.Destination, "'")) {
+		exitOnError(ERROR_PREVENT_USING_SINGLE_QUOTES, errors.New("prevent using single quotes as qualifier on windows - it can lead to unexpected results"))
+	}
 
 	sourcePattern := pattern.NewSourcePattern(args.Source, parseSourcePatternBitFlags())
 	log.Printf("SourcePattern: %+v", sourcePattern)
 	compiledRegex, err := sourcePattern.Compile()
 	log.Printf("compiledRegex: %s", compiledRegex)
 	exitOnError(ERROR_PARSING_SOURCE_PATTERN, err)
+
+	if (sourcePattern.Path == "." || sourcePattern.Path == "/") && strings.Contains(sourcePattern.Pattern, "/") && !args.Force {
+		exitOnError(ERROR_SOURCE_PATTERN_SEEMS_UNWANTED, errors.New("source pattern will scan '"+sourcePattern.Path+"' for pattern '"+sourcePattern.Pattern+"' which may take very long - if this is really what you would like to do, use --force option"))
+	}
 
 	locator := file.NewLocator(*sourcePattern)
 	locator.RegisterObserver(file.NewWalkObserver(suppressablePrintf))
@@ -140,6 +163,22 @@ func main() {
 			compositeMatcher.Add(matcher.NewMaxAgeMatcher(maxAge))
 		}
 
+		minSize := int64(-1)
+		maxSize := int64(-1)
+		if args.MinSize != "" {
+			minSize, err = pattern.StrToSize(args.MinSize)
+			exitOnError(ERROR_PARSING_MIN_SIZE, err)
+		}
+
+		if args.MaxSize != "" {
+			maxSize, err = pattern.StrToSize(args.MaxSize)
+			exitOnError(ERROR_PARSING_MAX_SIZE, err)
+		}
+
+		if minSize > -1 || maxSize > -1 {
+			compositeMatcher.Add(matcher.NewSizeMatcher(minSize, maxSize))
+		}
+
 		locator.Find(compositeMatcher)
 		if args.ExportTo != "" {
 			locatorCache := file.NewLocatorCache(args.ExportTo)
@@ -151,7 +190,7 @@ func main() {
 
 	if args.Destination == "" {
 
-		if args.SftpPromote {
+		if args.Sftpd {
 			homeDir, err := createHomeDirectoryIfNotExists()
 			exitOnError(ERROR_CREATE_HOME_DIR, err)
 
@@ -166,8 +205,8 @@ func main() {
 
 			listenAddress := "0.0.0.0"
 			outboundIp := GetOutboundIP()
-			suppressablePrintf("Running sftp server, login as %s@%s:%d\n", args.SftpUser, outboundIp, args.SftpPort)
-			sftpd.NewGraftServer(homeDir, listenAddress, args.SftpPort, args.SftpUser, args.SftpPassword, pathMapper)
+			suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", args.SftpUsername, outboundIp, args.SftpPort)
+			sftpd.NewGraftServer(homeDir, listenAddress, args.SftpPort, args.SftpUsername, args.SftpPassword, pathMapper)
 			return
 		}
 

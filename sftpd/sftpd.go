@@ -45,7 +45,7 @@ func NewGraftServer(graftHomePath, listenAddress string, listenPort int, usernam
 	if err != nil {
 		log.Fatal("failed to listen for connection", err)
 	}
-	fmt.Printf("Listening on %v\n", listener.Addr())
+	log.Printf("Listening on %v\n", listener.Addr())
 
 	for {
 		conn, e := listener.Accept()

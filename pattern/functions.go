@@ -111,6 +111,33 @@ func StrToAge(t string, reference time.Time) (time.Time, error) {
 	return time.Parse(layout, t)
 }
 
+func StrToSize(sizeString string) (int64, error) {
+
+
+
+	lower := strings.ToLower(sizeString)
+
+	factor := 1
+	if strings.HasSuffix(lower, "k"){
+		factor = 1024
+		lower = strings.TrimSuffix(lower, "k")
+	} else if strings.HasSuffix(lower, "m"){
+		factor = 1024 * 1024
+		lower = strings.TrimSuffix(lower, "m")
+	} else if strings.HasSuffix(lower, "g"){
+		factor = 1024 * 1024 * 1024
+		lower = strings.TrimSuffix(lower, "g")
+	} else if strings.HasSuffix(lower, "t"){
+		factor = 1024 * 1024 * 1024 * 1024
+		lower = strings.TrimSuffix(lower, "t")
+	}
+
+	ret, err := strconv.Atoi(lower)
+
+	return int64(ret * factor), err
+}
+
+
 func BuildMatchList(sourcePattern *regexp.Regexp, subject string)([]string) {
 	list := make([]string, 0)
 	normalizedPath := filepath.ToSlash(subject)

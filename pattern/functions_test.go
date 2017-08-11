@@ -16,6 +16,33 @@ func TestGlobToRegex(t *testing.T) {
 	expect.Equal("fixtures\\(\\..*)", GlobToRegexString("fixtures\\(.*)"))
 }
 
+func TestStrToSize(t *testing.T) {
+	expect := assert.New(t)
+
+	size, err := StrToSize("1080")
+	expect.Equal(size, int64(1080))
+	expect.NoError(err)
+
+	size, err = StrToSize("1K")
+	expect.Equal(size, int64(1024))
+	expect.NoError(err)
+
+	size, err = StrToSize("1M")
+	expect.Equal(size, int64(1024*1024))
+	expect.NoError(err)
+
+	size, err = StrToSize("1G")
+	expect.Equal(size, int64(1024*1024*1024))
+	expect.NoError(err)
+
+	size, err = StrToSize("1T")
+	expect.Equal(size, int64(1024*1024*1024*1024))
+	expect.NoError(err)
+
+	size, err = StrToSize("INVALID")
+	expect.Equal(size, int64(0))
+	expect.Error(err)
+}
 
 func TestStrToAge(t *testing.T) {
 	expect := assert.New(t)
