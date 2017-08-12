@@ -25,6 +25,7 @@ import (
 )
 
 // TODO:
+// - --detailed (ls -lah like output)
 // - --files-only / --directories-only
 // - --hide-progress (for working like find)
 // - copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
