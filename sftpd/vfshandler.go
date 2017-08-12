@@ -31,8 +31,13 @@ func (fs *vfs) Fileread(r sftp.Request) (io.ReaderAt, error) {
 	dumpSftpRequest("Fileread: ", r)
 
 	filePath, err := fs.pathMap.PathTo(r.Filepath)
+
 	if err == nil {
-		return os.Open(filePath)
+		f, err := os.Open(filePath)
+		if err != nil {
+			defer f.Close()
+		}
+		return f, err
 	}
 	return nil, err
 }
