@@ -263,7 +263,7 @@ func main() {
 		err = moveAction.Execute(sourcePattern, destinationPattern)
 	} else {
 		copyStrategy := transfer.NewCopyStrategy()
-		copyStrategy.ProgressHandler = transfer.NewCopyProgressHandler(int64(32*1024), 2*time.Second)
+		copyStrategy.ProgressHandler = transfer.NewCopyProgressHandler(int64(32*1024), 1*time.Second)
 		copyStrategy.RegisterObserver(messagePrinter)
 
 		copyAction := action.NewTransferAction(locator.SourceFiles, copyStrategy, actionBitFlags)
