@@ -7,8 +7,8 @@ import (
 )
 
 type BasePattern struct {
-	Path string
-	Pattern string
+	Path        string
+	Pattern     string
 	isDirectory bool
 }
 
@@ -19,27 +19,31 @@ func NewBasePattern(patternString string) *BasePattern {
 }
 
 func (p *BasePattern) parse(patternString string) {
-	path := patternString
-	for {
-		if fi, err := os.Stat(path); err == nil {
-			p.Path = filepath.ToSlash(path)
-
-			p.isDirectory = fi.IsDir()
-
-
-			startIndex := len(p.Path)+1
-			if path == "." {
-				p.Pattern = strings.TrimPrefix(patternString, ".")
-				p.Pattern = strings.TrimPrefix(p.Pattern, "/")
-			} else if len(patternString) > startIndex {
-				p.Pattern = patternString[startIndex:]
+	if fi, err := os.Stat(patternString); err != nil {
+		pathPart := patternString
+		path := ""
+		for {
+			slashIndex := strings.IndexAny(pathPart, "\\/")
+			if slashIndex == -1 {
+				break
 			}
-			break
-		}
-		path = filepath.Dir(path)
-	}
+			pathCandidate := path + pathPart[0:slashIndex+1]
+			fi, err := os.Stat(pathCandidate)
+			if err != nil {
+				break
+			}
 
-	p.Path = strings.TrimSuffix(p.Path, "/")
+			path = pathCandidate
+			pathPart = pathPart[slashIndex+1:]
+			p.isDirectory = fi.IsDir()
+		}
+		p.Path = filepath.ToSlash(filepath.Clean(path))
+		p.Pattern = strings.TrimPrefix(patternString, path)
+	} else {
+		p.Path = filepath.ToSlash(filepath.Clean(patternString))
+		p.Pattern = ""
+		p.isDirectory = fi.IsDir()
+	}
 }
 
 func (p *BasePattern) IsDir() bool {
@@ -49,5 +53,3 @@ func (p *BasePattern) IsDir() bool {
 func (p *BasePattern) IsFile() bool {
 	return !p.isDirectory && p.Pattern == ""
 }
-
-

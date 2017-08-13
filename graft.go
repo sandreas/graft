@@ -32,6 +32,7 @@ import (
 // => use default array implementation?
 // - --verbose (ls -lah like output)
 // - --files-only / --directories-only
+// - javascript plugins? https://github.com/robertkrimen/otto
 // - --hide-progress (for working like find)
 // - copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
 // - compare-strategy: quick, hash, full
