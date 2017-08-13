@@ -17,7 +17,7 @@ import (
 	"strconv"
 )
 
-func NewGraftServer(graftHomePath, listenAddress string, listenPort int, username, password string, pathMapper *PathMapper) {
+func NewSimpleSftpServer(homePath, listenAddress string, listenPort int, username, password string, pathMapper *PathMapper) {
 	config := &ssh.ServerConfig{
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			log.Printf("Login: %s\n", c.User())
@@ -28,10 +28,9 @@ func NewGraftServer(graftHomePath, listenAddress string, listenPort int, usernam
 		},
 	}
 
-	generateKeysIfNotExist(graftHomePath)
+	generateKeysIfNotExist(homePath)
 
-	// graftHomePath = "/Users/andreas/.ssh"
-	privateBytes, err := ioutil.ReadFile(graftHomePath + "/id_rsa")
+	privateBytes, err := ioutil.ReadFile(homePath + "/id_rsa")
 	if err != nil {
 		log.Fatal("Failed to load private key", err)
 	}

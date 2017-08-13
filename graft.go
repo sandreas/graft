@@ -25,7 +25,12 @@ import (
 )
 
 // TODO:
-// - --detailed (ls -lah like output)
+// fix graft *.wav G:/wav_backup
+// xxx.wav => G:/wav_backupxx.wav
+// Progressbar does not update
+// fix concurrency problem with pathMapper
+// => use default array implementation?
+// - --verbose (ls -lah like output)
 // - --files-only / --directories-only
 // - --hide-progress (for working like find)
 // - copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
@@ -210,7 +215,7 @@ func main() {
 			listenAddress := "0.0.0.0"
 			outboundIp := GetOutboundIP()
 			suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", args.SftpUsername, outboundIp, args.SftpPort)
-			sftpd.NewGraftServer(homeDir, listenAddress, args.SftpPort, args.SftpUsername, args.SftpPassword, pathMapper)
+			sftpd.NewSimpleSftpServer(homeDir, listenAddress, args.SftpPort, args.SftpUsername, args.SftpPassword, pathMapper)
 			return
 		}
 
