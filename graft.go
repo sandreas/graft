@@ -143,7 +143,7 @@ func main() {
 	exitOnError(ERROR_PARSING_SOURCE_PATTERN, err)
 
 	if (sourcePattern.Path == "." || sourcePattern.Path == "/") && strings.Contains(sourcePattern.Pattern, "/") && !args.Force {
-		exitOnError(ERROR_SOURCE_PATTERN_SEEMS_UNWANTED, errors.New("source pattern will scan '"+sourcePattern.Path+"' for pattern '"+sourcePattern.Pattern+"' which may take very long - if this is really what you would like to do, use --force option"))
+		exitOnError(ERROR_SOURCE_PATTERN_SEEMS_UNWANTED, errors.New("Your search might be incorrect, because parts of '" + args.Source+ "' do not exist.\n\nAll subdirectories in '"+sourcePattern.Path+"' will be recursively scanned for pattern '"+sourcePattern.Pattern+"'.\n\nIf this is really what you would like to do, use --force option"))
 	}
 
 	locator := file.NewLocator(*sourcePattern)
@@ -193,6 +193,10 @@ func main() {
 			err := locatorCache.Save()
 			exitOnError(ERROR_EXPORT_TO, err)
 		}
+	}
+
+	if len(locator.SourceFiles) == 0 {
+		suppressablePrintf("\nNo matches found!")
 	}
 
 	if args.Destination == "" {
