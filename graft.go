@@ -25,11 +25,7 @@ import (
 )
 
 // TODO:
-// fix graft *.wav G:/wav_backup
-// xxx.wav => G:/wav_backupxx.wav
-// Progressbar does not update
-// fix concurrency problem with pathMapper
-// => use default array implementation?
+// - fix possible concurrency problem with pathMapper
 // - --verbose (ls -lah like output)
 // - --files-only / --directories-only
 // - javascript plugins? https://github.com/robertkrimen/otto
@@ -42,6 +38,7 @@ import (
 // 		filesystem watcher for sftp server (https://godoc.org/github.com/fsnotify/fsnotify)
 //		accept connections from specific ip: 		conn, e := listener.Accept() clientAddr := conn.RemoteAddr() if clientAddr
 // - sftp client
+//   - mdns / bonjour client https://github.com/hashicorp/mdns
 // - --max-depth parameter (?)
 // - limit-results when searching or moving
 // - Input / Colors: https://github.com/dixonwille/wlog
@@ -94,10 +91,10 @@ type ImExportArguments struct {
 }
 
 type SftpArguments struct {
-	Sftpd        bool `arg:"help:start sftp server providing only matching files and directories"`
-	SftpPassword string `arg:"--sftp-password,help:Specify the password for the sftp server"`
-	SftpUsername string `arg:"--sftp-username,help:Specify the username for the sftp server"`
-	SftpPort     int `arg:"--sftp-port,help:Specifies the port on which the server listens for connections"`
+	Sftpd    bool `arg:"help:start sftp server providing only matching files and directories"`
+	Password string `arg:"help:Specify the password for the sftp server"`
+	Username string `arg:"help:Specify the username for the sftp server"`
+	Port     int `arg:"help:Specifies the port on which the server listens for connections"`
 }
 
 var args struct {
@@ -116,18 +113,18 @@ func main() {
 		os.Args = append(os.Args, "--help")
 	}
 
-	args.SftpPort = 2022
-	args.SftpUsername = "graft"
-	args.SftpPassword = ""
+	args.Port = 2022
+	args.Username = "graft"
+	args.Password = ""
 	arg.MustParse(&args)
 
-	args.SftpPassword = strings.TrimSpace(args.SftpPassword)
+	args.Password = strings.TrimSpace(args.Password)
 
-	if args.Sftpd && args.SftpPassword == "" {
+	if args.Sftpd && args.Password == "" {
 		println("Enter password for sftp-server:")
 		pass, err := gopass.GetPasswd()
 		exitOnError(ERROR_READING_PASSWORD_FROM_INPUT, err)
-		args.SftpPassword = string(pass)
+		args.Password = string(pass)
 	}
 
 	initLogging()
@@ -143,7 +140,7 @@ func main() {
 	exitOnError(ERROR_PARSING_SOURCE_PATTERN, err)
 
 	if (sourcePattern.Path == "." || sourcePattern.Path == "/") && strings.Contains(sourcePattern.Pattern, "/") && !args.Force {
-		exitOnError(ERROR_SOURCE_PATTERN_SEEMS_UNWANTED, errors.New("Your search might be incorrect, because parts of '" + args.Source+ "' do not exist.\n\nAll subdirectories in '"+sourcePattern.Path+"' will be recursively scanned for pattern '"+sourcePattern.Pattern+"'.\n\nIf this is really what you would like to do, use --force option"))
+		exitOnError(ERROR_SOURCE_PATTERN_SEEMS_UNWANTED, errors.New("Your search might be incorrect, because parts of '"+args.Source+"' do not exist.\n\nAll subdirectories in '"+sourcePattern.Path+"' will be recursively scanned for pattern '"+sourcePattern.Pattern+"'.\n\nIf this is really what you would like to do, use --force option"))
 	}
 
 	locator := file.NewLocator(*sourcePattern)
@@ -218,9 +215,9 @@ func main() {
 			pathMapper := sftpd.NewPathMapper(locator.SourceFiles, basePath)
 
 			listenAddress := "0.0.0.0"
-			outboundIp := GetOutboundIP()
-			suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", args.SftpUsername, outboundIp, args.SftpPort)
-			sftpd.NewSimpleSftpServer(homeDir, listenAddress, args.SftpPort, args.SftpUsername, args.SftpPassword, pathMapper)
+			outboundIp := GetOutboundIpAsString()
+			suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", args.Username, outboundIp, args.Port)
+			sftpd.NewSimpleSftpServer(homeDir, listenAddress, args.Port, args.Username, args.Password, pathMapper)
 			return
 		}
 
@@ -280,16 +277,17 @@ func main() {
 	}
 }
 
-func GetOutboundIP() net.IP {
+func GetOutboundIpAsString() string {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Could not determine outbound ip: %s", err)
+		return "localhost"
 	}
 	defer conn.Close()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
-	return localAddr.IP
+	return string(localAddr.IP)
 }
 
 func (PositionalArguments) Description() string {
