@@ -18,7 +18,7 @@ func NewWalkObserver(handle func(format string, a ...interface{}) (int, error)) 
 	}
 }
 
-func (ph *WalkObserver) Notify(a...interface{}) {
+func (ph *WalkObserver) Notify(a ...interface{}) {
 	if a[0] == LOCATOR_INCREASE_ITEMS {
 		ph.forceShow = ph.itemCount == 0
 		ph.itemCount++
@@ -46,11 +46,7 @@ func (ph *WalkObserver) showProgress() {
 		return
 	}
 
-	if ph.matchCount == 0 {
-		ph.outputCallback("\rscanning - total: %d", ph.itemCount)
-	} else {
-		ph.outputCallback("\rscanning - total: %d,  matches: %d", ph.itemCount, ph.matchCount)
-	}
+	ph.outputCallback("\rscanning - total: %d,  matches: %d", ph.itemCount, ph.matchCount)
 
 	if ph.itemCount > ph.Interval*10 {
 		ph.Interval = 500

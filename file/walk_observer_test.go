@@ -25,13 +25,13 @@ func TestParse(t *testing.T) {
 	handler.Interval = 2
 	handler.Notify(LOCATOR_INCREASE_ITEMS)
 
-	expect.Equal("\rscanning - total: %d", lastFakePrintfString)
-	expect.Len(lastFakePrintfParams, 1)
+	expect.Equal("\rscanning - total: %d,  matches: %d", lastFakePrintfString)
+	expect.Len(lastFakePrintfParams, 2)
 
 	handler.Notify(LOCATOR_INCREASE_ITEMS)
 
-	expect.Equal("\rscanning - total: %d", lastFakePrintfString)
-	expect.Len(lastFakePrintfParams, 1)
+	expect.Equal("\rscanning - total: %d,  matches: %d", lastFakePrintfString)
+	expect.Len(lastFakePrintfParams, 2)
 
 	handler.Notify(LOCATOR_INCREASE_ITEMS)
 	handler.Notify(LOCATOR_INCREASE_MATCHES)
