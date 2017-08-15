@@ -16,10 +16,10 @@ func VfsHandler(mapper *PathMapper) sftp.Handlers {
 		pathMap: *mapper,
 	}
 	return sftp.Handlers{
-		FileGet: virtualFileSystem,
-		FilePut: virtualFileSystem,
-		FileCmd: virtualFileSystem,
-		FileInfo: virtualFileSystem,
+		FileGet:  virtualFileSystem,
+		FilePut:  virtualFileSystem,
+		FileCmd:  virtualFileSystem,
+		FileList: virtualFileSystem,
 	}
 }
 
@@ -52,12 +52,28 @@ func (fs *vfs) Filecmd(r sftp.Request) error {
 	return os.ErrInvalid
 }
 
-func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
+type listerAt []os.FileInfo
+
+// Modeled after strings.Reader's ReadAt() implementation
+func (l listerAt) ListAt(ls []os.FileInfo, offset int64) (int, error) {
+	var n int
+	if offset >= int64(len(l)) {
+		return 0, io.EOF
+	}
+	n = copy(ls, l[offset:])
+	if n < len(ls) {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
+
+func (fs *vfs) Filelist(r sftp.Request) (sftp.ListerAt, error) {
 	dumpSftpRequest("Fileinfo: ", r)
 	switch r.Method {
 	case "List":
 		listing, ok := fs.pathMap.List(r.Filepath)
-		if ! ok {
+		if !ok {
 			return nil, os.ErrInvalid
 		}
 
@@ -72,13 +88,13 @@ func (fs *vfs) Fileinfo(r sftp.Request) ([]os.FileInfo, error) {
 			statList[i] = stat
 			log.Println("Stat for file "+fileName+": isDir=>", stat.IsDir(), "size=>", stat.Size())
 		}
-		return statList, nil
+		return listerAt(statList), nil
 	case "Stat":
 		stat, err := fs.pathMap.Stat(r.Filepath)
 		if err != nil {
 			return nil, err
 		}
-		return []os.FileInfo{stat}, nil
+		return listerAt([]os.FileInfo{stat}), nil
 	}
 	return nil, os.ErrInvalid
 }
