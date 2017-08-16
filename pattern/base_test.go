@@ -3,78 +3,69 @@ package pattern
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
-	"path/filepath"
+	"github.com/spf13/afero"
 )
+var mockFs afero.Fs
+func init() {
+	mockFs = afero.NewMemMapFs()
+	mockFs.Mkdir("fixtures/global/", 0644)
+	afero.WriteFile(mockFs,"fixtures/global/file.txt", []byte(""), 0755)
+}
 
 func TestBase(t *testing.T) {
 	expect := assert.New(t)
 
-	sourcePattern := NewBasePattern("../data/fixtures/global/*")
-	expect.Equal("../data/fixtures/global", sourcePattern.Path)
-	expect.Equal("*", sourcePattern.Pattern)
-	expect.True(sourcePattern.IsDir())
-	expect.False(sourcePattern.IsFile())
+	basePattern := NewBasePattern(mockFs, "fixtures/global/*")
+	expect.Equal("fixtures/global", basePattern.Path)
+	expect.Equal("*", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 
-	sourcePattern = NewBasePattern("../data/fixtures/non-existing/*.*")
-	expect.Equal("../data/fixtures", sourcePattern.Path)
-	expect.Equal("non-existing/*.*", sourcePattern.Pattern)
-	expect.True(sourcePattern.IsDir())
-	expect.False(sourcePattern.IsFile())
+	basePattern = NewBasePattern(mockFs, "fixtures/non-existing/*.*")
+	expect.Equal("fixtures", basePattern.Path)
+	expect.Equal("non-existing/*.*", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 
-	sourcePattern = NewBasePattern("../data/fixtures/global/file.txt")
-	expect.Equal("../data/fixtures/global/file.txt", sourcePattern.Path)
-	expect.Equal("", sourcePattern.Pattern)
-	expect.False(sourcePattern.IsDir())
-	expect.True(sourcePattern.IsFile())
+	basePattern = NewBasePattern(mockFs, "fixtures/global/file.txt")
+	expect.Equal("fixtures/global/file.txt", basePattern.Path)
+	expect.Equal("", basePattern.Pattern)
+	expect.False(basePattern.IsDir())
+	expect.True(basePattern.IsFile())
 
-	sourcePattern = NewBasePattern("../data/fixtures/global/")
-	expect.Equal("../data/fixtures/global", sourcePattern.Path)
-	expect.Equal("", sourcePattern.Pattern)
-	expect.True(sourcePattern.IsDir())
-	expect.False(sourcePattern.IsFile())
+	basePattern = NewBasePattern(mockFs, "fixtures/global/")
+	expect.Equal("fixtures/global", basePattern.Path)
+	expect.Equal("", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 
-	sourcePattern = NewBasePattern("*")
-	expect.Equal(".", sourcePattern.Path)
-	expect.Equal("*", sourcePattern.Pattern)
-	expect.True(sourcePattern.IsDir())
-	expect.False(sourcePattern.IsFile())
+	basePattern = NewBasePattern(mockFs, "*")
+	expect.Equal(".", basePattern.Path)
+	expect.Equal("*", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 
-	sourcePattern = NewBasePattern("./*")
-	expect.Equal(".", sourcePattern.Path)
-	expect.Equal("*", sourcePattern.Pattern)
-	expect.True(sourcePattern.IsDir())
-	expect.False(sourcePattern.IsFile())
+	basePattern = NewBasePattern(mockFs, "./*")
+	expect.Equal(".", basePattern.Path)
+	expect.Equal("*", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 
-	sourcePattern = NewBasePattern("../data/fixtures/global/(.*)")
-	expect.Equal("../data/fixtures/global", sourcePattern.Path)
-	expect.Equal("(.*)", sourcePattern.Pattern)
-	expect.True(sourcePattern.IsDir())
-	expect.False(sourcePattern.IsFile())
+	basePattern = NewBasePattern(mockFs, "fixtures/global/(.*)")
+	expect.Equal("fixtures/global", basePattern.Path)
+	expect.Equal("(.*)", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 
-	sourcePattern = NewBasePattern(".")
-	expect.Equal(".", sourcePattern.Path)
-	expect.Equal("", sourcePattern.Pattern)
-	expect.True(sourcePattern.IsDir())
-	expect.False(sourcePattern.IsFile())
+	basePattern = NewBasePattern(mockFs, ".")
+	expect.Equal(".", basePattern.Path)
+	expect.Equal("", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 
-	sourcePattern = NewBasePattern("./")
-	expect.Equal(".", sourcePattern.Path)
-	expect.Equal("", sourcePattern.Pattern)
-	expect.True(sourcePattern.IsDir())
-	expect.False(sourcePattern.IsFile())
-
-
-}
-
-// +build windows
-func TestAbsoluteWindows(t *testing.T) {
-
-	expect := assert.New(t)
-
-	abs := "C:/"
-	absWithPattern := abs +"NotExisting/*.txt"
-	sourcePattern := NewBasePattern(absWithPattern)
-	expect.Equal(filepath.ToSlash(abs), sourcePattern.Path)
-	expect.Equal("NotExisting/*.txt", sourcePattern.Pattern)
-
+	basePattern = NewBasePattern(mockFs, "./")
+	expect.Equal(".", basePattern.Path)
+	expect.Equal("", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 }

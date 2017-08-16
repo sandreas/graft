@@ -1,25 +1,28 @@
 package pattern
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
+	"github.com/spf13/afero"
 )
 
 type BasePattern struct {
+	fs          afero.Fs
 	Path        string
 	Pattern     string
 	isDirectory bool
 }
 
-func NewBasePattern(patternString string) *BasePattern {
-	basePattern := &BasePattern{}
+func NewBasePattern(fs afero.Fs, patternString string) *BasePattern {
+	basePattern := &BasePattern{
+		fs: fs,
+	}
 	basePattern.parse(patternString)
 	return basePattern
 }
 
 func (p *BasePattern) parse(patternString string) {
-	if fi, err := os.Stat(patternString); err != nil {
+	if fi, err := p.fs.Stat(patternString); err != nil {
 		pathPart := patternString
 		path := ""
 		for {
@@ -28,7 +31,7 @@ func (p *BasePattern) parse(patternString string) {
 				break
 			}
 			pathCandidate := path + pathPart[0:slashIndex+1]
-			fi, err := os.Stat(pathCandidate)
+			fi, err := p.fs.Stat(pathCandidate)
 			if err != nil {
 				break
 			}
