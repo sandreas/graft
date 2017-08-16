@@ -30,8 +30,6 @@ type Path struct {
 }
 
 func NewPath(path string) *Path {
-
-
 	vol := filepath.VolumeName(path)
 	path = strings.TrimPrefix(path, vol)
 	kind := getPathType(path)
@@ -60,7 +58,7 @@ func NewPath(path string) *Path {
 }
 
 func getPathType(path string) int {
-	if strings.HasSuffix(path, "/") || strings.HasSuffix(path, "\\") || path == "" {
+	if strings.HasSuffix(path, "/") || strings.HasSuffix(path, "\\") {
 		return typeDir
 	}
 	return typeFile

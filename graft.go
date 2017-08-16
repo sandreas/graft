@@ -22,6 +22,8 @@ import (
 	"github.com/sandreas/graft/sftpd"
 	"github.com/sandreas/graft/transfer"
 	"github.com/howeyc/gopass"
+	//"golang.org/x/crypto/ssh"
+	//"github.com/sandreas/sftp"
 )
 
 // TODO:
@@ -55,10 +57,11 @@ const (
 	ERROR_READING_PASSWORD_FROM_INPUT   = 10
 	ERROR_PARSING_MIN_SIZE              = 11
 	ERROR_PARSING_MAX_SIZE              = 12
+	//ERROR_GENERAL              = 1
 )
 
 type PositionalArguments struct {
-	Source      string `arg:"positional,required"`
+	Source      string `arg:"positional"`
 	Destination string `arg:"positional"`
 }
 
@@ -91,10 +94,12 @@ type ImExportArguments struct {
 }
 
 type SftpArguments struct {
-	Sftpd    bool `arg:"help:start sftp server providing only matching files and directories"`
-	Password string `arg:"help:Specify the password for the sftp server"`
-	Username string `arg:"help:Specify the username for the sftp server"`
-	Port     int `arg:"help:Specifies the port on which the server listens for connections"`
+	Server   bool `arg:"help:server mode - act as sftp server and provide only files and directories matching the source pattern"`
+	Client   bool `arg:"help:client mode - act as sftp client and download files instead of local search"`
+	Host     string `arg:"help:Specify the hostname for the server (client mode only)"`
+	Username string `arg:"help:Specify server username (used in server- and client mode)"`
+	Password string `arg:"help:Specify server password (used for server- and client mode)"`
+	Port     int `arg:"help:Specifiy server port (used for server- and client mode)"`
 }
 
 var args struct {
@@ -117,21 +122,65 @@ func main() {
 	args.Username = "graft"
 	args.Password = ""
 	arg.MustParse(&args)
-
 	args.Password = strings.TrimSpace(args.Password)
 
-	if args.Sftpd && args.Password == "" {
+	initLogging()
+
+	if (args.Server || args.Client ) && args.Password == "" {
 		println("Enter password for sftp-server:")
 		pass, err := gopass.GetPasswd()
 		exitOnError(ERROR_READING_PASSWORD_FROM_INPUT, err)
 		args.Password = string(pass)
 	}
 
-	initLogging()
 
 	if runtime.GOOS == "windows" && (strings.HasPrefix(args.Source, "'") || strings.HasPrefix(args.Destination, "'")) {
 		exitOnError(ERROR_PREVENT_USING_SINGLE_QUOTES, errors.New("prevent using single quotes as qualifier on windows - it can lead to unexpected results"))
 	}
+
+	//if args.Client {
+	//	maxPacketSize := 1<<15
+	//	if args.Source == "" && args.Destination == "" {
+	//		args.Source = "*"
+	//		args.Destination = "$1"
+	//	}
+	//
+	//	var auths []ssh.AuthMethod
+	//	//aconn, err := net.Dial("tcp", args.Host)
+	//	//
+	//	//if err!= nil {
+	//	//	exitOnError(ERROR_GENERAL, err)
+	//	//}
+	//
+	//	// auths = append(auths, ssh.PublicKeysCallback(agent.NewClient(aconn).Signers))
+	//
+	//		auths = append(auths, ssh.Password(args.Password))
+	//
+	//
+	//	config := ssh.ClientConfig{
+	//		User: args.Username,
+	//		Auth: auths,
+	//		// todo: secure HostKeyCallback
+	//		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	//	}
+	//
+	//
+	//	addr := fmt.Sprintf("%s:%d", args.Host, args.Port)
+	//	conn, err := ssh.Dial("tcp", addr, &config)
+	//	exitOnError(ERROR_GENERAL, err)
+	//	defer conn.Close()
+	//
+	//	c, err := sftp.NewClient(conn, sftp.MaxPacket(maxPacketSize))
+	//	// walker := c.Walk("/")
+	//	// walker.Step()
+	//	// stat := walker.Stat()
+	//	stat, err := c.Stat("/zero-byte.txt")
+	//	exitOnError(ERROR_GENERAL, err)
+	//
+	//	log.Printf("%+v", stat)
+	//	c.Close()
+	//	os.Exit(0)
+	//}
 
 	sourcePattern := pattern.NewSourcePattern(args.Source, parseSourcePatternBitFlags())
 	log.Printf("SourcePattern: %+v", sourcePattern)
@@ -198,7 +247,7 @@ func main() {
 
 	if args.Destination == "" {
 
-		if args.Sftpd {
+		if args.Server {
 			homeDir, err := createHomeDirectoryIfNotExists()
 			exitOnError(ERROR_CREATE_HOME_DIR, err)
 
@@ -287,7 +336,7 @@ func GetOutboundIpAsString() string {
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
-	return string(localAddr.IP)
+	return localAddr.IP.String()
 }
 
 func (PositionalArguments) Description() string {
