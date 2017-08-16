@@ -7,7 +7,7 @@ import (
 )
 
 type BasePattern struct {
-	fs          afero.Fs
+	Fs          afero.Fs
 	Path        string
 	Pattern     string
 	isDirectory bool
@@ -15,14 +15,14 @@ type BasePattern struct {
 
 func NewBasePattern(fs afero.Fs, patternString string) *BasePattern {
 	basePattern := &BasePattern{
-		fs: fs,
+		Fs: fs,
 	}
 	basePattern.parse(patternString)
 	return basePattern
 }
 
 func (p *BasePattern) parse(patternString string) {
-	if fi, err := p.fs.Stat(patternString); err != nil {
+	if fi, err := p.Fs.Stat(patternString); err != nil {
 		pathPart := patternString
 		path := ""
 		for {
@@ -31,7 +31,7 @@ func (p *BasePattern) parse(patternString string) {
 				break
 			}
 			pathCandidate := path + pathPart[0:slashIndex+1]
-			fi, err := p.fs.Stat(pathCandidate)
+			fi, err := p.Fs.Stat(pathCandidate)
 			if err != nil {
 				break
 			}

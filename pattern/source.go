@@ -3,6 +3,7 @@ package pattern
 import (
 	"regexp"
 	"github.com/sandreas/graft/bitflag"
+	"github.com/spf13/afero"
 )
 
 
@@ -17,8 +18,9 @@ type SourcePattern struct {
 	useRealRegex bool
 }
 
-func NewSourcePattern(patternString string, params ...bitflag.BitFlag) *SourcePattern {
+func NewSourcePattern(fs afero.Fs, patternString string, params ...bitflag.BitFlag) *SourcePattern {
 	sourcePattern := &SourcePattern{}
+	sourcePattern.Fs = fs
 	sourcePattern.parse(patternString)
 
 
