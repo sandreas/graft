@@ -5,10 +5,12 @@ import (
 	"log"
 	"os"
 	"github.com/sandreas/sftp"
+	"sync"
 )
 
 type vfs struct {
 	pathMap PathMapper
+	pathMapLock sync.Mutex
 }
 
 func VfsHandler(mapper *PathMapper) sftp.Handlers {
@@ -29,6 +31,8 @@ func dumpSftpRequest(message string, r sftp.Request) {
 
 func (fs *vfs) Fileread(r sftp.Request) (io.ReaderAt, error) {
 	dumpSftpRequest("Fileread: ", r)
+	fs.pathMapLock.Lock()
+	defer fs.pathMapLock.Unlock()
 
 	filePath, err := fs.pathMap.PathTo(r.Filepath)
 
@@ -70,6 +74,8 @@ func (l listerAt) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 
 func (fs *vfs) Filelist(r sftp.Request) (sftp.ListerAt, error) {
 	dumpSftpRequest("Fileinfo: ", r)
+	fs.pathMapLock.Lock()
+	defer fs.pathMapLock.Unlock()
 	switch r.Method {
 	case "List":
 		listing, ok := fs.pathMap.List(r.Filepath)
