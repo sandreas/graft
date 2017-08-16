@@ -26,25 +26,6 @@ import (
 	//"github.com/sandreas/sftp"
 )
 
-// TODO:
-// - fix possible concurrency problem with pathMapper
-// - --verbose (ls -lah like output)
-// - --files-only / --directories-only
-// - javascript plugins? https://github.com/robertkrimen/otto
-// - --hide-progress (for working like find)
-// - copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
-// - compare-strategy: quick, hash, full
-// - improve progress-bar output (progress speed is not accurate enough)
-// - sftp-server:
-// 	    filezilla takes long and produces 0 byte files
-// 		filesystem watcher for sftp server (https://godoc.org/github.com/fsnotify/fsnotify)
-//		accept connections from specific ip: 		conn, e := listener.Accept() clientAddr := conn.RemoteAddr() if clientAddr
-// - sftp client
-//   - mdns / bonjour client https://github.com/hashicorp/mdns
-// - --max-depth parameter (?)
-// - limit-results when searching or moving
-// - Input / Colors: https://github.com/dixonwille/wlog
-
 const (
 	ERROR_PARSING_SOURCE_PATTERN        = 2
 	ERROR_PARSING_MIN_AGE               = 3
@@ -57,7 +38,6 @@ const (
 	ERROR_READING_PASSWORD_FROM_INPUT   = 10
 	ERROR_PARSING_MIN_SIZE              = 11
 	ERROR_PARSING_MAX_SIZE              = 12
-	//ERROR_GENERAL              = 1
 )
 
 type PositionalArguments struct {
@@ -95,7 +75,6 @@ type ImExportArguments struct {
 
 type SftpArguments struct {
 	Server   bool `arg:"help:server mode - act as sftp server and provide only files and directories matching the source pattern"`
-	Client   bool `arg:"help:client mode - act as sftp client and download files instead of local search"`
 	Host     string `arg:"help:Specify the hostname for the server (client mode only)"`
 	Username string `arg:"help:Specify server username (used in server- and client mode)"`
 	Password string `arg:"help:Specify server password (used for server- and client mode)"`
@@ -126,7 +105,7 @@ func main() {
 
 	initLogging()
 
-	if (args.Server || args.Client ) && args.Password == "" {
+	if args.Server && args.Password == "" {
 		println("Enter password for sftp-server:")
 		pass, err := gopass.GetPasswd()
 		exitOnError(ERROR_READING_PASSWORD_FROM_INPUT, err)
@@ -137,50 +116,6 @@ func main() {
 	if runtime.GOOS == "windows" && (strings.HasPrefix(args.Source, "'") || strings.HasPrefix(args.Destination, "'")) {
 		exitOnError(ERROR_PREVENT_USING_SINGLE_QUOTES, errors.New("prevent using single quotes as qualifier on windows - it can lead to unexpected results"))
 	}
-
-	//if args.Client {
-	//	maxPacketSize := 1<<15
-	//	if args.Source == "" && args.Destination == "" {
-	//		args.Source = "*"
-	//		args.Destination = "$1"
-	//	}
-	//
-	//	var auths []ssh.AuthMethod
-	//	//aconn, err := net.Dial("tcp", args.Host)
-	//	//
-	//	//if err!= nil {
-	//	//	exitOnError(ERROR_GENERAL, err)
-	//	//}
-	//
-	//	// auths = append(auths, ssh.PublicKeysCallback(agent.NewClient(aconn).Signers))
-	//
-	//		auths = append(auths, ssh.Password(args.Password))
-	//
-	//
-	//	config := ssh.ClientConfig{
-	//		User: args.Username,
-	//		Auth: auths,
-	//		// todo: secure HostKeyCallback
-	//		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	//	}
-	//
-	//
-	//	addr := fmt.Sprintf("%s:%d", args.Host, args.Port)
-	//	conn, err := ssh.Dial("tcp", addr, &config)
-	//	exitOnError(ERROR_GENERAL, err)
-	//	defer conn.Close()
-	//
-	//	c, err := sftp.NewClient(conn, sftp.MaxPacket(maxPacketSize))
-	//	// walker := c.Walk("/")
-	//	// walker.Step()
-	//	// stat := walker.Stat()
-	//	stat, err := c.Stat("/zero-byte.txt")
-	//	exitOnError(ERROR_GENERAL, err)
-	//
-	//	log.Printf("%+v", stat)
-	//	c.Close()
-	//	os.Exit(0)
-	//}
 
 	sourcePattern := pattern.NewSourcePattern(args.Source, parseSourcePatternBitFlags())
 	log.Printf("SourcePattern: %+v", sourcePattern)

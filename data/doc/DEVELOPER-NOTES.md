@@ -1,8 +1,24 @@
 # Things to do
 
 - calculate and show transfer speed
-
-graft le/d.img ../out/$1 ==> funktioniert nicht
+- graft le/d.img ../out/$1 does not work
+- fix possible concurrency problem with pathMapper
+- --verbose (ls -lah like output)
+- --files-only / --directories-only
+- javascript plugins? https://github.com/robertkrimen/otto
+- --hide-progress (for working like find)
+- copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
+- compare-strategy: quick, hash, full
+- improve progress-bar output (progress speed is not accurate enough)
+- sftp-server:
+	    filezilla takes long and produces 0 byte files
+		filesystem watcher for sftp server (https://godoc.org/github.com/fsnotify/fsnotify)
+	accept connections from specific ip: 		conn, e := listener.Accept() clientAddr := conn.RemoteAddr() if clientAddr
+- sftp client
+  - mdns / bonjour client https://github.com/hashicorp/mdns
+- --max-depth parameter (?)
+- limit-results when searching or moving
+- Input / Colors: https://github.com/dixonwille/wlog
 
 
 # Technology links
