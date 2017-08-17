@@ -2,11 +2,12 @@ package transfer_test
 
 import (
 	"testing"
-	"github.com/stretchr/testify/assert"
-	"github.com/spf13/afero"
-	"github.com/sandreas/graft/designpattern/observer"
 	"time"
+
+	"github.com/sandreas/graft/designpattern/observer"
 	"github.com/sandreas/graft/transfer"
+	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 )
 
 type FakeObserver struct {
@@ -14,10 +15,9 @@ type FakeObserver struct {
 	messages []string
 }
 
-func(ph *FakeObserver) Notify(a...interface{}){
+func (ph *FakeObserver) Notify(a ...interface{}) {
 	ph.messages = append(ph.messages, a[0].(string))
 }
-
 
 func prepareFilesystemTest(src, srcContent, dst, dstContent string) afero.Fs {
 	appFS := afero.NewMemMapFs()
@@ -29,24 +29,11 @@ func prepareFilesystemTest(src, srcContent, dst, dstContent string) afero.Fs {
 	return appFS
 }
 
-//func mockCopyStrategyFs(fileNamePrefix, srcContents, dstContents string) (afero.Fs, string, string) {
-//	files := make(map[string]string)
-//	srcFileName := fileNamePrefix + "-src.txt"
-//	dstFileName := fileNamePrefix + "-dst.txt"
-//
-//	files[srcFileName] = srcContents
-//	if dstContents != "" {
-//		files[dstFileName] = dstContents
-//	}
-//
-//	return testhelpers.MockFileSystem(files), srcFileName, dstFileName
-//}
-
 func TestCopyNewFile(t *testing.T) {
 	expect := assert.New(t)
 
 	subject := transfer.NewCopyStrategy()
-	subject.ProgressHandler = transfer.NewCopyProgressHandler(2, 1 * time.Nanosecond)
+	subject.ProgressHandler = transfer.NewCopyProgressHandler(2, 1*time.Nanosecond)
 	observer := &FakeObserver{}
 	subject.RegisterObserver(observer)
 
@@ -115,7 +102,6 @@ func TestCopyExistingCompleted(t *testing.T) {
 	contents, _ := afero.ReadFile(subject.Fs, destinationFile)
 	expect.Equal(srcContents, string(contents))
 }
-
 
 func TestCopyZeroBytesFile(t *testing.T) {
 	expect := assert.New(t)
