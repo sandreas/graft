@@ -1,10 +1,11 @@
-package sftpd
+package sftpd_test
 
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"os"
+	"github.com/sandreas/graft/sftpd"
 )
 
 var files = []string{
@@ -90,7 +91,7 @@ var singleFile = []string {
 func TestFiles(t *testing.T) {
 	expect := assert.New(t)
 
-	mapper := NewPathMapper(files, "data/fixtures")
+	mapper := sftpd.NewPathMapper(files, "data/fixtures")
 
 	result, ok := mapper.List("global")
 	want := []string{"/global/dir", "/global/documents (2010)", "/global/file.txt", "/global/textfile.txt"}
@@ -105,7 +106,7 @@ func TestFiles(t *testing.T) {
 func TestFilesDoubleDotSlash(t *testing.T) {
 	expect := assert.New(t)
 
-	mapper := NewPathMapper(filesWithDot, "../data/fixtures")
+	mapper := sftpd.NewPathMapper(filesWithDot, "../data/fixtures")
 
 	result, ok := mapper.List("global")
 	want := []string{"/global/dir", "/global/documents (2010)", "/global/file.txt", "/global/textfile.txt"}
@@ -120,7 +121,7 @@ func TestFilesDoubleDotSlash(t *testing.T) {
 func TestDotSlash(t *testing.T) {
 	expect := assert.New(t)
 
-	mapper := NewPathMapper(files, "./data/fixtures")
+	mapper := sftpd.NewPathMapper(files, "./data/fixtures")
 
 	result, ok := mapper.List("global")
 	want := []string{"/global/dir", "/global/documents (2010)", "/global/file.txt", "/global/textfile.txt"}
@@ -135,7 +136,7 @@ func TestDotSlash(t *testing.T) {
 func TestFilesOnly(t *testing.T) {
 	expect := assert.New(t)
 
-	mapper := NewPathMapper(filesOnly, "data/fixtures")
+	mapper := sftpd.NewPathMapper(filesOnly, "data/fixtures")
 	result, ok := mapper.List(string(os.PathSeparator))
 	want := []string{"/file"}
 	expect.True(ok)
@@ -146,7 +147,7 @@ func TestFilesOnly(t *testing.T) {
 func TestFilesMulti(t *testing.T) {
 	expect := assert.New(t)
 
-	mapper := NewPathMapper(filesMulti, "data/fixtures")
+	mapper := sftpd.NewPathMapper(filesMulti, "data/fixtures")
 	result, ok := mapper.List("/global")
 	want := []string{"/global/dir", "/global/documents (2010)", "/global/file.txt", "/global/textfile.txt"}
 	expect.True(ok)
@@ -157,7 +158,7 @@ func TestFilesMulti(t *testing.T) {
 func TestFilesSpecial(t *testing.T) {
 	expect := assert.New(t)
 
-	mapper := NewPathMapper(filesSpecial, "data/fixtures")
+	mapper := sftpd.NewPathMapper(filesSpecial, "data/fixtures")
 	result, ok := mapper.List("/")
 	want := []string{"/file", "/global"}
 	expect.True(ok)
@@ -169,7 +170,7 @@ func TestFilesSpecial(t *testing.T) {
 func TestPathTo(t *testing.T) {
 	expect := assert.New(t)
 
-	mapper := NewPathMapper(files, "./data/fixtures")
+	mapper := sftpd.NewPathMapper(files, "./data/fixtures")
 	path, err := mapper.PathTo("global")
 	expect.Equal(filepath.FromSlash("data/fixtures/global"), path)
 	expect.Nil(err)
@@ -178,7 +179,7 @@ func TestPathTo(t *testing.T) {
 	expect.Equal("", path)
 	expect.Error(err)
 
-	mapper = NewPathMapper(filesWithDot, "../data/fixtures")
+	mapper = sftpd.NewPathMapper(filesWithDot, "../data/fixtures")
 	path, err = mapper.PathTo("global")
 	expect.Equal(filepath.FromSlash("../data/fixtures/global"), path)
 	expect.Nil(err)
@@ -188,7 +189,7 @@ func TestPathTo(t *testing.T) {
 func TestPathToSingleFile(t *testing.T) {
 	expect := assert.New(t)
 
-	mapper := NewPathMapper(singleFile, ".")
+	mapper := sftpd.NewPathMapper(singleFile, ".")
 	result, ok := mapper.PathTo("/test.txt")
 	want := "test.txt"
 	expect.NoError(ok)
@@ -199,7 +200,7 @@ func TestPathToSingleFile(t *testing.T) {
 func TestStat(t *testing.T) {
 	expect := assert.New(t)
 
-	mapper := NewPathMapper(filesWithDot, "../data/fixtures")
+	mapper := sftpd.NewPathMapper(filesWithDot, "../data/fixtures")
 	_, err := mapper.Stat("global")
 	expect.Nil(err)
 
