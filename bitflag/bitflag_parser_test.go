@@ -1,11 +1,12 @@
-package bitflag
+package bitflag_test
 
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"github.com/sandreas/graft/bitflag"
 )
 const (
-	FLAG_ONE BitFlag = 1 << iota
+	FLAG_ONE   bitflag.Flag = 1 << iota
 	FLAG_TWO
 	FLAG_THREE
 	FLAG_FOUR
@@ -15,7 +16,7 @@ const (
 func TestParseSingleOrConcatBitFlagParam(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewBitFlagParser(FLAG_ONE|FLAG_FOUR)
+	subject := bitflag.NewParser(FLAG_ONE|FLAG_FOUR)
 
 	expect.True(subject.HasFlag(FLAG_ONE))
 	expect.False(subject.HasFlag(FLAG_TWO))
@@ -27,7 +28,7 @@ func TestParseSingleOrConcatBitFlagParam(t *testing.T) {
 func TestParseMultipleBitFlagParams(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewBitFlagParser(FLAG_ONE, FLAG_FOUR)
+	subject := bitflag.NewParser(FLAG_ONE, FLAG_FOUR)
 
 	expect.True(subject.HasFlag(FLAG_ONE))
 	expect.False(subject.HasFlag(FLAG_TWO))
@@ -38,7 +39,7 @@ func TestParseMultipleBitFlagParams(t *testing.T) {
 func TestParseNoFlags(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewBitFlagParser()
+	subject := bitflag.NewParser()
 
 	expect.False(subject.HasFlag(FLAG_ONE))
 	expect.False(subject.HasFlag(FLAG_TWO))
@@ -50,7 +51,7 @@ func TestParseNoFlags(t *testing.T) {
 func TestSetFlag(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewBitFlagParser(FLAG_ONE, FLAG_FOUR)
+	subject := bitflag.NewParser(FLAG_ONE, FLAG_FOUR)
 
 	expect.True(subject.HasFlag(FLAG_ONE))
 	expect.False(subject.HasFlag(FLAG_TWO))

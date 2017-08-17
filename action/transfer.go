@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	FLAG_DRY_RUN bitflag.BitFlag = 1 << iota
+	FLAG_DRY_RUN bitflag.Flag = 1 << iota
 	FLAG_TIMES
 )
 
@@ -29,7 +29,7 @@ type TransferAction struct {
 	transferredDirs  []string
 }
 
-func NewTransferAction(sourceFiles []string, transferStrategy transfer.TransferStrategyInterface, params ...bitflag.BitFlag) *TransferAction {
+func NewTransferAction(sourceFiles []string, transferStrategy transfer.TransferStrategyInterface, params ...bitflag.Flag) *TransferAction {
 	transferAction := &TransferAction{
 		Fs:               afero.NewOsFs(),
 		sourceFiles:      sourceFiles,
@@ -37,7 +37,7 @@ func NewTransferAction(sourceFiles []string, transferStrategy transfer.TransferS
 		transferredDirs:  []string{},
 	}
 
-	bitFlags := bitflag.NewBitFlagParser(params...)
+	bitFlags := bitflag.NewParser(params...)
 	transferAction.dryRun = bitFlags.HasFlag(FLAG_DRY_RUN)
 	transferAction.keepTimes = bitFlags.HasFlag(FLAG_TIMES)
 

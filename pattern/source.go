@@ -8,7 +8,7 @@ import (
 
 
 const (
-	CASE_SENSITIVE bitflag.BitFlag = 1 << iota
+	CASE_SENSITIVE bitflag.Flag = 1 << iota
 	USE_REAL_REGEX
 )
 
@@ -18,13 +18,13 @@ type SourcePattern struct {
 	useRealRegex bool
 }
 
-func NewSourcePattern(fs afero.Fs, patternString string, params ...bitflag.BitFlag) *SourcePattern {
+func NewSourcePattern(fs afero.Fs, patternString string, params ...bitflag.Flag) *SourcePattern {
 	sourcePattern := &SourcePattern{}
 	sourcePattern.Fs = fs
 	sourcePattern.parse(patternString)
 
 
-	bitFlags := bitflag.NewBitFlagParser(params...)
+	bitFlags := bitflag.NewParser(params...)
 	sourcePattern.caseSensitive = bitFlags.HasFlag(CASE_SENSITIVE)
 	sourcePattern.useRealRegex = bitFlags.HasFlag(USE_REAL_REGEX)
 

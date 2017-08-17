@@ -1,20 +1,20 @@
 package bitflag
 
 
-type BitFlag byte
+type Flag byte
 
 
-type BitFlagParser struct {
-	activeFlags BitFlag
+type Parser struct {
+	activeFlags Flag
 }
 
 
-func NewBitFlagParser( params ...BitFlag) *BitFlagParser {
-	parser := &BitFlagParser{}
+func NewParser( params ...Flag) *Parser {
+	parser := &Parser{}
 	parser.parse(params)
 	return parser
 }
-func (parser *BitFlagParser) parse(params []BitFlag) {
+func (parser *Parser) parse(params []Flag) {
 	size := len(params)
 
 	parser.activeFlags = 0x00
@@ -23,10 +23,10 @@ func (parser *BitFlagParser) parse(params []BitFlag) {
 	}
 }
 
-func (parser *BitFlagParser) SetFlag(flagToSet BitFlag) {
+func (parser *Parser) SetFlag(flagToSet Flag) {
 	parser.activeFlags |= flagToSet
 }
 
-func (parser *BitFlagParser) HasFlag(flagToCheck BitFlag) bool {
+func (parser *Parser) HasFlag(flagToCheck Flag) bool {
 	return parser.activeFlags & flagToCheck != 0
 }

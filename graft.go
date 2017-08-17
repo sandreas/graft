@@ -24,6 +24,7 @@ import (
 	"github.com/howeyc/gopass"
 	//"golang.org/x/crypto/ssh"
 	//"github.com/sandreas/sftp"
+	"github.com/spf13/afero"
 )
 
 const (
@@ -117,7 +118,9 @@ func main() {
 		exitOnError(ERROR_PREVENT_USING_SINGLE_QUOTES, errors.New("prevent using single quotes as qualifier on windows - it can lead to unexpected results"))
 	}
 
-	sourcePattern := pattern.NewSourcePattern(args.Source, parseSourcePatternBitFlags())
+	fileSystem := afero.NewOsFs()
+
+	sourcePattern := pattern.NewSourcePattern(fileSystem, args.Source, parseSourcePatternBitFlags())
 	log.Printf("SourcePattern: %+v", sourcePattern)
 	compiledRegex, err := sourcePattern.Compile()
 	log.Printf("compiledRegex: %s", compiledRegex)
@@ -186,7 +189,7 @@ func main() {
 			homeDir, err := createHomeDirectoryIfNotExists()
 			exitOnError(ERROR_CREATE_HOME_DIR, err)
 
-			fi, err := os.Stat(sourcePattern.Path)
+			fi, err := fileSystem.Stat(sourcePattern.Path)
 			exitOnError(ERROR_STAT_SOURCE_PATTERN_PATH, err)
 			basePath := sourcePattern.Path
 			if fi.Mode().IsRegular() {
@@ -217,18 +220,18 @@ func main() {
 			// delete
 			if args.Delete && !args.DryRun {
 				var dirsToRemove = []string{}
-				stat, err := os.Stat(path)
+				stat, err := fileSystem.Stat(path)
 
 				if !os.IsNotExist(err) {
 					if stat.Mode().IsRegular() {
-						os.Remove(path)
+						fileSystem.Remove(path)
 					} else if stat.Mode().IsDir() {
 						dirsToRemove = append(dirsToRemove, path)
 					}
 				}
 
 				for _, path := range dirsToRemove {
-					os.Remove(path)
+					fileSystem.Remove(path)
 				}
 			}
 		}
@@ -236,7 +239,7 @@ func main() {
 		return
 	}
 
-	destinationPattern := pattern.NewDestinationPattern(args.Destination)
+	destinationPattern := pattern.NewDestinationPattern(fileSystem, args.Destination)
 	messagePrinter := transfer.NewMessagePrinterObserver(suppressablePrintf)
 	actionBitFlags := parseActionBitFlags()
 
@@ -309,8 +312,8 @@ func suppressablePrintf(format string, a ...interface{}) (n int, err error) {
 	return 0, nil
 }
 
-func parseSourcePatternBitFlags() bitflag.BitFlag {
-	var patternFlags bitflag.BitFlag
+func parseSourcePatternBitFlags() bitflag.Flag {
+	var patternFlags bitflag.Flag
 	if args.CaseSensitive {
 		patternFlags |= pattern.CASE_SENSITIVE
 	}
@@ -320,8 +323,8 @@ func parseSourcePatternBitFlags() bitflag.BitFlag {
 	return patternFlags
 }
 
-func parseActionBitFlags() bitflag.BitFlag {
-	var actionFlags bitflag.BitFlag
+func parseActionBitFlags() bitflag.Flag {
+	var actionFlags bitflag.Flag
 	if args.DryRun {
 		actionFlags |= action.FLAG_DRY_RUN
 	}
