@@ -1,12 +1,14 @@
 package matcher
 
 import (
-	"os"
 	"time"
+	"github.com/spf13/afero"
+	"os"
 )
 
 type FileAgeMatcher struct {
 	MatcherInterface
+	Fs     afero.Fs
 	fi     os.FileInfo
 	minAge time.Time
 	maxAge time.Time
@@ -14,6 +16,7 @@ type FileAgeMatcher struct {
 
 func NewFileAgeMatcher(fi os.FileInfo, minAge, maxAge time.Time) *FileAgeMatcher {
 	return &FileAgeMatcher{
+		Fs:     afero.NewOsFs(),
 		fi:     fi,
 		minAge: minAge,
 		maxAge: maxAge,
@@ -23,7 +26,7 @@ func NewFileAgeMatcher(fi os.FileInfo, minAge, maxAge time.Time) *FileAgeMatcher
 func (f *FileAgeMatcher) Matches(subject interface{}) bool {
 	var err error
 	if f.fi == nil {
-		f.fi, err = os.Stat(subject.(string))
+		f.fi, err = f.Fs.Stat(subject.(string))
 	}
 
 	if err != nil {
@@ -31,11 +34,11 @@ func (f *FileAgeMatcher) Matches(subject interface{}) bool {
 	}
 
 	if f.maxAge.IsZero() {
-		return  f.minAge.Before(f.fi.ModTime())
+		return f.minAge.Before(f.fi.ModTime())
 	}
 
 	if f.minAge.IsZero() {
-		return  f.maxAge.After(f.fi.ModTime())
+		return f.maxAge.After(f.fi.ModTime())
 	}
 
 	return f.maxAge.After(f.fi.ModTime()) && f.minAge.Before(f.fi.ModTime())
