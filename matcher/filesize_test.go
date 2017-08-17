@@ -15,40 +15,47 @@ func TestSizeMatcherForFileWithStat(t *testing.T) {
 		fileToCheck: "file",
 	})
 
-	fi, _ := mockFs.Stat(fileToCheck)
-
-	m := matcher.NewFileSizeMatcher(fi, -1, 2)
+	m := matcher.NewFileSizeMatcher(-1, 2)
+	m.Fs = mockFs
 	expect.False(m.Matches(fileToCheck))
 
-	m = matcher.NewFileSizeMatcher(fi, -1, 4)
+	m = matcher.NewFileSizeMatcher(-1, 4)
+	m.Fs = mockFs
 	expect.True(m.Matches(fileToCheck))
 
-	m = matcher.NewFileSizeMatcher(fi, -1, 15)
+	m = matcher.NewFileSizeMatcher(-1, 15)
+	m.Fs = mockFs
 	expect.True(m.Matches(fileToCheck))
 
-	m = matcher.NewFileSizeMatcher(fi, 0, -1)
+	m = matcher.NewFileSizeMatcher(0, -1)
+	m.Fs = mockFs
 	expect.True(m.Matches(fileToCheck))
 
-	m = matcher.NewFileSizeMatcher(fi, 5, -1)
+	m = matcher.NewFileSizeMatcher(5, -1)
+	m.Fs = mockFs
 	expect.False(m.Matches(fileToCheck))
 
-	m = matcher.NewFileSizeMatcher(fi, 3, 4)
+	m = matcher.NewFileSizeMatcher(3, 4)
+	m.Fs = mockFs
 	expect.True(m.Matches(fileToCheck))
 
-	m = matcher.NewFileSizeMatcher(fi, 3, 3)
+	m = matcher.NewFileSizeMatcher(3, 3)
+	m.Fs = mockFs
 	expect.False(m.Matches(fileToCheck))
 
-	m = matcher.NewFileSizeMatcher(fi, 5, 4)
+	m = matcher.NewFileSizeMatcher(5, 4)
+	m.Fs = mockFs
 	expect.False(m.Matches(fileToCheck))
 
-	m = matcher.NewFileSizeMatcher(fi, -1, -1)
+	m = matcher.NewFileSizeMatcher(-1, -1)
+	m.Fs = mockFs
 	expect.False(m.Matches(fileToCheck))
 }
 
 func TestSizeMatcherForFile(t *testing.T) {
 	expect := assert.New(t)
 	fileToCheck := "../data/fixtures/global/file.txt"
-	m := matcher.NewFileSizeMatcher(nil, 3, 4)
+	m := matcher.NewFileSizeMatcher(3, 4)
 	expect.True(m.Matches(fileToCheck))
 }
 
@@ -57,11 +64,10 @@ func TestSizeMatcherForDirWithStat(t *testing.T) {
 	dirToCheck := "fixtures/"
 
 	mockFs := testhelpers.MockFileSystem(map[string]string{
-		dirToCheck:  "",
+		dirToCheck: "",
 	})
-	di, _ := mockFs.Stat(dirToCheck)
 
-	m := matcher.NewFileSizeMatcher(di, 0, 5)
+	m := matcher.NewFileSizeMatcher(0, 5)
+	m.Fs = mockFs
 	expect.False(m.Matches(dirToCheck))
-
 }

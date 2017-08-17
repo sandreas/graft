@@ -169,7 +169,7 @@ func main() {
 		}
 
 		if minSize > -1 || maxSize > -1 {
-			compositeMatcher.Add(matcher.NewFileSizeMatcher(nil, minSize, maxSize))
+			compositeMatcher.Add(matcher.NewFileSizeMatcher(minSize, maxSize))
 		}
 
 		locator.Find(compositeMatcher)

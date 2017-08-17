@@ -3,8 +3,7 @@
 - add transfer.move_strategy_test
 - add action.transfer_test
 
-- merge min and maxage matcher to one class (saves one stat call)
-- Build a composite matcher, that takes stat as constructor and switch matchers to take stat as first argument
+- update Matchers to use existing FileInfo for faster matching / use matcher.setFileInfo in FileMatcherInterface
 - calculate and show transfer speed
 - graft le/d.img ../out/$1 does not work
 - fix possible concurrency problem with pathMapper
