@@ -4,33 +4,38 @@ import (
 	"os"
 )
 
-type SizeMatcher struct {
+type FileSizeMatcher struct {
 	MatcherInterface
-	MinSize int64
-	MaxSize	int64
+	fi      os.FileInfo
+	minSize int64
+	maxSize int64
 }
 
-func NewSizeMatcher(minSize, maxSize int64) *SizeMatcher {
-	return &SizeMatcher{
-		MinSize: minSize,
-		MaxSize: maxSize,
+func NewFileSizeMatcher(fi os.FileInfo, minSize, maxSize int64) *FileSizeMatcher {
+	return &FileSizeMatcher{
+		fi:      fi,
+		minSize: minSize,
+		maxSize: maxSize,
 	}
 }
 
-func (f *SizeMatcher) Matches(subject interface{}) bool {
-	fi, err := os.Stat(subject.(string))
+func (f *FileSizeMatcher) Matches(subject interface{}) bool {
+	var err error
+	if f.fi == nil {
+		f.fi, err = os.Stat(subject.(string))
+	}
 
-	if err != nil || fi.IsDir(){
+	if err != nil || f.fi.IsDir(){
 		return false
 	}
 
-	if f.MinSize < 0 {
-		return fi.Size() <= f.MaxSize
+	if f.minSize < 0 {
+		return f.fi.Size() <= f.maxSize
 	}
 
-	if f.MaxSize < 0 {
-		return fi.Size() >= f.MinSize
+	if f.maxSize < 0 {
+		return f.fi.Size() >= f.minSize
 	}
 
-	return fi.Size() >= f.MinSize && fi.Size() <= f.MaxSize
+	return f.fi.Size() >= f.minSize && f.fi.Size() <= f.maxSize
 }
