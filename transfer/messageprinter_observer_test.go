@@ -1,8 +1,9 @@
-package transfer
+package transfer_test
 
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"github.com/sandreas/graft/transfer"
 )
 
 var lastFakePrintfString string
@@ -21,7 +22,7 @@ func FakePrintf(format string, a ...interface{}) (int, error) {
 
 func TestParse(t *testing.T) {
 	expect := assert.New(t)
-	handler := NewMessagePrinterObserver(FakePrintf)
+	handler := transfer.NewMessagePrinterObserver(FakePrintf)
 
 	handler.Notify("test-message")
 	expect.Equal("test-message", lastFakePrintfString)

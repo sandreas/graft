@@ -1,9 +1,10 @@
-package file
+package file_test
 
 import (
 	"github.com/spf13/afero"
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"github.com/sandreas/graft/file"
 )
 
 
@@ -11,7 +12,7 @@ func TestLoadNonExisting(t *testing.T) {
 	expect := assert.New(t)
 
 	cacheFile := "locator-cache.txt"
-	subject := NewLocatorCache(cacheFile)
+	subject := file.NewLocatorCache(cacheFile)
 	subject.Fs = prepareFilesystemTest("", "")
 	err := subject.Load()
 	expect.Error(err)
@@ -22,7 +23,7 @@ func TestLoadExisting(t *testing.T) {
 	expect := assert.New(t)
 
 	cacheFile := "locator-cache.txt"
-	subject := NewLocatorCache(cacheFile)
+	subject := file.NewLocatorCache(cacheFile)
 	subject.Fs = prepareFilesystemTest(cacheFile, "data/file1.txt\ndata/file2.txt\n")
 	err := subject.Load()
 
@@ -35,7 +36,7 @@ func TestSaveErrorWhenFileExists(t *testing.T) {
 
 	cacheFile := "locator-cache.txt"
 	cacheContent := "original-content"
-	subject := NewLocatorCache(cacheFile)
+	subject := file.NewLocatorCache(cacheFile)
 	subject.Fs = prepareFilesystemTest(cacheFile, cacheContent)
 	err := subject.Save()
 	expect.Error(err)
@@ -48,7 +49,7 @@ func TestSave(t *testing.T) {
 	expect := assert.New(t)
 
 	cacheFile := "locator-cache.txt"
-	subject := NewLocatorCache(cacheFile)
+	subject := file.NewLocatorCache(cacheFile)
 	subject.Fs = prepareFilesystemTest("", "")
 
 

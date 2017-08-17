@@ -1,4 +1,4 @@
-package transfer
+package transfer_test
 
 import (
 	"testing"
@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/sandreas/graft/designpattern/observer"
 	"time"
+	"github.com/sandreas/graft/transfer"
 )
 
 type FakeObserver struct {
@@ -31,8 +32,8 @@ func prepareFilesystemTest(src, srcContent, dst, dstContent string) afero.Fs {
 func TestCopyNewFile(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewCopyStrategy()
-	subject.ProgressHandler = NewCopyProgressHandler(2, 1 * time.Nanosecond)
+	subject := transfer.NewCopyStrategy()
+	subject.ProgressHandler = transfer.NewCopyProgressHandler(2, 1 * time.Nanosecond)
 	observer := &FakeObserver{}
 	subject.RegisterObserver(observer)
 
@@ -54,7 +55,7 @@ func TestCopyNewFile(t *testing.T) {
 func TestCopyLargerSourceError(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewCopyStrategy()
+	subject := transfer.NewCopyStrategy()
 
 	srcFile := "test-src.txt"
 	srcContents := "this is a small src with larger dst"
@@ -70,7 +71,7 @@ func TestCopyLargerSourceError(t *testing.T) {
 func TestCopyPartial(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewCopyStrategy()
+	subject := transfer.NewCopyStrategy()
 
 	srcFile := "test-src.txt"
 	srcContents := "this is the full content of a file with a partial existing destination"
@@ -86,7 +87,7 @@ func TestCopyPartial(t *testing.T) {
 func TestCopyExistingCompleted(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewCopyStrategy()
+	subject := transfer.NewCopyStrategy()
 
 	srcFile := "test-src.txt"
 	srcContents := "this is a file where src and dst are fully equal"
@@ -103,7 +104,7 @@ func TestCopyExistingCompleted(t *testing.T) {
 func TestCopyZeroBytesFile(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewCopyStrategy()
+	subject := transfer.NewCopyStrategy()
 
 	srcFile := "test-src.txt"
 	srcContents := ""
@@ -120,7 +121,7 @@ func TestCopyZeroBytesFile(t *testing.T) {
 func TestCleanupIsAlwaysNil(t *testing.T) {
 	expect := assert.New(t)
 
-	subject := NewCopyStrategy()
+	subject := transfer.NewCopyStrategy()
 
 	expect.Nil(subject.CleanUp([]string{"a", "b", "c"}))
 }
