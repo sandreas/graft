@@ -23,7 +23,7 @@ func (c *MoveStrategy) Transfer(s, d string) error {
 		return err
 	}
 
-	return os.Rename(s, d)
+	return c.Fs.Rename(s, d)
 }
 
 func (c *MoveStrategy) CleanUp(dirsToRemove []string) error {
