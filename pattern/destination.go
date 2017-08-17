@@ -2,14 +2,16 @@ package pattern
 
 import (
 	"regexp"
+	"github.com/spf13/afero"
 )
 
 type DestinationPattern struct {
 	BasePattern
 }
 
-func NewDestinationPattern(patternString string) *DestinationPattern {
+func NewDestinationPattern(fs afero.Fs, patternString string) *DestinationPattern {
 	destinationPattern := &DestinationPattern{}
+	destinationPattern.Fs = fs
 	destinationPattern.parse(patternString)
 	destinationPattern.fixRegex()
 	return destinationPattern
