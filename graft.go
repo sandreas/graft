@@ -22,8 +22,6 @@ import (
 	"github.com/sandreas/graft/sftpd"
 	"github.com/sandreas/graft/transfer"
 	"github.com/howeyc/gopass"
-	//"golang.org/x/crypto/ssh"
-	//"github.com/sandreas/sftp"
 	"github.com/spf13/afero"
 )
 
@@ -142,16 +140,21 @@ func main() {
 		compositeMatcher := matcher.NewCompositeMatcher()
 		compositeMatcher.Add(matcher.NewRegexMatcher(*compiledRegex))
 
+		minAge := time.Time{}
+		maxAge := time.Time{}
+
 		if args.MinAge != "" {
-			minAge, err := pattern.StrToAge(args.MinAge, time.Now())
+			minAge, err = pattern.StrToAge(args.MinAge, time.Now())
 			exitOnError(ERROR_PARSING_MIN_AGE, err)
-			compositeMatcher.Add(matcher.NewMinAgeMatcher(minAge))
 		}
 
 		if args.MaxAge != "" {
-			maxAge, err := pattern.StrToAge(args.MaxAge, time.Now())
+			maxAge, err = pattern.StrToAge(args.MaxAge, time.Now())
 			exitOnError(ERROR_PARSING_MIN_AGE, err)
-			compositeMatcher.Add(matcher.NewMaxAgeMatcher(maxAge))
+		}
+
+		if !minAge.IsZero() || !maxAge.IsZero() {
+			compositeMatcher.Add(matcher.NewFileAgeMatcher(nil, minAge, maxAge))
 		}
 
 		minSize := int64(-1)
@@ -167,7 +170,7 @@ func main() {
 		}
 
 		if minSize > -1 || maxSize > -1 {
-			compositeMatcher.Add(matcher.NewSizeMatcher(minSize, maxSize))
+			compositeMatcher.Add(matcher.NewFileSizeMatcher(nil, minSize, maxSize))
 		}
 
 		locator.Find(compositeMatcher)

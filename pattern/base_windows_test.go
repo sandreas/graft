@@ -4,17 +4,14 @@ import (
 	"path/filepath"
 	"testing"
 	"github.com/stretchr/testify/assert"
-	"github.com/spf13/afero"
+	"github.com/sandreas/graft/testhelpers"
 )
-
-var mockFs afero.Fs
-func init() {
-	mockFs = afero.NewMemMapFs()
-}
-
 func TestAbsoluteWindows(t *testing.T) {
 
 	expect := assert.New(t)
+	mockFs := testhelpers.MockFileSystem(map[string]string{
+		"C:/":         "",
+	})
 
 	abs := "C:/"
 	absWithPattern := abs + "NotExisting/*.txt"

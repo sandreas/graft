@@ -2,10 +2,12 @@ package matcher
 
 import (
 	"os"
+	"github.com/spf13/afero"
 )
 
 type FileSizeMatcher struct {
 	MatcherInterface
+	Fs     afero.Fs
 	fi      os.FileInfo
 	minSize int64
 	maxSize int64
@@ -13,29 +15,30 @@ type FileSizeMatcher struct {
 
 func NewFileSizeMatcher(fi os.FileInfo, minSize, maxSize int64) *FileSizeMatcher {
 	return &FileSizeMatcher{
+		Fs:     afero.NewOsFs(),
 		fi:      fi,
 		minSize: minSize,
 		maxSize: maxSize,
 	}
 }
 
-func (f *FileSizeMatcher) Matches(subject interface{}) bool {
+func (fsMatcher *FileSizeMatcher) Matches(subject interface{}) bool {
 	var err error
-	if f.fi == nil {
-		f.fi, err = os.Stat(subject.(string))
+	if fsMatcher.fi == nil {
+		fsMatcher.fi, err = fsMatcher.Fs.Stat(subject.(string))
 	}
 
-	if err != nil || f.fi.IsDir(){
+	if err != nil || fsMatcher.fi.IsDir(){
 		return false
 	}
 
-	if f.minSize < 0 {
-		return f.fi.Size() <= f.maxSize
+	if fsMatcher.minSize < 0 {
+		return fsMatcher.fi.Size() <= fsMatcher.maxSize
 	}
 
-	if f.maxSize < 0 {
-		return f.fi.Size() >= f.minSize
+	if fsMatcher.maxSize < 0 {
+		return fsMatcher.fi.Size() >= fsMatcher.minSize
 	}
 
-	return f.fi.Size() >= f.minSize && f.fi.Size() <= f.maxSize
+	return fsMatcher.fi.Size() >= fsMatcher.minSize && fsMatcher.fi.Size() <= fsMatcher.maxSize
 }

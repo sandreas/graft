@@ -23,24 +23,24 @@ func NewFileAgeMatcher(fi os.FileInfo, minAge, maxAge time.Time) *FileAgeMatcher
 	}
 }
 
-func (f *FileAgeMatcher) Matches(subject interface{}) bool {
+func (faMatcher *FileAgeMatcher) Matches(subject interface{}) bool {
 	var err error
-	if f.fi == nil {
-		f.fi, err = f.Fs.Stat(subject.(string))
+	if faMatcher.fi == nil {
+		faMatcher.fi, err = faMatcher.Fs.Stat(subject.(string))
 	}
 
 	if err != nil {
 		return false
 	}
 
-	if f.maxAge.IsZero() {
-		return f.minAge.Before(f.fi.ModTime())
+	if faMatcher.maxAge.IsZero() {
+		return faMatcher.minAge.Before(faMatcher.fi.ModTime())
 	}
 
-	if f.minAge.IsZero() {
-		return f.maxAge.After(f.fi.ModTime())
+	if faMatcher.minAge.IsZero() {
+		return faMatcher.maxAge.After(faMatcher.fi.ModTime())
 	}
 
-	return f.maxAge.After(f.fi.ModTime()) && f.minAge.Before(f.fi.ModTime())
+	return faMatcher.maxAge.After(faMatcher.fi.ModTime()) && faMatcher.minAge.Before(faMatcher.fi.ModTime())
 
 }
