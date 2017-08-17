@@ -1,4 +1,4 @@
-package file
+package file_test
 
 import (
 	"github.com/sandreas/graft/designpattern/observer"
@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/matcher"
+	"github.com/sandreas/graft/file"
+	"github.com/sandreas/graft/testhelpers"
 )
 
 type FakeObserver struct {
@@ -16,32 +18,41 @@ type FakeObserver struct {
 }
 
 func(ph *FakeObserver) Notify(a...interface{}){
-	if a[0] == LOCATOR_INCREASE_MATCHES {
+	if a[0] == file.LOCATOR_INCREASE_MATCHES {
 		ph.increaseMatchesCalls++
 		return
 	}
 
-	if a[0] == LOCATOR_INCREASE_ITEMS {
+	if a[0] == file.LOCATOR_INCREASE_ITEMS {
 		ph.increaseItemsCalls++
 		return
 	}
 
-	if a[0] == LOCATOR_FINISH {
+	if a[0] == file.LOCATOR_FINISH {
 		ph.finishCalls++
 		return
 	}
 }
 
 
-func preparePattern(patternString string) (*Locator, *FakeObserver, *matcher.CompositeMatcher) {
-	sourcePattern := pattern.NewSourcePattern(patternString)
+func preparePattern(patternString string) (*file.Locator, *FakeObserver, *matcher.CompositeMatcher) {
+	mockFs := testhelpers.MockFileSystem(map[string]string{
+		"fixtures/global/":         "",
+		"fixtures/global/file.txt": "",
+		"fixtures/file/WalkPathByPattern/dir/": "",
+		"fixtures/file/WalkPathByPattern/dir/dirfile.txt": "",
+		"fixtures/file/WalkPathByPattern/dir/subdir/": "",
+		"fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log": "",
+	})
+
+	sourcePattern := pattern.NewSourcePattern(mockFs, patternString)
 	compiledRegex, _ := sourcePattern.Compile()
 	m := matcher.NewRegexMatcher(*compiledRegex)
 	composite := matcher.NewCompositeMatcher()
 	composite.Add(m)
 	fakeObserver := &FakeObserver{}
 
-	subject := NewLocator(*sourcePattern)
+	subject := file.NewLocator(*sourcePattern)
 	subject.RegisterObserver(fakeObserver)
 
 	return subject, fakeObserver, composite
@@ -50,12 +61,12 @@ func preparePattern(patternString string) (*Locator, *FakeObserver, *matcher.Com
 func TestFindWithFile(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, fakeObserver, composite := preparePattern("../data/fixtures/global/file.txt")
+	subject, fakeObserver, composite := preparePattern("fixtures/global/file.txt")
 
 	subject.Find(composite)
 
 	expect.Equal(1, len(subject.SourceFiles))
-	expect.Equal("../data/fixtures/global/file.txt", subject.SourceFiles[0])
+	expect.Equal("fixtures/global/file.txt", subject.SourceFiles[0])
 
 	expect.Equal(int64(0), fakeObserver.increaseItemsCalls)
 	expect.Equal(int64(1), fakeObserver.increaseMatchesCalls)
@@ -66,15 +77,15 @@ func TestFindWithFile(t *testing.T) {
 func TestFindFilesWithDirectory(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, fakeObserver, composite := preparePattern("../data/fixtures/file/WalkPathByPattern/dir")
+	subject, fakeObserver, composite := preparePattern("fixtures/file/WalkPathByPattern/dir")
 
 	subject.Find(composite)
 
 	expect.Equal(4, len(subject.SourceFiles))
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/", subject.SourceFiles[0])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[1])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/", subject.SourceFiles[2])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[3])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/", subject.SourceFiles[0])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[1])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/subdir/", subject.SourceFiles[2])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[3])
 
 	expect.Equal(int64(0), fakeObserver.increaseItemsCalls)
 	expect.Equal(int64(4), fakeObserver.increaseMatchesCalls)
@@ -84,14 +95,14 @@ func TestFindFilesWithDirectory(t *testing.T) {
 func TestFindFilesWithGlob(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, fakeObserver, composite := preparePattern("../data/fixtures/file/WalkPathByPattern/dir/*irfile*")
+	subject, fakeObserver, composite := preparePattern("fixtures/file/WalkPathByPattern/dir/*irfile*")
 
 	subject.Find(composite)
 
 
 	expect.Equal(2, len(subject.SourceFiles))
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[0])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[1])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[0])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[1])
 
 	expect.Equal(int64(1), fakeObserver.increaseItemsCalls)
 	expect.Equal(int64(2), fakeObserver.increaseMatchesCalls)
@@ -101,16 +112,16 @@ func TestFindFilesWithGlob(t *testing.T) {
 func TestFind(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, fakeObserver, composite := preparePattern("../data/fixtures/file/WalkPathByPattern/dir/")
+	subject, fakeObserver, composite := preparePattern("fixtures/file/WalkPathByPattern/dir/")
 
 	subject.Find(composite)
 
 
 	expect.Equal(4, len(subject.SourceFiles))
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/", subject.SourceFiles[0])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[1])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/", subject.SourceFiles[2])
-	expect.Equal("../data/fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[3])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/", subject.SourceFiles[0])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/dirfile.txt", subject.SourceFiles[1])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/subdir/", subject.SourceFiles[2])
+	expect.Equal("fixtures/file/WalkPathByPattern/dir/subdir/subdirfile.log", subject.SourceFiles[3])
 	//
 	expect.Equal(int64(0), fakeObserver.increaseItemsCalls)
 	expect.Equal(int64(4), fakeObserver.increaseMatchesCalls)
