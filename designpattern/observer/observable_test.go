@@ -1,12 +1,13 @@
-package designpattern
+package designpattern_test
 
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"github.com/sandreas/graft/designpattern/observer"
 )
 
 type FakeObserver struct {
-	ObservableInterface
+	designpattern.ObservableInterface
 	NotifyCalls int
 	Argument int
 }
@@ -19,7 +20,7 @@ func (fo *FakeObserver) Notify(a...interface{}) {
 func TestNewDestinationPattern(t *testing.T) {
 	expect := assert.New(t)
 
-	observable := &Observable{}
+	observable := &designpattern.Observable{}
 	observer := &FakeObserver{}
 	observable.RegisterObserver(observer)
 
