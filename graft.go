@@ -111,7 +111,6 @@ func main() {
 		args.Password = string(pass)
 	}
 
-
 	if runtime.GOOS == "windows" && (strings.HasPrefix(args.Source, "'") || strings.HasPrefix(args.Destination, "'")) {
 		exitOnError(ERROR_PREVENT_USING_SINGLE_QUOTES, errors.New("prevent using single quotes as qualifier on windows - it can lead to unexpected results"))
 	}
@@ -154,7 +153,7 @@ func main() {
 		}
 
 		if !minAge.IsZero() || !maxAge.IsZero() {
-			compositeMatcher.Add(matcher.NewFileAgeMatcher(nil, minAge, maxAge))
+			compositeMatcher.Add(matcher.NewFileAgeMatcher(minAge, maxAge))
 		}
 
 		minSize := int64(-1)

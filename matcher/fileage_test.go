@@ -22,32 +22,35 @@ func TestFileAgeMatcher(t *testing.T) {
 	})
 	mockFs.Chtimes(fileToCheck, modTime, modTime)
 
-	fi, _ := mockFs.Stat(fileToCheck)
 
-	subject := matcher.NewFileAgeMatcher(fi, time.Time{}, time2016)
+	subject := matcher.NewFileAgeMatcher( time.Time{}, time2016)
+	subject.Fs = mockFs
 	expect.True(subject.Matches(fileToCheck))
 
-	subject = matcher.NewFileAgeMatcher(fi, time2014, time.Time{})
+	subject = matcher.NewFileAgeMatcher( time2014, time.Time{})
+	subject.Fs = mockFs
 	expect.True(subject.Matches(fileToCheck))
 
-	subject = matcher.NewFileAgeMatcher(fi, time2014, time2016)
+	subject = matcher.NewFileAgeMatcher( time2014, time2016)
+	subject.Fs = mockFs
 	expect.True(subject.Matches(fileToCheck))
 
-	subject = matcher.NewFileAgeMatcher(fi, time.Time{}, time.Time{})
+	subject = matcher.NewFileAgeMatcher( time.Time{}, time.Time{})
+	subject.Fs = mockFs
 	expect.True(subject.Matches(fileToCheck))
 }
 
 func TestFileAgeMatcherWithoutStat(t *testing.T) {
 	expect := assert.New(t)
 	fileToCheck := "../data/fixtures/global/file.txt"
-	m := matcher.NewFileAgeMatcher(nil, time.Time{}, time.Now())
+	m := matcher.NewFileAgeMatcher(time.Time{}, time.Now())
 	expect.True(m.Matches(fileToCheck))
 }
 
 func TestFileNotExists(t *testing.T) {
 	expect := assert.New(t)
 	fileToCheck := "not-exists.txt"
-	m := matcher.NewFileAgeMatcher(nil, time.Time{}, time.Now())
+	m := matcher.NewFileAgeMatcher( time.Time{}, time.Now())
 	expect.False(m.Matches(fileToCheck))
 }
 
