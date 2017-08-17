@@ -1,5 +1,10 @@
 # Things to do
 
+- add transfer.move_strategy_test
+- add action.transfer_test
+
+- merge min and maxage matcher to one class (saves one stat call)
+- Build a composite matcher, that takes stat as constructor and switch matchers to take stat as first argument
 - calculate and show transfer speed
 - graft le/d.img ../out/$1 does not work
 - fix possible concurrency problem with pathMapper
