@@ -1,9 +1,10 @@
-package matcher
+package matcher_test
 
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"regexp"
+	"github.com/sandreas/graft/matcher"
 )
 
 func TestRegexMatcher(t *testing.T) {
@@ -11,8 +12,8 @@ func TestRegexMatcher(t *testing.T) {
 
 	compiledRegex, _ := regexp.Compile("^a(.*)$")
 
-	matcher := NewRegexMatcher(*compiledRegex)
+	subject := matcher.NewRegexMatcher(*compiledRegex)
 
-	expect.True(matcher.Matches("abcd"))
-	expect.False(matcher.Matches("other value"))
+	expect.True(subject.Matches("abcd"))
+	expect.False(subject.Matches("other value"))
 }

@@ -1,10 +1,11 @@
-package matcher
+package matcher_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/sandreas/graft/matcher"
 )
 
 func TestMinAgeMatcher(t *testing.T) {
@@ -12,11 +13,11 @@ func TestMinAgeMatcher(t *testing.T) {
 
 	fileToCheck := "../data/fixtures/global/file.txt"
 
-	matcher := NewMinAgeMatcher(time.Now())
-	expect.True(matcher.Matches(fileToCheck))
+	subject := matcher.NewMinAgeMatcher(time.Now())
+	expect.True(subject.Matches(fileToCheck))
 
-	matcher = NewMinAgeMatcher(time.Date(2015, 1, 1, 1, 1, 1, 1, time.Local))
-	expect.False(matcher.Matches(fileToCheck))
+	subject = matcher.NewMinAgeMatcher(time.Date(2015, 1, 1, 1, 1, 1, 1, time.Local))
+	expect.False(subject.Matches(fileToCheck))
 }
 
 func TestMinAgeMatcherWithMissingFile(t *testing.T) {
@@ -24,9 +25,9 @@ func TestMinAgeMatcherWithMissingFile(t *testing.T) {
 
 	fileToCheck := "../data/fixtures/global/not-exists.txt"
 
-	matcher := NewMinAgeMatcher(time.Now())
-	expect.False(matcher.Matches(fileToCheck))
+	subject := matcher.NewMinAgeMatcher(time.Now())
+	expect.False(subject.Matches(fileToCheck))
 
-	matcher = NewMinAgeMatcher(time.Date(2015, 1, 1, 1, 1, 1, 1, time.Local))
-	expect.False(matcher.Matches(fileToCheck))
+	subject = matcher.NewMinAgeMatcher(time.Date(2015, 1, 1, 1, 1, 1, 1, time.Local))
+	expect.False(subject.Matches(fileToCheck))
 }
