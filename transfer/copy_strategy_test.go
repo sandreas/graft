@@ -29,6 +29,19 @@ func prepareFilesystemTest(src, srcContent, dst, dstContent string) afero.Fs {
 	return appFS
 }
 
+//func mockCopyStrategyFs(fileNamePrefix, srcContents, dstContents string) (afero.Fs, string, string) {
+//	files := make(map[string]string)
+//	srcFileName := fileNamePrefix + "-src.txt"
+//	dstFileName := fileNamePrefix + "-dst.txt"
+//
+//	files[srcFileName] = srcContents
+//	if dstContents != "" {
+//		files[dstFileName] = dstContents
+//	}
+//
+//	return testhelpers.MockFileSystem(files), srcFileName, dstFileName
+//}
+
 func TestCopyNewFile(t *testing.T) {
 	expect := assert.New(t)
 
@@ -41,6 +54,8 @@ func TestCopyNewFile(t *testing.T) {
 	srcContents := "this is a file without existing destination"
 	destinationFile := "test1-dst.txt"
 
+	// subject.Fs, srcFile, destinationFile
+
 	subject.Fs = prepareFilesystemTest(srcFile, srcContents, destinationFile, "")
 	err := subject.Transfer(srcFile, destinationFile)
 	expect.Equal(nil, err)
@@ -48,8 +63,9 @@ func TestCopyNewFile(t *testing.T) {
 	dstContents, _ := afero.ReadFile(subject.Fs, destinationFile)
 	expect.Equal(srcContents, string(dstContents))
 
-	expect.Len(observer.messages, 1)
-	expect.Equal("\r[====================>] 100.00%   0.00/s\n", observer.messages[0])
+	expect.Len(observer.messages, 2)
+	expect.Equal("\r[>                    ] 0.00%", observer.messages[0])
+	expect.Equal("\r[====================>] 100.00%", observer.messages[1][0:32])
 }
 
 func TestCopyLargerSourceError(t *testing.T) {
