@@ -1,9 +1,7 @@
 package transfer
 
 import (
-	"os"
 	"sort"
-
 	"github.com/spf13/afero"
 )
 

@@ -21,8 +21,13 @@ import (
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/sftpd"
 	"github.com/sandreas/graft/transfer"
+	"github.com/sandreas/graft/sftpfs"
 	"github.com/howeyc/gopass"
 	"github.com/spf13/afero"
+	"github.com/sandreas/graft/apputils"
+	"golang.org/x/crypto/ssh"
+	"github.com/pkg/sftp"
+
 )
 
 const (
@@ -37,6 +42,7 @@ const (
 	ERROR_READING_PASSWORD_FROM_INPUT   = 10
 	ERROR_PARSING_MIN_SIZE              = 11
 	ERROR_PARSING_MAX_SIZE              = 12
+	ERROR_CONNECT_TO_SERVER				= 13
 )
 
 type PositionalArguments struct {
@@ -74,6 +80,7 @@ type ImExportArguments struct {
 
 type SftpArguments struct {
 	Server   bool `arg:"help:server mode - act as sftp server and provide only files and directories matching the source pattern"`
+	Client   bool `arg:"help:client mode - act as sftp client and download files instead of local search"`
 	Host     string `arg:"help:Specify the hostname for the server (client mode only)"`
 	Username string `arg:"help:Specify server username (used in server- and client mode)"`
 	Password string `arg:"help:Specify server password (used for server- and client mode)"`
@@ -104,7 +111,9 @@ func main() {
 
 	initLogging()
 
-	if args.Server && args.Password == "" {
+	if (args.Server || args.Client ) && args.Password == "" {
+		args.Move = false
+		args.Delete = false
 		println("Enter password for sftp-server:")
 		pass, err := gopass.GetPasswd()
 		exitOnError(ERROR_READING_PASSWORD_FROM_INPUT, err)
@@ -115,9 +124,14 @@ func main() {
 		exitOnError(ERROR_PREVENT_USING_SINGLE_QUOTES, errors.New("prevent using single quotes as qualifier on windows - it can lead to unexpected results"))
 	}
 
-	fileSystem := afero.NewOsFs()
 
-	sourcePattern := pattern.NewSourcePattern(fileSystem, args.Source, parseSourcePatternBitFlags())
+	sourceFileSystem, ctx := prepareSourceFileSystem()
+	if ctx != nil {
+		defer ctx.Disconnect()
+	}
+	destinationFileSystem := afero.NewOsFs()
+
+	sourcePattern := pattern.NewSourcePattern(sourceFileSystem, args.Source, parseSourcePatternBitFlags())
 	log.Printf("SourcePattern: %+v", sourcePattern)
 	compiledRegex, err := sourcePattern.Compile()
 	log.Printf("compiledRegex: %s", compiledRegex)
@@ -188,25 +202,7 @@ func main() {
 	if args.Destination == "" {
 
 		if args.Server {
-			homeDir, err := createHomeDirectoryIfNotExists()
-			exitOnError(ERROR_CREATE_HOME_DIR, err)
-
-			fi, err := fileSystem.Stat(sourcePattern.Path)
-			exitOnError(ERROR_STAT_SOURCE_PATTERN_PATH, err)
-			basePath := sourcePattern.Path
-			if fi.Mode().IsRegular() {
-				basePath = strings.TrimSuffix(basePath, "/"+fi.Name())
-				if basePath == fi.Name() {
-					basePath = "."
-				}
-			}
-
-			pathMapper := sftpd.NewPathMapper(locator.SourceFiles, basePath)
-
-			listenAddress := "0.0.0.0"
-			outboundIp := GetOutboundIpAsString()
-			suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", args.Username, outboundIp, args.Port)
-			sftpd.NewSimpleSftpServer(homeDir, listenAddress, args.Port, args.Username, args.Password, pathMapper)
+			startSftpServer(sourceFileSystem, sourcePattern, locator)
 			return
 		}
 
@@ -222,18 +218,18 @@ func main() {
 			// delete
 			if args.Delete && !args.DryRun {
 				var dirsToRemove = []string{}
-				stat, err := fileSystem.Stat(path)
+				stat, err := sourceFileSystem.Stat(path)
 
 				if !os.IsNotExist(err) {
 					if stat.Mode().IsRegular() {
-						fileSystem.Remove(path)
+						sourceFileSystem.Remove(path)
 					} else if stat.Mode().IsDir() {
 						dirsToRemove = append(dirsToRemove, path)
 					}
 				}
 
 				for _, path := range dirsToRemove {
-					fileSystem.Remove(path)
+					sourceFileSystem.Remove(path)
 				}
 			}
 		}
@@ -241,7 +237,7 @@ func main() {
 		return
 	}
 
-	destinationPattern := pattern.NewDestinationPattern(fileSystem, args.Destination)
+	destinationPattern := pattern.NewDestinationPattern(destinationFileSystem, args.Destination)
 	messagePrinter := transfer.NewMessagePrinterObserver(suppressablePrintf)
 	actionBitFlags := parseActionBitFlags()
 
@@ -265,19 +261,82 @@ func main() {
 		suppressablePrintf(err.Error())
 	}
 }
-
-func GetOutboundIpAsString() string {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		log.Printf("Could not determine outbound ip: %s", err)
-		return "localhost"
+func prepareSourceFileSystem()(afero.Fs, *SftpFsContext) {
+	if args.Client {
+		// "localhost:2022"
+		host := fmt.Sprintf("%s:%d", args.Host, args.Port)
+		ctx, err := SftpConnect(args.Username, args.Password, host)
+		exitOnError(ERROR_CONNECT_TO_SERVER, err)
+		return sftpfs.New(ctx.sftpc),ctx
 	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-	return localAddr.IP.String()
+	return afero.NewOsFs(), nil
 }
+
+type SftpFsContext struct {
+	sshc   *ssh.Client
+	sshcfg *ssh.ClientConfig
+	sftpc  *sftp.Client
+}
+
+func (ctx *SftpFsContext) Disconnect() error {
+	ctx.sftpc.Close()
+	ctx.sshc.Close()
+	return nil
+}
+
+func SftpConnect(user, password, host string) (*SftpFsContext, error) {
+
+	sshcfg := &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(password),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		//HostKeyCallback: ssh.FixedHostKey(hostKey),
+	}
+
+	sshc, err := ssh.Dial("tcp", host, sshcfg)
+	if err != nil {
+		return nil,err
+	}
+
+	sftpc, err := sftp.NewClient(sshc)
+	if err != nil {
+		return nil,err
+	}
+
+	ctx := &SftpFsContext{
+		sshc: sshc,
+		sshcfg: sshcfg,
+		sftpc: sftpc,
+	}
+
+	return ctx,nil
+}
+
+
+func startSftpServer(fileSystem afero.Fs, sourcePattern *pattern.SourcePattern, locator *file.Locator) {
+	homeDir, err := createHomeDirectoryIfNotExists()
+	exitOnError(ERROR_CREATE_HOME_DIR, err)
+	fi, err := fileSystem.Stat(sourcePattern.Path)
+	exitOnError(ERROR_STAT_SOURCE_PATTERN_PATH, err)
+	basePath := sourcePattern.Path
+	if fi.Mode().IsRegular() {
+		basePath = strings.TrimSuffix(basePath, "/"+fi.Name())
+		if basePath == fi.Name() {
+			basePath = "."
+		}
+	}
+	pathMapper := sftpd.NewPathMapper(locator.SourceFiles, basePath)
+	listenAddress := "0.0.0.0"
+	outboundIp, err := apputils.GetOutboundIpAsString("localhost", net.Dial)
+	if err != nil {
+		log.Printf("Error on GetOutboundIpAsString: %v", err)
+	}
+	suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", args.Username, outboundIp, args.Port)
+	sftpd.NewSimpleSftpServer(homeDir, listenAddress, args.Port, args.Username, args.Password, pathMapper)
+}
+
 
 func (PositionalArguments) Description() string {
 	return "graft 0.2 - a command line application to search for and transfer files\n"
