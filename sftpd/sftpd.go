@@ -13,7 +13,7 @@ import (
 	"crypto/x509"
 	"io"
 	"crypto/rand"
-	"github.com/sandreas/sftp"
+	"github.com/pkg/sftp"
 	"strconv"
 )
 

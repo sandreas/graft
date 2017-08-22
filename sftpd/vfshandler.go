@@ -4,7 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"github.com/sandreas/sftp"
+	"github.com/pkg/sftp"
 	"sync"
 )
 
@@ -25,11 +25,11 @@ func VfsHandler(mapper *PathMapper) sftp.Handlers {
 	}
 }
 
-func dumpSftpRequest(message string, r sftp.Request) {
+func dumpSftpRequest(message string, r *sftp.Request) {
 	log.Println(message, "Filepath: ", r.Filepath, ", Target: ", r.Target, ", Method: ", r.Method)
 }
 
-func (fs *vfs) Fileread(r sftp.Request) (io.ReaderAt, error) {
+func (fs *vfs) Fileread(r *sftp.Request) (io.ReaderAt, error) {
 	dumpSftpRequest("Fileread: ", r)
 	fs.pathMapLock.Lock()
 	defer fs.pathMapLock.Unlock()
@@ -46,12 +46,12 @@ func (fs *vfs) Fileread(r sftp.Request) (io.ReaderAt, error) {
 	return nil, err
 }
 
-func (fs *vfs) Filewrite(r sftp.Request) (io.WriterAt, error) {
+func (fs *vfs) Filewrite(r *sftp.Request) (io.WriterAt, error) {
 	dumpSftpRequest("Filewrite (disabled): ", r)
 	return nil, os.ErrInvalid
 }
 
-func (fs *vfs) Filecmd(r sftp.Request) error {
+func (fs *vfs) Filecmd(r *sftp.Request) error {
 	dumpSftpRequest("Filecmd (disabled): ", r)
 	return os.ErrInvalid
 }
@@ -72,7 +72,7 @@ func (l listerAt) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 }
 
 
-func (fs *vfs) Filelist(r sftp.Request) (sftp.ListerAt, error) {
+func (fs *vfs) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
 	dumpSftpRequest("Fileinfo: ", r)
 	fs.pathMapLock.Lock()
 	defer fs.pathMapLock.Unlock()
