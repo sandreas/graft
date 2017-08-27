@@ -23,9 +23,9 @@ type Locator struct {
 }
 
 
-func NewLocator(pattern pattern.SourcePattern) *Locator {
+func NewLocator(pattern *pattern.SourcePattern) *Locator {
 	return &Locator{
-		Src: pattern,
+		Src: *pattern,
 	}
 }
 

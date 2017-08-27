@@ -3,6 +3,14 @@
 - add transfer.move_strategy_test
 - add action.transfer_test
 
+find
+copy
+move
+delete
+serve
+receive
+
+
 - update Matchers to use existing FileInfo for faster matching / use matcher.setFileInfo in FileMatcherInterface
 - calculate and show transfer speed
 - graft le/d.img ../out/$1 does not work

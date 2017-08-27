@@ -1,349 +1,275 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
-	"runtime"
-	"strconv"
-	"time"
-	"errors"
+	"github.com/urfave/cli"
+	"github.com/spf13/afero"
+	"fmt"
+	"github.com/sandreas/graft/sftpd"
+	"github.com/sandreas/graft/sftpfs"
+	"github.com/howeyc/gopass"
 	"strings"
-	"net"
-	"github.com/alexflint/go-arg"
-	"github.com/sandreas/graft/action"
+	"runtime"
+	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/bitflag"
 	"github.com/sandreas/graft/file"
 	"github.com/sandreas/graft/matcher"
-	"github.com/sandreas/graft/pattern"
-	"github.com/sandreas/graft/sftpd"
-	"github.com/sandreas/graft/transfer"
-	"github.com/sandreas/graft/sftpfs"
-	"github.com/howeyc/gopass"
-	"github.com/spf13/afero"
-	"github.com/sandreas/graft/apputils"
-	"golang.org/x/crypto/ssh"
-	"github.com/pkg/sftp"
-
+	"regexp"
+	"time"
+	"strconv"
 )
 
 const (
-	ERROR_PARSING_SOURCE_PATTERN        = 2
+	//ERROR_PARSING_SOURCE_PATTERN        = 2
 	ERROR_PARSING_MIN_AGE               = 3
+	ERROR_PARSING_MAX_AGE               = 128
 	ERROR_LOADING_FILES_FROM            = 4
-	ERROR_EXPORT_TO                     = 5
-	ERROR_CREATE_HOME_DIR               = 6
-	ERROR_STAT_SOURCE_PATTERN_PATH      = 7
+	//ERROR_EXPORT_TO                     = 5
+	//ERROR_CREATE_HOME_DIR               = 6
+	//ERROR_STAT_SOURCE_PATTERN_PATH      = 7
 	ERROR_PREVENT_USING_SINGLE_QUOTES   = 8
-	ERROR_SOURCE_PATTERN_SEEMS_UNWANTED = 9
-	ERROR_READING_PASSWORD_FROM_INPUT   = 10
+	//ERROR_SOURCE_PATTERN_SEEMS_UNWANTED = 9
+	//ERROR_READING_PASSWORD_FROM_INPUT   = 10
 	ERROR_PARSING_MIN_SIZE              = 11
 	ERROR_PARSING_MAX_SIZE              = 12
-	ERROR_CONNECT_TO_SERVER				= 13
+	//ERROR_CONNECT_TO_SERVER             = 13
+	ERROR_TOO_MANY_ARGUMENTS			= 14
 )
 
-type PositionalArguments struct {
-	Source      string `arg:"positional"`
-	Destination string `arg:"positional"`
-}
 
-type TransferArguments struct {
-	Move   bool `arg:"help:rename files instead of copy"`
-	Delete bool `arg:"help:delete found files (be careful with this one - use --dry-run before execution)"`
-	DryRun bool `arg:"--dry-run,help:simulation mode - shows output but files remain unaffected"`
-	Times  bool `arg:"help:transfer source modify times to destination"`
+//type PositionalArguments struct {
+//	Source      string `arg:"positional"`
+//	Destination string `arg:"positional"`
+//}
+//
+//type TransferArguments struct {
+//	DryRun bool `arg:"--dry-run,help:simulation mode - shows output but files remain unaffected"`
+//	Times  bool `arg:"help:transfer source modify times to destination"`
+//}
+
+type GlobalArguments struct {
+	Quiet       bool `arg:"help:do not show any output"`
 	Force  bool `arg:"help:force the requested action - even if it might be not a good idea"`
-}
-
-type FilterArguments struct {
+	Debug       bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
+	Regex         bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
+	CaseSensitive bool `arg:"--case-sensitive,help:be case sensitive when matching files and folders"`
+	// ShowMatches bool `arg:"--show-matches,help:show pattern matches for each found file"`
 	MaxAge        string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
 	MinAge        string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
 	MaxSize       string `arg:"--max-size,help:maximum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
 	MinSize       string `arg:"--min-size,help:minimum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
-	Regex         bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
-	CaseSensitive bool `arg:"--case-sensitive,help:be case sensitive when matching files and folders"`
-}
-
-type DisplayArguments struct {
-	Debug       bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
-	Quiet       bool `arg:"help:do not show any output"`
-	ShowMatches bool `arg:"--show-matches,help:show pattern matches for each found file"`
-}
-
-type ImExportArguments struct {
 	ExportTo  string `arg:"--export-to,help:export found matches to a text file - one line per item"`
 	FilesFrom string `arg:"--files-from,help:import found matches from file - one line per item"`
 }
 
-type SftpArguments struct {
-	Server   bool `arg:"help:server mode - act as sftp server and provide only files and directories matching the source pattern"`
-	Client   bool `arg:"help:client mode - act as sftp client and download files instead of local search"`
-	Host     string `arg:"help:Specify the hostname for the server (client mode only)"`
-	Username string `arg:"help:Specify server username (used in server- and client mode)"`
-	Password string `arg:"help:Specify server password (used for server- and client mode)"`
-	Port     int `arg:"help:Specifiy server port (used for server- and client mode)"`
-}
+//type SftpArguments struct {
+//	Server   bool `arg:"help:server mode - act as sftp server and provide only files and directories matching the source pattern"`
+//	Client   bool `arg:"help:client mode - act as sftp client and download files instead of local search"`
+//	Host     string `arg:"help:Specify the hostname for the server (client mode only)"`
+//	Username string `arg:"help:Specify server username (used in server- and client mode)"`
+//	Password string `arg:"help:Specify server password (used for server- and client mode)"`
+//	Port     int `arg:"help:Specifiy server port (used for server- and client mode)"`
+//}
 
 var args struct {
-	PositionalArguments
-	TransferArguments
-	DisplayArguments
-	ImExportArguments
-	FilterArguments
-	SftpArguments
+	GlobalArguments
 }
 
+
 func main() {
-	var err error
-
-	if len(os.Args) == 1 {
-		os.Args = append(os.Args, "--help")
+	app := cli.NewApp()
+	app.Name = "graft"
+	app.Version = "0.2"
+	app.Usage = "find, copy and serve files"
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{Name: "quiet, q", Usage: "do not show any output"},                                           // does quiet make sense in find?
+		cli.BoolFlag{Name: "force, f", Usage: "force the requested action - even if it might be not a good idea"}, // does force make sense in find?
+		cli.BoolFlag{Name: "debug, d", Usage: "debug mode with logging to Stdout and into $HOME/.graft/application.log"},
+		cli.BoolFlag{Name: "regex", Usage: "use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"},
+		cli.BoolFlag{Name: "case-sensitive", Usage: "be case sensitive when matching files and folders"},
+		cli.StringFlag{Name: "max-age", Usage: "maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"},
+		cli.StringFlag{Name: "min-age", Usage: "minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"},
+		cli.StringFlag{Name: "max-size", Usage: "maximum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"},
+		cli.StringFlag{Name: "min-size", Usage: "minimum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"},
+		cli.StringFlag{Name: "export-to", Usage: "export found matches to a text file - one line per item (can also be used as save cache for large scans)"},
+		cli.StringFlag{Name: "files-from", Usage: "import found matches from file - one line per item (can also be used as load cache for large scans)"},
 	}
 
-	args.Port = 2022
-	args.Username = "graft"
-	args.Password = ""
-	arg.MustParse(&args)
-	args.Password = strings.TrimSpace(args.Password)
-
-	initLogging()
-
-	if (args.Server || args.Client ) && args.Password == "" {
-		args.Move = false
-		args.Delete = false
-		println("Enter password for sftp-server:")
-		pass, err := gopass.GetPasswd()
-		exitOnError(ERROR_READING_PASSWORD_FROM_INPUT, err)
-		args.Password = string(pass)
+	app.Commands = []cli.Command{
+		{
+			Name:  "find", Aliases: []string{"f"}, Action: findAction,
+			Usage: "find files",
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "hide-matches", Usage: "do not show matches for search pattern ($1=filename)"},
+			},
+		},
 	}
 
-	if runtime.GOOS == "windows" && (strings.HasPrefix(args.Source, "'") || strings.HasPrefix(args.Destination, "'")) {
-		exitOnError(ERROR_PREVENT_USING_SINGLE_QUOTES, errors.New("prevent using single quotes as qualifier on windows - it can lead to unexpected results"))
+	app.Run(os.Args)
+}
+
+func findAction(c *cli.Context) error {
+	readGlobalArguments(c)
+	initLogging(c)
+	if usedSingleQuotesAsQualifierOnWindows(c) {
+		return cli.NewExitError("using single quotes as qualifier may lead to unexpected results - please use double quotes or --force", ERROR_PREVENT_USING_SINGLE_QUOTES)
 	}
 
+	if len(c.Args()) != 1 {
+		return cli.NewExitError("find takes exactly one argument as search pattern", ERROR_TOO_MANY_ARGUMENTS)
+	}
 
-	sourceFileSystem, ctx := prepareSourceFileSystem()
-	if ctx != nil {
+	sourcePatternString := c.Args().First()
+
+
+	sourceFileSystem, ctx, err := prepareSourceFileSystem(c)
+	if err != nil {
+		// todo: make exit error
+		return err
+	} else if ctx != nil {
 		defer ctx.Disconnect()
 	}
-	destinationFileSystem := afero.NewOsFs()
 
-	sourcePattern := pattern.NewSourcePattern(sourceFileSystem, args.Source, parseSourcePatternBitFlags())
+	sourcePattern := pattern.NewSourcePattern(sourceFileSystem, sourcePatternString, parseSourcePatternBitFlags(c))
 	log.Printf("SourcePattern: %+v", sourcePattern)
 	compiledRegex, err := sourcePattern.Compile()
 	log.Printf("compiledRegex: %s", compiledRegex)
-	exitOnError(ERROR_PARSING_SOURCE_PATTERN, err)
 
-	if (sourcePattern.Path == "." || sourcePattern.Path == "/") && strings.Contains(sourcePattern.Pattern, "/") && !args.Force {
-		exitOnError(ERROR_SOURCE_PATTERN_SEEMS_UNWANTED, errors.New("Your search might be incorrect, because parts of '"+args.Source+"' do not exist.\n\nAll subdirectories in '"+sourcePattern.Path+"' will be recursively scanned for pattern '"+sourcePattern.Pattern+"'.\n\nIf this is really what you would like to do, use --force option"))
+
+	locator, err := prepareLocator(sourcePattern, compiledRegex)
+	if len(locator.SourceFiles) == 0 {
+		suppressablePrintf("\nNo matching files found!")
 	}
 
-	locator := file.NewLocator(*sourcePattern)
+	for _, path := range locator.SourceFiles {
+		suppressablePrintf(path + "\n")
+		if ! c.Bool("hide-matches") {
+			elementMatches := pattern.BuildMatchList(compiledRegex, path)
+			for i := 0; i < len(elementMatches); i++ {
+				suppressablePrintf("    $" + strconv.Itoa(i+1) + ": " + elementMatches[i] + "\n")
+			}
+		}
+
+	}
+
+	return nil
+}
+func prepareLocator(sourcePattern *pattern.SourcePattern, compiledRegex *regexp.Regexp) (*file.Locator, error) {
+	locator := file.NewLocator(sourcePattern)
 	locator.RegisterObserver(file.NewWalkObserver(suppressablePrintf))
 
 	if args.FilesFrom != "" {
 		locatorCache := file.NewLocatorCache(args.FilesFrom)
 		err := locatorCache.Load()
-		exitOnError(ERROR_LOADING_FILES_FROM, err)
+		if err != nil {
+			return nil, cli.NewExitError(err, ERROR_LOADING_FILES_FROM)
+		}
 		locator.SourceFiles = locatorCache.Items
-	} else {
-		compositeMatcher := matcher.NewCompositeMatcher()
-		compositeMatcher.Add(matcher.NewRegexMatcher(*compiledRegex))
+		return locator, nil
+	}
 
-		minAge := time.Time{}
-		maxAge := time.Time{}
+	compositeMatcher := matcher.NewCompositeMatcher()
+	compositeMatcher.Add(matcher.NewRegexMatcher(*compiledRegex))
 
-		if args.MinAge != "" {
-			minAge, err = pattern.StrToAge(args.MinAge, time.Now())
-			exitOnError(ERROR_PARSING_MIN_AGE, err)
-		}
+	var err error
+	minAge := time.Time{}
+	maxAge := time.Time{}
 
-		if args.MaxAge != "" {
-			maxAge, err = pattern.StrToAge(args.MaxAge, time.Now())
-			exitOnError(ERROR_PARSING_MIN_AGE, err)
-		}
-
-		if !minAge.IsZero() || !maxAge.IsZero() {
-			compositeMatcher.Add(matcher.NewFileAgeMatcher(minAge, maxAge))
-		}
-
-		minSize := int64(-1)
-		maxSize := int64(-1)
-		if args.MinSize != "" {
-			minSize, err = pattern.StrToSize(args.MinSize)
-			exitOnError(ERROR_PARSING_MIN_SIZE, err)
-		}
-
-		if args.MaxSize != "" {
-			maxSize, err = pattern.StrToSize(args.MaxSize)
-			exitOnError(ERROR_PARSING_MAX_SIZE, err)
-		}
-
-		if minSize > -1 || maxSize > -1 {
-			compositeMatcher.Add(matcher.NewFileSizeMatcher(minSize, maxSize))
-		}
-
-		locator.Find(compositeMatcher)
-		if args.ExportTo != "" {
-			locatorCache := file.NewLocatorCache(args.ExportTo)
-			locatorCache.Items = locator.SourceFiles
-			err := locatorCache.Save()
-			exitOnError(ERROR_EXPORT_TO, err)
+	if args.MinAge != "" {
+		minAge, err = pattern.StrToAge(args.MinAge, time.Now())
+		if err != nil  {
+			return nil, cli.NewExitError(err, ERROR_PARSING_MIN_AGE)
 		}
 	}
 
-	if len(locator.SourceFiles) == 0 {
-		suppressablePrintf("\nNo matches found!")
-	}
-
-	if args.Destination == "" {
-
-		if args.Server {
-			startSftpServer(sourceFileSystem, sourcePattern, locator)
-			return
+	if args.MaxAge != "" {
+		maxAge, err = pattern.StrToAge(args.MaxAge, time.Now())
+		if err != nil  {
+			return nil, cli.NewExitError(err, ERROR_PARSING_MAX_AGE)
 		}
+	}
 
-		for _, path := range locator.SourceFiles {
-			suppressablePrintf(path + "\n")
-			if args.ShowMatches {
-				elementMatches := pattern.BuildMatchList(compiledRegex, path)
-				for i := 0; i < len(elementMatches); i++ {
-					suppressablePrintf("    $" + strconv.Itoa(i+1) + ": " + elementMatches[i] + "\n")
-				}
-			}
+	if !minAge.IsZero() || !maxAge.IsZero() {
+		compositeMatcher.Add(matcher.NewFileAgeMatcher(minAge, maxAge))
+	}
 
-			// delete
-			if args.Delete && !args.DryRun {
-				var dirsToRemove = []string{}
-				stat, err := sourceFileSystem.Stat(path)
-
-				if !os.IsNotExist(err) {
-					if stat.Mode().IsRegular() {
-						sourceFileSystem.Remove(path)
-					} else if stat.Mode().IsDir() {
-						dirsToRemove = append(dirsToRemove, path)
-					}
-				}
-
-				for _, path := range dirsToRemove {
-					sourceFileSystem.Remove(path)
-				}
-			}
+	minSize := int64(-1)
+	maxSize := int64(-1)
+	if args.MinSize != "" {
+		minSize, err = pattern.StrToSize(args.MinSize)
+		if err != nil  {
+			return nil, cli.NewExitError(err, ERROR_PARSING_MIN_SIZE)
 		}
-
-		return
 	}
 
-	destinationPattern := pattern.NewDestinationPattern(destinationFileSystem, args.Destination)
-	messagePrinter := transfer.NewMessagePrinterObserver(suppressablePrintf)
-	actionBitFlags := parseActionBitFlags()
+	if args.MaxSize != "" {
+		maxSize, err = pattern.StrToSize(args.MaxSize)
+		if err != nil  {
+			return nil, cli.NewExitError(err, ERROR_PARSING_MAX_SIZE)
+		}	}
 
-	if args.Move {
-		moveStrategy := transfer.NewMoveStrategy()
-
-		moveAction := action.NewTransferAction(locator.SourceFiles, moveStrategy, actionBitFlags)
-		moveAction.RegisterObserver(messagePrinter)
-		err = moveAction.Execute(sourcePattern, destinationPattern)
-	} else {
-		copyStrategy := transfer.NewCopyStrategy()
-		copyStrategy.ProgressHandler = transfer.NewCopyProgressHandler(int64(32*1024), 1*time.Second)
-		copyStrategy.RegisterObserver(messagePrinter)
-
-		copyAction := action.NewTransferAction(locator.SourceFiles, copyStrategy, actionBitFlags)
-		copyAction.RegisterObserver(messagePrinter)
-		err = copyAction.Execute(sourcePattern, destinationPattern)
+	if minSize > -1 || maxSize > -1 {
+		compositeMatcher.Add(matcher.NewFileSizeMatcher(minSize, maxSize))
 	}
 
-	if err != nil {
-		suppressablePrintf(err.Error())
+	locator.Find(compositeMatcher)
+	if args.ExportTo != "" {
+		locatorCache := file.NewLocatorCache(args.ExportTo)
+		locatorCache.Items = locator.SourceFiles
+		err := locatorCache.Save()
+		if err != nil {
+			return nil, cli.NewExitError(err, ERROR_PARSING_MIN_SIZE)
+		}
 	}
-}
-func prepareSourceFileSystem()(afero.Fs, *SftpFsContext) {
-	if args.Client {
-		// "localhost:2022"
-		host := fmt.Sprintf("%s:%d", args.Host, args.Port)
-		ctx, err := SftpConnect(args.Username, args.Password, host)
-		exitOnError(ERROR_CONNECT_TO_SERVER, err)
-		return sftpfs.New(ctx.sftpc),ctx
-	}
-	return afero.NewOsFs(), nil
+
+	return locator, nil
 }
 
-type SftpFsContext struct {
-	sshc   *ssh.Client
-	sshcfg *ssh.ClientConfig
-	sftpc  *sftp.Client
+func readGlobalArguments(context *cli.Context) {
+	args.Debug = context.Bool("debug")
+	args.FilesFrom = context.String("files-from")
+	args.ExportTo = context.String("export-to")
+	args.MinAge = context.String("min-age")
+	args.MaxAge = context.String("max-age")
+	args.MinSize = context.String("min-size")
+	args.MaxSize = context.String("min-size")
+}
+func suppressablePrintf(format string, a ...interface{}) (n int, err error) {
+	if !args.Quiet {
+		return fmt.Printf(format, a...)
+	}
+	log.Printf(format, a...)
+	return 0, nil
+}
+func parseSourcePatternBitFlags(c *cli.Context) bitflag.Flag {
+	var patternFlags bitflag.Flag
+	if c.Bool("case-sensitive") {
+		patternFlags |= pattern.CASE_SENSITIVE
+	}
+	if c.Bool("regex") {
+		patternFlags |= pattern.USE_REAL_REGEX
+	}
+	return patternFlags
 }
 
-func (ctx *SftpFsContext) Disconnect() error {
-	ctx.sftpc.Close()
-	ctx.sshc.Close()
-	return nil
-}
-
-func SftpConnect(user, password, host string) (*SftpFsContext, error) {
-
-	sshcfg := &ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		//HostKeyCallback: ssh.FixedHostKey(hostKey),
+func usedSingleQuotesAsQualifierOnWindows(c *cli.Context) bool {
+	if runtime.GOOS != "windows" {
+		return false
 	}
-
-	sshc, err := ssh.Dial("tcp", host, sshcfg)
-	if err != nil {
-		return nil,err
-	}
-
-	sftpc, err := sftp.NewClient(sshc)
-	if err != nil {
-		return nil,err
-	}
-
-	ctx := &SftpFsContext{
-		sshc: sshc,
-		sshcfg: sshcfg,
-		sftpc: sftpc,
-	}
-
-	return ctx,nil
-}
-
-
-func startSftpServer(fileSystem afero.Fs, sourcePattern *pattern.SourcePattern, locator *file.Locator) {
-	homeDir, err := createHomeDirectoryIfNotExists()
-	exitOnError(ERROR_CREATE_HOME_DIR, err)
-	fi, err := fileSystem.Stat(sourcePattern.Path)
-	exitOnError(ERROR_STAT_SOURCE_PATTERN_PATH, err)
-	basePath := sourcePattern.Path
-	if fi.Mode().IsRegular() {
-		basePath = strings.TrimSuffix(basePath, "/"+fi.Name())
-		if basePath == fi.Name() {
-			basePath = "."
+	for _, arg := range c.Args() {
+		if strings.HasPrefix(arg, "'") {
+			return true
 		}
 	}
-	pathMapper := sftpd.NewPathMapper(locator.SourceFiles, basePath)
-	listenAddress := "0.0.0.0"
-	outboundIp, err := apputils.GetOutboundIpAsString("localhost", net.Dial)
-	if err != nil {
-		log.Printf("Error on GetOutboundIpAsString: %v", err)
-	}
-	suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", args.Username, outboundIp, args.Port)
-	sftpd.NewSimpleSftpServer(homeDir, listenAddress, args.Port, args.Username, args.Password, pathMapper)
+	return false
 }
 
-
-func (PositionalArguments) Description() string {
-	return "graft 0.2 - a command line application to search for and transfer files\n"
-}
-
-func initLogging() {
-	if !args.Debug {
+func initLogging(c *cli.Context) {
+	if ! c.Bool("debug") {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 		return
@@ -365,37 +291,6 @@ func initLogging() {
 	log.SetOutput(mw)
 }
 
-func suppressablePrintf(format string, a ...interface{}) (n int, err error) {
-	if !args.Quiet {
-		return fmt.Printf(format, a...)
-	}
-	log.Printf(format, a...)
-	return 0, nil
-}
-
-func parseSourcePatternBitFlags() bitflag.Flag {
-	var patternFlags bitflag.Flag
-	if args.CaseSensitive {
-		patternFlags |= pattern.CASE_SENSITIVE
-	}
-	if args.Regex {
-		patternFlags |= pattern.USE_REAL_REGEX
-	}
-	return patternFlags
-}
-
-func parseActionBitFlags() bitflag.Flag {
-	var actionFlags bitflag.Flag
-	if args.DryRun {
-		actionFlags |= action.FLAG_DRY_RUN
-	}
-
-	if args.Times {
-		actionFlags |= action.FLAG_TIMES
-	}
-	return actionFlags
-}
-
 func createHomeDirectoryIfNotExists() (string, error) {
 	u, _ := user.Current()
 	homeDir := u.HomeDir + "/.graft"
@@ -407,16 +302,29 @@ func createHomeDirectoryIfNotExists() (string, error) {
 	return homeDir, nil
 }
 
-func exitOnError(exitCode int, err error) {
-	if err == nil {
-		return
-	}
+func prepareSourceFileSystem(c *cli.Context)(afero.Fs, *sftpd.SftpFsContext, error) {
+	if c.Bool("client") {
+		username := c.String("username")
+		host := fmt.Sprintf("%s:%d", c.String("host"), c.Int("port"))
 
-	_, fn, line, _ := runtime.Caller(1)
-	if args.Debug {
-		log.Printf("[error] %s:%d %v (Code: %d)", fn, line, err, exitCode)
-	} else {
-		suppressablePrintf(err.Error()+" (Code: %d)", exitCode)
+		password, err := promptPasswordIfEmpty(c, fmt.Sprintf("Enter password for %s@%s:", username, host))
+		if err != nil {
+			return nil, nil, err
+		}
+		ctx, err := sftpd.NewSftpFsContext(username, password, host)
+		if err != nil {
+			return nil, nil, err
+		}
+		return sftpfs.New(ctx.Sftpc),ctx, nil
 	}
-	os.Exit(exitCode)
+	return afero.NewOsFs(), nil, nil
+}
+
+func promptPasswordIfEmpty(c *cli.Context, message string) (string, error) {
+	if c.String("password") != "" {
+		return c.String("password"), nil
+	}
+	println(message)
+	pass, err := gopass.GetPasswd()
+	return string(pass), err
 }
