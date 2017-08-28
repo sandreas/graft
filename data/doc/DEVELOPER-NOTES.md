@@ -1,5 +1,26 @@
 # Things to do
 
+- Switch to subcommands with https://github.com/urfave/cli
+    graft find
+    graft copy
+    graft delete
+    graft move
+    graft serve
+    graft receive
+    
+    global flags
+        MaxAge        string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
+        MinAge        string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
+        MaxSize       string `arg:"--max-size,help:maximum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
+        MinSize       string `arg:"--min-size,help:minimum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
+        Regex         bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
+        CaseSensitive 
+        ShowMatches bool `arg:"--show-matches,help:show pattern matches for each found file"`
+        ExportTo  string `arg:"--export-to,help:export found matches to a text file - one line per item"`
+        FilesFrom string `arg:"--files-from,help:import found matches from file - one line per item"`
+
+
+
 - add transfer.move_strategy_test
 - add action.transfer_test
 
