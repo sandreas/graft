@@ -22,20 +22,31 @@ func main() {
 		cli.StringFlag{Name: "files-from", Usage: "import found matches from file - one line per item (can also be used as load cache for large scans)"},
 	}
 
+	networkFlags := []cli.Flag{
+		cli.StringFlag{Name: "host", Usage: "Specify the hostname for the server (client mode only)"},
+		cli.IntFlag{Name: "port", Usage: "Specifiy server port (used for server- and client mode)", Value: 2022},
+		cli.StringFlag{Name: "username", Usage: "Specify server username (used in server- and client mode)", Value: "graft"},
+		cli.StringFlag{Name: "password", Usage: "Specify server password (used for server- and client mode)"},
+	}
+
+	findFlags := []cli.Flag{
+		cli.BoolFlag{Name: "hide-matches", Usage: "do not show matches for search pattern ($1=filename)"},
+		cli.BoolFlag{Name: "client", Usage: "client mode - act as sftp client and search files remotely instead of local search"},
+	}
+	findFlags = append(findFlags, globalFlags...)
+	findFlags = append(findFlags, networkFlags...)
+
 	app := cli.NewApp()
 	app.Name = "graft"
 	app.Version = "0.2"
 	app.Usage = "find, copy and serve files"
 	app.Commands = []cli.Command{
 		{
-			Name: "find", Aliases: []string{"f"}, Action: action.NewActionFactory("find").Execute,
+			Name:  "find", Aliases: []string{"f"}, Action: action.NewActionFactory("find").Execute,
 			Usage: "find files",
-			Flags: append(globalFlags, []cli.Flag{
-				cli.BoolFlag{Name: "hide-matches", Usage: "do not show matches for search pattern ($1=filename)"},
-			}...),
+			Flags: findFlags,
 		},
 	}
 
 	app.Run(os.Args)
 }
-

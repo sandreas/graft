@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/sftp"
 	"github.com/spf13/afero"
+	"fmt"
 )
 
 // Fs is a afero.Fs implementation that uses functions provided by the sftp package.
@@ -20,8 +21,9 @@ type SftpFs struct {
 	Context *SftpFsContext
 }
 
-func NewSftpFs(host, username, password string) (afero.Fs, error) {
-	ctx, err := NewSftpFsContext(username, password, host)
+func NewSftpFs(host string, port int, username, password string) (afero.Fs, error) {
+	hostAndPort := fmt.Sprintf("%s:%d", host, port)
+	ctx, err := NewSftpFsContext(username, password, hostAndPort)
 	if err != nil {
 		return nil, err
 	}

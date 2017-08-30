@@ -10,6 +10,16 @@ import (
 	"runtime"
 	"errors"
 	"strings"
+	"github.com/sandreas/graft/matcher"
+	"github.com/sandreas/graft/file"
+	"fmt"
+	"github.com/sandreas/graft/pattern"
+	"github.com/sandreas/graft/filesystem"
+	"github.com/spf13/afero"
+	"github.com/sandreas/graft/bitflag"
+	"time"
+	"regexp"
+	"strconv"
 )
 
 const (
@@ -43,35 +53,41 @@ type GlobalParameters struct {
 }
 
 type AbstractAction struct {
-	GlobalParameters *GlobalParameters
-	Context          *cli.Context
+	CliGlobalParameters *GlobalParameters
+	CliContext          *cli.Context
+
+	sourceFs afero.Fs
+
+	sourcePattern *pattern.SourcePattern
+	compiledRegex *regexp.Regexp
+	locator       *file.Locator
 }
 
-func (act *AbstractAction) PrepareExecution(c *cli.Context, positionalArgumentsCount int) error {
+func (action *AbstractAction) PrepareExecution(c *cli.Context, positionalArgumentsCount int) error {
 
-	act.ParseCliContext(c)
-	act.initLogging()
+	action.ParseCliContext(c)
+	action.initLogging()
 
-	if act.usedSingleQuotesAsQualifierOnWindows() {
+	if action.usedSingleQuotesAsQualifierOnWindows() {
 		return cli.NewExitError("using single quotes as qualifier may lead to unexpected results - please use double quotes or --force", ErrorPreventUsingSingleQuotesOnWindows)
 	}
 
-	if err := act.assertPositionalArgumentsCount(positionalArgumentsCount); err != nil {
+	if err := action.assertPositionalArgumentsCount(positionalArgumentsCount); err != nil {
 		return cli.NewExitError(err.Error(), ErrorPositionalArgumentCount)
 	}
 
 	return nil
 }
-func (act *AbstractAction) assertPositionalArgumentsCount(positionalArgumentsCount int) error {
-	if len(act.Context.Args()) != 1 {
+func (action *AbstractAction) assertPositionalArgumentsCount(positionalArgumentsCount int) error {
+	if len(action.CliContext.Args()) != 1 {
 		return errors.New("find takes exactly one argument as search pattern")
 	}
 	return nil
 }
 
-func (act *AbstractAction) ParseCliContext(c *cli.Context) {
-	act.Context = c
-	act.GlobalParameters = &GlobalParameters{
+func (action *AbstractAction) ParseCliContext(c *cli.Context) {
+	action.CliContext = c
+	action.CliGlobalParameters = &GlobalParameters{
 		Debug: c.Bool("debug"),
 		FilesFrom: c.String("files-from"),
 		ExportTo: c.String("export-to"),
@@ -82,15 +98,15 @@ func (act *AbstractAction) ParseCliContext(c *cli.Context) {
 	}
 }
 
-func (act *AbstractAction) initLogging() {
-	if !act.GlobalParameters.Debug {
+func (action *AbstractAction) initLogging() {
+	if !action.CliGlobalParameters.Debug {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 		return
 	}
 	log.SetOutput(os.Stdout)
 
-	homeDir, err := act.createHomeDirectoryIfNotExists()
+	homeDir, err := action.createHomeDirectoryIfNotExists()
 	if err != nil {
 		log.Println("could not create home directory: ", homeDir, err)
 		return
@@ -107,7 +123,7 @@ func (act *AbstractAction) initLogging() {
 	log.SetOutput(mw)
 }
 
-func (act *AbstractAction) createHomeDirectoryIfNotExists() (string, error) {
+func (action *AbstractAction) createHomeDirectoryIfNotExists() (string, error) {
 	u, _ := user.Current()
 	homeDir := u.HomeDir + "/.graft"
 	if _, err := os.Stat(homeDir); err != nil {
@@ -118,14 +134,144 @@ func (act *AbstractAction) createHomeDirectoryIfNotExists() (string, error) {
 	return homeDir, nil
 }
 
-func (act *AbstractAction) usedSingleQuotesAsQualifierOnWindows() bool {
+func (action *AbstractAction) usedSingleQuotesAsQualifierOnWindows() bool {
 	if runtime.GOOS != "windows" {
 		return false
 	}
-	for _, arg := range act.Context.Args() {
+	for _, arg := range action.CliContext.Args() {
 		if strings.HasPrefix(arg, "'") {
 			return true
 		}
 	}
 	return false
+}
+
+
+func (action *AbstractAction) locateSourceFiles() error {
+	if err := action.prepareSourcePattern(); err != nil {
+		return err
+	}
+
+	if err := action.prepareLocator(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (action *AbstractAction) prepareSourcePattern() error {
+	var err error
+	if err = action.prepareSourceFileSystem(); err != nil {
+		return err
+	}
+	action.sourcePattern = pattern.NewSourcePattern(action.sourceFs, action.CliContext.Args().First(), action.parseSourcePatternBitFlags())
+	return nil
+}
+
+func (action *AbstractAction) prepareSourceFileSystem() (error) {
+	var err error
+	if action.CliContext.Bool("client") {
+		action.sourceFs, err = filesystem.NewSftpFs(action.CliContext.String("host"), action.CliContext.Int("port"), action.CliContext.String("username"), action.CliContext.String("password"))
+		return err
+	}
+	action.sourceFs = afero.NewOsFs()
+	return nil
+}
+
+func (action *AbstractAction) parseSourcePatternBitFlags() bitflag.Flag {
+	var patternFlags bitflag.Flag
+	if action.CliGlobalParameters.CaseSensitive {
+		patternFlags |= pattern.CASE_SENSITIVE
+	}
+	if action.CliGlobalParameters.Regex {
+		patternFlags |= pattern.USE_REAL_REGEX
+	}
+	return patternFlags
+}
+
+func (action *AbstractAction) prepareLocator() error {
+	var err error
+	locator := file.NewLocator(action.sourcePattern)
+	locator.RegisterObserver(file.NewWalkObserver(action.suppressablePrintf))
+
+	if action.compiledRegex, err = action.sourcePattern.Compile(); err != nil {
+		return err
+	}
+
+	if action.CliGlobalParameters.FilesFrom != "" {
+		locatorCache := file.NewLocatorCache(action.CliGlobalParameters.FilesFrom)
+		if err = locatorCache.Load(); err != nil {
+			return err
+		}
+		locator.SourceFiles = locatorCache.Items
+	} else {
+		compositeMatcher := matcher.NewCompositeMatcher()
+		// todo change regexmatcher to take pointer
+		compositeMatcher.Add(matcher.NewRegexMatcher(*action.compiledRegex))
+
+		minAge := time.Time{}
+		maxAge := time.Time{}
+
+		if action.CliGlobalParameters.MinAge != "" {
+			if minAge, err = pattern.StrToAge(action.CliGlobalParameters.MinAge, time.Now()); err != nil {
+				return err
+			}
+		}
+
+		if action.CliGlobalParameters.MaxAge != "" {
+			if maxAge, err = pattern.StrToAge(action.CliGlobalParameters.MaxAge, time.Now()); err != nil {
+				return err
+			}
+		}
+
+		if !minAge.IsZero() || !maxAge.IsZero() {
+			compositeMatcher.Add(matcher.NewFileAgeMatcher(minAge, maxAge))
+		}
+
+		minSize := int64(-1)
+		maxSize := int64(-1)
+		if action.CliGlobalParameters.MinSize != "" {
+			if minSize, err = pattern.StrToSize(action.CliGlobalParameters.MinSize); err != nil {
+				return err
+			}
+		}
+
+		if action.CliGlobalParameters.MaxSize != "" {
+			if maxSize, err = pattern.StrToSize(action.CliGlobalParameters.MaxSize); err != nil {
+
+			}
+		}
+
+		if minSize > -1 || maxSize > -1 {
+			compositeMatcher.Add(matcher.NewFileSizeMatcher(minSize, maxSize))
+		}
+
+		locator.Find(compositeMatcher)
+		if action.CliGlobalParameters.ExportTo != "" {
+			locatorCache := file.NewLocatorCache(action.CliGlobalParameters.ExportTo)
+			locatorCache.Items = locator.SourceFiles
+			if err = locatorCache.Save(); err != nil {
+				return err
+			}
+		}
+	}
+
+	action.locator = locator
+
+	return nil
+}
+
+func (action *AbstractAction) suppressablePrintf(format string, a ...interface{}) (n int, err error) {
+	if !action.CliGlobalParameters.Quiet {
+		return fmt.Printf(format, a...)
+	}
+	log.Printf(format, a...)
+	return 0, nil
+}
+
+func (action *AbstractAction) ShowMatchesForPath(path string) {
+	elementMatches := pattern.BuildMatchList(action.compiledRegex, path)
+	for i := 0; i < len(elementMatches); i++ {
+		action.suppressablePrintf("    $" + strconv.Itoa(i+1) + ": " + elementMatches[i] + "\n")
+	}
 }

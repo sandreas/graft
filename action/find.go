@@ -5,21 +5,35 @@ import (
 	"log"
 )
 
+const (
+	ErrorLocateSourceFiles = 1
+)
+
 type FindAction struct {
 	AbstractAction
 }
 
-func (act *FindAction) Execute(c *cli.Context) error {
-	act.PrepareExecution(c, 1)
+func (action *FindAction) Execute(c *cli.Context) error {
+	action.PrepareExecution(c, 1)
 	log.Printf("find")
-	//act.LocateSourceFiles()
-	// act.WalkSourceFiles(func ...)
-	// act.DisconnectSourceFileSystem()
+	if err := action.locateSourceFiles(); err != nil {
+		return cli.NewExitError(err.Error(), ErrorLocateSourceFiles)
+	}
+	action.ShowFoundFiles()
 	return nil
 }
-//func (action *FindAction) LocateSourceFiles() {
-//	sourceFileSystem, ctx := prepareSourceFileSystem()
-//	if ctx != nil {
-//		defer ctx.Disconnect()
-//	}
-//}
+func (action *FindAction) ShowFoundFiles() {
+	if len(action.locator.SourceFiles) == 0 {
+		action.suppressablePrintf("\nNo matches found!")
+		return
+	}
+
+	hideMatches := action.CliContext.Bool("hide-matches")
+	for _, path := range action.locator.SourceFiles {
+		// todo: Is quiet useful here?
+		action.suppressablePrintf(path + "\n")
+		if !hideMatches {
+			action.ShowMatchesForPath(path)
+		}
+	}
+}
