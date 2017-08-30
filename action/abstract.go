@@ -8,8 +8,8 @@ import (
 	"io"
 	"os/user"
 	"runtime"
-	"strings"
 	"errors"
+	"strings"
 )
 
 const (
@@ -28,7 +28,7 @@ func NewActionFactory(action string) CliActionInterface {
 }
 
 
-type GlobalArguments struct {
+type GlobalParameters struct {
 	Quiet         bool `arg:"help:do not show any output"`
 	Force         bool `arg:"help:force the requested action - even if it might be not a good idea"`
 	Debug         bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
@@ -43,13 +43,15 @@ type GlobalArguments struct {
 }
 
 type AbstractAction struct {
-	Arguments *GlobalArguments
-	Context *cli.Context
+	GlobalParameters *GlobalParameters
+	Context          *cli.Context
 }
 
 func (act *AbstractAction) PrepareExecution(c *cli.Context, positionalArgumentsCount int) error {
-	act.ReadGlobalArguments(c)
+
+	act.ParseCliContext(c)
 	act.initLogging()
+
 	if act.usedSingleQuotesAsQualifierOnWindows() {
 		return cli.NewExitError("using single quotes as qualifier may lead to unexpected results - please use double quotes or --force", ErrorPreventUsingSingleQuotesOnWindows)
 	}
@@ -67,8 +69,9 @@ func (act *AbstractAction) assertPositionalArgumentsCount(positionalArgumentsCou
 	return nil
 }
 
-func (act *AbstractAction) ReadGlobalArguments(c *cli.Context) {
-	act.Arguments = &GlobalArguments{
+func (act *AbstractAction) ParseCliContext(c *cli.Context) {
+	act.Context = c
+	act.GlobalParameters = &GlobalParameters{
 		Debug: c.Bool("debug"),
 		FilesFrom: c.String("files-from"),
 		ExportTo: c.String("export-to"),
@@ -77,12 +80,10 @@ func (act *AbstractAction) ReadGlobalArguments(c *cli.Context) {
 		MinSize: c.String("min-size"),
 		MaxSize: c.String("min-size"),
 	}
-
-
 }
 
 func (act *AbstractAction) initLogging() {
-	if !act.Arguments.Debug {
+	if !act.GlobalParameters.Debug {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 		return
@@ -92,12 +93,14 @@ func (act *AbstractAction) initLogging() {
 	homeDir, err := act.createHomeDirectoryIfNotExists()
 	if err != nil {
 		log.Println("could not create home directory: ", homeDir, err)
+		return
 	}
 	logFileName := homeDir + "/graft.log"
 	os.Remove(logFileName)
 	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Println("could not open logfile: ", logFile, err)
+		return
 	}
 	defer logFile.Close()
 	mw := io.MultiWriter(os.Stdout, logFile)

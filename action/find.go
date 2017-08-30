@@ -1,9 +1,8 @@
 package action
 
 import (
-	"fmt"
-
 	"github.com/urfave/cli"
+	"log"
 )
 
 type FindAction struct {
@@ -12,7 +11,9 @@ type FindAction struct {
 
 func (act *FindAction) Execute(c *cli.Context) error {
 	act.PrepareExecution(c, 1)
-	fmt.Println("find action")
-	// fmt.Println(act.MinAge)
+	log.Printf("find")
+	// act.LocateSourceFiles()
+	// act.WalkSourceFiles(func ...)
+	// act.DisconnectSourceFileSystem()
 	return nil
 }
