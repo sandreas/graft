@@ -12,7 +12,7 @@ func TestRegexMatcher(t *testing.T) {
 
 	compiledRegex, _ := regexp.Compile("^a(.*)$")
 
-	subject := matcher.NewRegexMatcher(*compiledRegex)
+	subject := matcher.NewRegexMatcher(compiledRegex)
 
 	expect.True(subject.Matches("abcd"))
 	expect.False(subject.Matches("other value"))

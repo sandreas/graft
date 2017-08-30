@@ -6,10 +6,10 @@ import (
 
 type RegexMatcher struct {
 	MatcherInterface
-	regex regexp.Regexp
+	regex *regexp.Regexp
 }
 
-func NewRegexMatcher(regex regexp.Regexp) *RegexMatcher {
+func NewRegexMatcher(regex *regexp.Regexp) *RegexMatcher {
 	return &RegexMatcher{
 		regex: regex,
 	}

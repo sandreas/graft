@@ -3,6 +3,7 @@ package action
 import (
 	"github.com/urfave/cli"
 	"log"
+	"fmt"
 )
 
 const (
@@ -24,15 +25,14 @@ func (action *FindAction) Execute(c *cli.Context) error {
 }
 func (action *FindAction) ShowFoundFiles() {
 	if len(action.locator.SourceFiles) == 0 {
-		action.suppressablePrintf("\nNo matches found!")
+		action.suppressablePrintf("\n== No matches found! ==\n")
 		return
 	}
 
-	hideMatches := action.CliContext.Bool("hide-matches")
+	showMatches := !action.CliContext.Bool("hide-matches") && !action.CliGlobalParameters.Quiet
 	for _, path := range action.locator.SourceFiles {
-		// todo: Is quiet useful here?
-		action.suppressablePrintf(path + "\n")
-		if !hideMatches {
+		fmt.Println(path) // quiet does not influence the output of the file listing, since this is the only aim of this action
+		if showMatches {
 			action.ShowMatchesForPath(path)
 		}
 	}

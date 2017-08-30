@@ -206,8 +206,7 @@ func (action *AbstractAction) prepareLocator() error {
 		locator.SourceFiles = locatorCache.Items
 	} else {
 		compositeMatcher := matcher.NewCompositeMatcher()
-		// todo change regexmatcher to take pointer
-		compositeMatcher.Add(matcher.NewRegexMatcher(*action.compiledRegex))
+		compositeMatcher.Add(matcher.NewRegexMatcher(action.compiledRegex))
 
 		minAge := time.Time{}
 		maxAge := time.Time{}
