@@ -12,8 +12,14 @@ type FindAction struct {
 func (act *FindAction) Execute(c *cli.Context) error {
 	act.PrepareExecution(c, 1)
 	log.Printf("find")
-	// act.LocateSourceFiles()
+	//act.LocateSourceFiles()
 	// act.WalkSourceFiles(func ...)
 	// act.DisconnectSourceFileSystem()
 	return nil
 }
+//func (action *FindAction) LocateSourceFiles() {
+//	sourceFileSystem, ctx := prepareSourceFileSystem()
+//	if ctx != nil {
+//		defer ctx.Disconnect()
+//	}
+//}
