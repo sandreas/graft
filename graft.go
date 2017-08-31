@@ -22,7 +22,9 @@ func main() {
 	}
 	findFlags = append(findFlags, networkFlags...)
 
-	serveFlags := []cli.Flag{}
+	serveFlags := []cli.Flag{
+		cli.BoolFlag{Name: "silent", Usage: "do not use mdns to publish multicast sftp server (graft receive will not work without parameters)"},
+	}
 	serveFlags = append(serveFlags, networkFlags...)
 
 	app := cli.NewApp()

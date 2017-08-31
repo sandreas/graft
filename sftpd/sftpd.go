@@ -17,7 +17,7 @@ import (
 	"strconv"
 )
 
-func NewSimpleSftpServer(homePath, listenAddress string, listenPort int, username, password string, pathMapper *PathMapper) {
+func NewSimpleSftpServer(homePath, listenAddress string, listenPort int, username, password string, pathMapper *PathMapper) (net.Listener, error) {
 	config := &ssh.ServerConfig{
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			log.Printf("Login: %s\n", c.User())
@@ -33,16 +33,19 @@ func NewSimpleSftpServer(homePath, listenAddress string, listenPort int, usernam
 	privateBytes, err := ioutil.ReadFile(homePath + "/id_rsa")
 	if err != nil {
 		log.Fatal("Failed to load private key", err)
+		return nil, err
 	}
 	private, err := ssh.ParsePrivateKey(privateBytes)
 	if err != nil {
 		log.Fatal("Failed to parse private key", err)
+		return nil, err
 	}
 	config.AddHostKey(private)
 
 	listener, err := net.Listen("tcp", listenAddress+":"+strconv.Itoa(listenPort))
 	if err != nil {
 		log.Fatal("failed to listen for connection", err)
+		return nil, err
 	}
 	log.Printf("Listening on %v\n", listener.Addr())
 
@@ -54,6 +57,7 @@ func NewSimpleSftpServer(homePath, listenAddress string, listenPort int, usernam
 		}
 		go HandleConn(conn, config, pathMapper)
 	}
+
 
 }
 
