@@ -56,22 +56,23 @@ type GlobalParameters struct {
 	FilesFrom     string `arg:"--files-from,help:import found matches from file - one line per item"`
 }
 
-type ActionSettings struct {
+type Settings struct {
 	Client bool
 }
 
 type AbstractAction struct {
 	CliGlobalParameters *GlobalParameters
 	CliContext          *cli.Context
-	Settings            *ActionSettings
+	Settings            *Settings
 
-	sourceFs      afero.Fs
-	sourcePattern *pattern.SourcePattern
-	compiledRegex *regexp.Regexp
-	locator       *file.Locator
+	PositionalArguments cli.Args
+	sourceFs            afero.Fs
+	sourcePattern       *pattern.SourcePattern
+	compiledRegex       *regexp.Regexp
+	locator             *file.Locator
 }
 
-func (action *AbstractAction) PrepareExecution(c *cli.Context, positionalArgumentsCount int) error {
+func (action *AbstractAction) PrepareExecution(c *cli.Context, positionalArgumentsCount int, positionalDefaultsIfUnset ...string) error {
 
 	action.ParseCliContext(c)
 	action.initLogging()
@@ -80,14 +81,29 @@ func (action *AbstractAction) PrepareExecution(c *cli.Context, positionalArgumen
 		return cli.NewExitError("using single quotes as qualifier may lead to unexpected results - please use double quotes or --force", ErrorPreventUsingSingleQuotesOnWindows)
 	}
 
-	if err := action.assertPositionalArgumentsCount(positionalArgumentsCount); err != nil {
+	if err := action.assertPositionalArgumentsCount(positionalArgumentsCount, positionalDefaultsIfUnset); err != nil {
 		return cli.NewExitError(err.Error(), ErrorPositionalArgumentCount)
 	}
 
 	return nil
 }
-func (action *AbstractAction) assertPositionalArgumentsCount(positionalArgumentsCount int) error {
-	if len(action.CliContext.Args()) != positionalArgumentsCount {
+func (action *AbstractAction) assertPositionalArgumentsCount(expectedPositionalCount int, defaults []string) error {
+
+	givenPositionalCount := len(action.CliContext.Args())
+
+	var positionalStrings []string
+	if givenPositionalCount != expectedPositionalCount {
+		if len(defaults) == expectedPositionalCount {
+			for i := 0; i < expectedPositionalCount; i++ {
+				if i < givenPositionalCount {
+					positionalStrings = append(positionalStrings, action.CliContext.Args().Get(i))
+				} else {
+					positionalStrings = append(positionalStrings, defaults[i])
+				}
+			}
+			action.PositionalArguments = cli.Args(positionalStrings)
+			return nil
+		}
 		return errors.New("find takes exactly one argument as search pattern")
 	}
 	return nil
@@ -105,7 +121,7 @@ func (action *AbstractAction) ParseCliContext(c *cli.Context) {
 		MaxSize:   c.GlobalString("min-size"),
 	}
 
-	action.Settings = &ActionSettings{
+	action.Settings = &Settings{
 		Client: c.IsSet("client") && c.Bool("client"),
 	}
 }
@@ -175,7 +191,7 @@ func (action *AbstractAction) prepareSourcePattern() error {
 	if err = action.prepareSourceFileSystem(); err != nil {
 		return err
 	}
-	action.sourcePattern = pattern.NewSourcePattern(action.sourceFs, action.CliContext.Args().First(), action.parseSourcePatternBitFlags())
+	action.sourcePattern = pattern.NewSourcePattern(action.sourceFs, action.PositionalArguments.First(), action.parseSourcePatternBitFlags())
 	return nil
 }
 
@@ -286,7 +302,7 @@ func (action *AbstractAction) ShowMatchesForPath(path string) {
 	}
 }
 
-func (action *AbstractAction) promptPassword(message string) (string, error){
+func (action *AbstractAction) promptPassword(message string) (string, error) {
 	if message != "" {
 		println(message)
 	}
