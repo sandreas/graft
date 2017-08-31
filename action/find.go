@@ -6,9 +6,6 @@ import (
 	"fmt"
 )
 
-const (
-	ErrorLocateSourceFiles = 1
-)
 
 type FindAction struct {
 	AbstractAction
@@ -25,7 +22,7 @@ func (action *FindAction) Execute(c *cli.Context) error {
 }
 func (action *FindAction) ShowFoundFiles() {
 	if len(action.locator.SourceFiles) == 0 {
-		action.suppressablePrintf("\n== No matches found! ==\n")
+		action.suppressablePrintf("\nNo matching files found!\n")
 		return
 	}
 

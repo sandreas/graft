@@ -1,49 +1,53 @@
 package action
 
 import (
-	"github.com/urfave/cli"
-	"log"
-	"io/ioutil"
-	"os"
-	"io"
-	"os/user"
-	"runtime"
 	"errors"
-	"strings"
-	"github.com/sandreas/graft/matcher"
-	"github.com/sandreas/graft/file"
 	"fmt"
-	"github.com/sandreas/graft/pattern"
-	"github.com/sandreas/graft/filesystem"
-	"github.com/spf13/afero"
-	"github.com/sandreas/graft/bitflag"
-	"time"
+	"io"
+	"io/ioutil"
+	"log"
+	"os"
+	"os/user"
 	"regexp"
+	"runtime"
 	"strconv"
+	"strings"
+	"time"
+
+	"github.com/sandreas/graft/bitflag"
+	"github.com/sandreas/graft/file"
+	"github.com/sandreas/graft/filesystem"
+	"github.com/sandreas/graft/matcher"
+	"github.com/sandreas/graft/pattern"
+	"github.com/spf13/afero"
+	"github.com/urfave/cli"
+	"github.com/howeyc/gopass"
 )
 
 const (
 	ErrorPreventUsingSingleQuotesOnWindows = 1
 	ErrorPositionalArgumentCount
-
+	ErrorLocateSourceFiles
+	ErrorStartingServer
 )
-
 
 func NewActionFactory(action string) CliActionInterface {
 	switch action {
 	case "find":
 		return new(FindAction)
+	case "serve":
+		return new(ServeAction)
 	}
+
 	return nil
 }
 
-
 type GlobalParameters struct {
-	Quiet         bool `arg:"help:do not show any output"`
-	Force         bool `arg:"help:force the requested action - even if it might be not a good idea"`
-	Debug         bool `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
-	Regex         bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
-	CaseSensitive bool `arg:"--case-sensitive,help:be case sensitive when matching files and folders"`
+	Quiet         bool   `arg:"help:do not show any output"`
+	Force         bool   `arg:"help:force the requested action - even if it might be not a good idea"`
+	Debug         bool   `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
+	Regex         bool   `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
+	CaseSensitive bool   `arg:"--case-sensitive,help:be case sensitive when matching files and folders"`
 	MaxAge        string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
 	MinAge        string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
 	MaxSize       string `arg:"--max-size,help:maximum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
@@ -52,12 +56,16 @@ type GlobalParameters struct {
 	FilesFrom     string `arg:"--files-from,help:import found matches from file - one line per item"`
 }
 
+type ActionSettings struct {
+	Client bool
+}
+
 type AbstractAction struct {
 	CliGlobalParameters *GlobalParameters
 	CliContext          *cli.Context
+	Settings            *ActionSettings
 
-	sourceFs afero.Fs
-
+	sourceFs      afero.Fs
 	sourcePattern *pattern.SourcePattern
 	compiledRegex *regexp.Regexp
 	locator       *file.Locator
@@ -79,7 +87,7 @@ func (action *AbstractAction) PrepareExecution(c *cli.Context, positionalArgumen
 	return nil
 }
 func (action *AbstractAction) assertPositionalArgumentsCount(positionalArgumentsCount int) error {
-	if len(action.CliContext.Args()) != 1 {
+	if len(action.CliContext.Args()) != positionalArgumentsCount {
 		return errors.New("find takes exactly one argument as search pattern")
 	}
 	return nil
@@ -88,13 +96,17 @@ func (action *AbstractAction) assertPositionalArgumentsCount(positionalArguments
 func (action *AbstractAction) ParseCliContext(c *cli.Context) {
 	action.CliContext = c
 	action.CliGlobalParameters = &GlobalParameters{
-		Debug: c.Bool("debug"),
-		FilesFrom: c.String("files-from"),
-		ExportTo: c.String("export-to"),
-		MinAge: c.String("min-age"),
-		MaxAge: c.String("max-age"),
-		MinSize: c.String("min-size"),
-		MaxSize: c.String("min-size"),
+		Debug:     c.GlobalBool("debug"),
+		FilesFrom: c.GlobalString("files-from"),
+		ExportTo:  c.GlobalString("export-to"),
+		MinAge:    c.GlobalString("min-age"),
+		MaxAge:    c.GlobalString("max-age"),
+		MinSize:   c.GlobalString("min-size"),
+		MaxSize:   c.GlobalString("min-size"),
+	}
+
+	action.Settings = &ActionSettings{
+		Client: c.IsSet("client") && c.Bool("client"),
 	}
 }
 
@@ -146,7 +158,6 @@ func (action *AbstractAction) usedSingleQuotesAsQualifierOnWindows() bool {
 	return false
 }
 
-
 func (action *AbstractAction) locateSourceFiles() error {
 	if err := action.prepareSourcePattern(); err != nil {
 		return err
@@ -168,9 +179,9 @@ func (action *AbstractAction) prepareSourcePattern() error {
 	return nil
 }
 
-func (action *AbstractAction) prepareSourceFileSystem() (error) {
+func (action *AbstractAction) prepareSourceFileSystem() error {
 	var err error
-	if action.CliContext.Bool("client") {
+	if action.Settings.Client {
 		action.sourceFs, err = filesystem.NewSftpFs(action.CliContext.String("host"), action.CliContext.Int("port"), action.CliContext.String("username"), action.CliContext.String("password"))
 		return err
 	}
@@ -273,4 +284,17 @@ func (action *AbstractAction) ShowMatchesForPath(path string) {
 	for i := 0; i < len(elementMatches); i++ {
 		action.suppressablePrintf("    $" + strconv.Itoa(i+1) + ": " + elementMatches[i] + "\n")
 	}
+}
+
+func (action *AbstractAction) promptPassword(message string) (string, error){
+	if message != "" {
+		println(message)
+	}
+
+	if pass, err := gopass.GetPasswd(); err != nil {
+		return "", err
+	} else {
+		return string(pass), nil
+	}
+
 }
