@@ -2,8 +2,11 @@ package action
 
 import (
 	"github.com/urfave/cli"
-	"github.com/hashicorp/mdns"
 	"fmt"
+	"github.com/oleksandr/bonjour"
+	"log"
+	"os"
+	"time"
 )
 
 type ReceiveAction struct {
@@ -17,31 +20,42 @@ func (action *ReceiveAction) Execute(c *cli.Context) error {
 	action.PrepareExecution(c, 1, "*")
 
 	if action.CliContext.String("host") == "" {
-		action.lookupService()
+		action.lookupServiceAndReceive()
 	} else {
-		fmt.Println("kaputt")
+		action.receive()
 	}
-
-
-	//
-	//log.Printf("serve")
-	//if err := action.locateSourceFiles(); err != nil {
-	//	return cli.NewExitError(err.Error(), ErrorLocateSourceFiles)
-	//}
-	//if err := action.ServeFoundFiles(); err != nil {
-	//	return cli.NewExitError(err.Error(), ErrorStartingServer)
-	//}
 	return nil
 }
-func (action *ReceiveAction) lookupService() {
-	entriesCh := make(chan *mdns.ServiceEntry, 4)
-	go func() {
-		for entry := range entriesCh {
-			fmt.Printf("Got new entry: %v\n", entry)
-		}
-	}()
+func (action *ReceiveAction) receive() error {
+	if err := action.locateSourceFiles(); err != nil {
+		return cli.NewExitError(err.Error(), ErrorLocateSourceFiles)
+	}
+	return nil
+}
+func (action *ReceiveAction) lookupServiceAndReceive() {
+	resolver, err := bonjour.NewResolver(nil)
+	if err != nil {
+		log.Println("Failed to initialize resolver:", err.Error())
+		os.Exit(1)
+	}
 
-	// Start the lookup
-	mdns.Lookup("_graft._tcp", entriesCh)
-	close(entriesCh)
+	results := make(chan *bonjour.ServiceEntry)
+
+	go func(results chan *bonjour.ServiceEntry, exitCh chan<- bool) {
+		for e := range results {
+			fmt.Printf("%v", e)
+			action.CliContext.Set("host", e.HostName)
+			action.CliContext.Set("port", string(e.Port))
+			action.receive()
+			exitCh <- true
+			time.Sleep(1e9)
+			os.Exit(0)
+		}
+	}(results, resolver.Exit)
+
+	err = resolver.Lookup("graft", "_graft._tcp", "", results)
+	if err != nil {
+		log.Println("Failed to browse:", err.Error())
+	}
+	select {}
 }

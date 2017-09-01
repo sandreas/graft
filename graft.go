@@ -55,6 +55,11 @@ func main() {
 			Usage: "serve files",
 			Flags: serveFlags,
 		},
+		{
+			Name:  "receive", Aliases: []string{"r"}, Action: action.NewActionFactory("receive").Execute,
+			Usage: "receive files from a graft server or another remote filesystem",
+			Flags: serveFlags,
+		},
 	}
 
 	app.Run(os.Args)

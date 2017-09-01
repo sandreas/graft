@@ -8,7 +8,7 @@ import (
 	"net"
 	"os"
 	"github.com/sandreas/graft/sftpd"
-	"github.com/hashicorp/mdns"
+	"github.com/oleksandr/bonjour"
 )
 
 type ServeAction struct {
@@ -72,18 +72,26 @@ func (action *ServeAction) ServeFoundFiles() error {
 	}
 
 	if ! action.CliContext.Bool("silent") {
-		host, _ := os.Hostname()
-		info := []string{"graft"}
-
-		service, _ := mdns.NewMDNSService(host, "_graft._tcp", "", "", 8000, nil, info)
-
-		// Create the mDNS server, defer shutdown
-		server, _ := mdns.NewServer(&mdns.Config{Zone: service})
-		defer server.Shutdown()
+		// Run registration (blocking call)
+		_, err := bonjour.Register("graft", "_graft._tcp", "", 9999, []string{"txtv=1", "app=graft"}, nil)
+		if err != nil {
+			log.Printf("Error starting mdns: %v", err.Error())
+		}
 	}
 
 	action.suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", username, outboundIp, port)
 	sftpd.NewSimpleSftpServer(homeDir, listenAddress, port, username, password, pathMapper)
+
+	// TODO Ctrl+C handling
+	//handler := make(chan os.Signal, 1)
+	//signal.Notify(handler, os.Interrupt)
+	//for sig := range handler {
+	//	if sig == os.Interrupt {
+	//		s.Shutdown()
+	//		time.Sleep(1e9)
+	//		break
+	//	}
+	//}
 
 	return nil
 }

@@ -37,6 +37,8 @@ func NewActionFactory(action string) CliActionInterface {
 		return new(FindAction)
 	case "serve":
 		return new(ServeAction)
+	case "receive":
+		return new(ReceiveAction)
 	}
 
 	return nil
@@ -105,6 +107,8 @@ func (action *AbstractAction) assertPositionalArgumentsCount(expectedPositionalC
 			return nil
 		}
 		return errors.New("find takes exactly one argument as search pattern")
+	} else {
+		action.PositionalArguments = action.CliContext.Args()
 	}
 	return nil
 }
@@ -121,6 +125,7 @@ func (action *AbstractAction) ParseCliContext(c *cli.Context) {
 		MaxSize:   c.GlobalString("min-size"),
 	}
 
+	// TODO replace with c.Set
 	action.Settings = &Settings{
 		Client: c.IsSet("client") && c.Bool("client"),
 	}
