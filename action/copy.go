@@ -29,6 +29,8 @@ func (action *CopyAction) CopyFiles() error {
 	copyStrategy := transfer.NewCopyStrategy()
 	copyStrategy.ProgressHandler = transfer.NewCopyProgressHandler(int64(32*1024), 1*time.Second)
 	copyStrategy.RegisterObserver(messagePrinter)
+	copyStrategy.DryRun = action.CliContext.Bool("dry-run")
+	copyStrategy.KeepTimes = action.CliContext.Bool("times")
 	return copyStrategy.Perform(action.locator.SourceFiles)
 
 }

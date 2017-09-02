@@ -27,6 +27,11 @@ func main() {
 	}
 	serveFlags = append(serveFlags, networkFlags...)
 
+	transferFlags := []cli.Flag{
+		cli.BoolFlag{Name: "dry-run", Usage: "simulation mode - shows output but files remain unaffected"},
+		cli.BoolFlag{Name: "times", Usage: "transfer source modify times to destination"},
+	}
+
 	app := cli.NewApp()
 	app.Name = "graft"
 	app.Version = "0.2"
@@ -58,7 +63,7 @@ func main() {
 		{
 			Name: "copy", Aliases: []string{"r"}, Action: action.NewActionFactory("copy").Execute,
 			Usage: "copy files from a source to a destination",
-			Flags: serveFlags,
+			Flags: transferFlags,
 		},
 	}
 
