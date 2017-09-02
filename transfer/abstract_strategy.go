@@ -22,6 +22,14 @@ type AbstractStrategy struct {
 
 }
 
+func (strategy *AbstractStrategy) PerformFileTransfer(src string, dst string, srcStat os.FileInfo) error {
+	return errors.New("method PerformFileTransfer is abstract and must be overridden in strategy")
+}
+
+func (strategy *AbstractStrategy) Cleanup() error {
+	return errors.New("method Cleanup is abstract and must be overridden in strategy")
+}
+
 func (strategy *AbstractStrategy) Perform(strings []string) error {
 	var err, returnError error
 
@@ -33,6 +41,7 @@ func (strategy *AbstractStrategy) Perform(strings []string) error {
 			returnError = errors.New("some files failed to transfer")
 		}
 	}
+	strategy.Cleanup()
 	return returnError
 }
 
@@ -74,9 +83,7 @@ func (strategy *AbstractStrategy) PerformSingleTransfer(src string) error {
 	return nil
 }
 
-func (strategy *AbstractStrategy) PerformFileTransfer(src string, dst string, srcStat os.FileInfo) error {
-	return errors.New("method PerformFileTransfer is abstract and must be overridden in strategy")
-}
+
 
 func (strategy *AbstractStrategy) EnsureDirectoryOfFileExists(src, dst string) error {
 	_, err := strategy.DestinationPattern.Fs.Stat(dst)
