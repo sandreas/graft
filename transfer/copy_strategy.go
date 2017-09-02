@@ -5,37 +5,36 @@ import (
 	"io"
 	"os"
 	"time"
-
-	"github.com/sandreas/graft/designpattern/observer"
-	"github.com/spf13/afero"
 )
 
 type CopyStrategy struct {
-	TransferStrategyInterface
-	designpattern.Observable
-	Fs              afero.Fs
+	AbstractStrategy
 	ProgressHandler *CopyProgressHandler
 	bufferSize      int64
 }
 
 func NewCopyStrategy() *CopyStrategy {
 	return &CopyStrategy{
-		Fs:              afero.NewOsFs(),
 		ProgressHandler: nil,
 		bufferSize:      1024 * 32,
 	}
 }
 
-func (c *CopyStrategy) Transfer(s, d string) error {
 
-	srcStats, err := c.Fs.Stat(s)
-	if err != nil {
-		return err
-	}
+func (strategy *CopyStrategy) PerformFileTransfer(s string, d string, srcStats os.FileInfo) error {
+	return strategy.Copy(s, d, srcStats)
+}
+
+func (strategy *CopyStrategy) CleanUp() error {
+	return nil
+}
+
+
+func (strategy *CopyStrategy) Copy(s, d string, srcStats os.FileInfo) error {
 
 	srcSize := srcStats.Size()
 	dstSize := int64(0)
-	dstStats, err := c.Fs.Stat(d)
+	dstStats, err := strategy.DestinationPattern.Fs.Stat(d)
 
 	dstExists := true
 	if err == nil {
@@ -50,19 +49,19 @@ func (c *CopyStrategy) Transfer(s, d string) error {
 		return errors.New("File cannot be resumed, destination is larger than source")
 	}
 
-	c.handleProgress(dstSize, srcSize, c.bufferSize)
+	strategy.handleProgress(dstSize, srcSize, strategy.bufferSize)
 
 	if dstExists && srcSize == dstSize {
 		return nil
 	}
 
-	src, err := c.Fs.OpenFile(s, os.O_RDONLY, srcStats.Mode())
+	src, err := strategy.SourcePattern.Fs.OpenFile(s, os.O_RDONLY, srcStats.Mode())
 	if err != nil {
 		return err
 	}
 	defer src.Close()
 
-	dst, err := c.Fs.OpenFile(d, os.O_RDWR|os.O_CREATE, srcStats.Mode())
+	dst, err := strategy.DestinationPattern.Fs.OpenFile(d, os.O_RDWR|os.O_CREATE, srcStats.Mode())
 	if err != nil {
 		return err
 	}
@@ -71,7 +70,7 @@ func (c *CopyStrategy) Transfer(s, d string) error {
 	src.Seek(dstSize, 0)
 	dst.Seek(dstSize, 0)
 
-	buf := make([]byte, c.bufferSize)
+	buf := make([]byte, strategy.bufferSize)
 	bytesTransferred := dstSize
 	for {
 		n, err := src.Read(buf)
@@ -86,10 +85,10 @@ func (c *CopyStrategy) Transfer(s, d string) error {
 			return err
 		}
 		bytesTransferred += int64(n)
-		newBufferSize := c.handleProgress(bytesTransferred, srcSize, c.bufferSize)
-		if newBufferSize != c.bufferSize {
-			c.bufferSize = newBufferSize
-			buf = make([]byte, c.bufferSize)
+		newBufferSize := strategy.handleProgress(bytesTransferred, srcSize, strategy.bufferSize)
+		if newBufferSize != strategy.bufferSize {
+			strategy.bufferSize = newBufferSize
+			buf = make([]byte, strategy.bufferSize)
 		}
 	}
 	dst.Sync()
@@ -97,15 +96,12 @@ func (c *CopyStrategy) Transfer(s, d string) error {
 	return nil
 }
 
-func (c *CopyStrategy) handleProgress(bytesTransferred, srcSize, bufferSize int64) int64 {
-	if c.ProgressHandler == nil {
+func (strategy *CopyStrategy) handleProgress(bytesTransferred, srcSize, bufferSize int64) int64 {
+	if strategy.ProgressHandler == nil {
 		return bufferSize
 	}
-	newBufferSize, message := c.ProgressHandler.Update(bytesTransferred, srcSize, bufferSize, time.Now())
-	c.NotifyObservers(message)
+	newBufferSize, message := strategy.ProgressHandler.Update(bytesTransferred, srcSize, bufferSize, time.Now())
+	strategy.NotifyObservers(message)
 	return newBufferSize
 }
 
-func (c *CopyStrategy) CleanUp(dirsToRemove []string) error {
-	return nil
-}
