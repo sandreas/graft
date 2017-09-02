@@ -29,6 +29,8 @@ const (
 	ErrorPositionalArgumentCount
 	ErrorLocateSourceFiles
 	ErrorStartingServer
+	ErrorCopyFiles
+	ErrorPrepareDestination
 )
 
 func NewActionFactory(action string) CliActionInterface {
@@ -37,8 +39,8 @@ func NewActionFactory(action string) CliActionInterface {
 		return new(FindAction)
 	case "serve":
 		return new(ServeAction)
-	case "receive":
-		return new(ReceiveAction)
+	case "copy":
+		return new(CopyAction)
 	}
 
 	return nil
