@@ -8,7 +8,7 @@ import (
 
 
 type FindAction struct {
-	AbstractAction
+	*AbstractAction
 }
 
 func (action *FindAction) Execute(c *cli.Context) error {

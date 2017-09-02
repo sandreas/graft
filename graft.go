@@ -2,12 +2,12 @@ package main
 
 import (
 	"os"
-	"github.com/urfave/cli"
+
 	"github.com/sandreas/graft/action"
+	"github.com/urfave/cli"
 )
 
 func main() {
-
 
 	networkFlags := []cli.Flag{
 		cli.StringFlag{Name: "host", Usage: "Specify the hostname for the server (client mode only)"},
@@ -46,18 +46,18 @@ func main() {
 	}
 	app.Commands = []cli.Command{
 		{
-			Name:  "find", Aliases: []string{"f"}, Action: action.NewActionFactory("find").Execute,
+			Name: "find", Aliases: []string{"f"}, Action: action.NewActionFactory("find").Execute,
 			Usage: "find files",
 			Flags: findFlags,
 		},
 		{
-			Name:  "serve", Aliases: []string{"s"}, Action: action.NewActionFactory("serve").Execute,
+			Name: "serve", Aliases: []string{"s"}, Action: action.NewActionFactory("serve").Execute,
 			Usage: "serve files",
 			Flags: serveFlags,
 		},
 		{
-			Name:  "receive", Aliases: []string{"r"}, Action: action.NewActionFactory("receive").Execute,
-			Usage: "receive files from a graft server or another remote filesystem",
+			Name: "copy", Aliases: []string{"r"}, Action: action.NewActionFactory("copy").Execute,
+			Usage: "copy files from a source to a destination",
 			Flags: serveFlags,
 		},
 	}

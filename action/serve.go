@@ -12,7 +12,7 @@ import (
 )
 
 type ServeAction struct {
-	AbstractAction
+	*AbstractAction
 }
 
 func (action *ServeAction) Execute(c *cli.Context) error {
