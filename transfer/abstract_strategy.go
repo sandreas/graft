@@ -6,14 +6,27 @@ import (
 	"os"
 	"path/filepath"
 	"log"
+	"github.com/sandreas/graft/designpattern/observer"
+	"errors"
 )
 
 type AbstractStrategy struct {
+	*designpattern.Observable
+
 	SourcePattern          *pattern.SourcePattern
 	DestinationPattern     *pattern.DestinationPattern
 	CompiledSourcePattern  *regexp.Regexp
 	TransferredDirectories []string
-	KeepTimes bool
+	KeepTimes              bool
+
+}
+
+func (strategy *AbstractStrategy) Perform(strings []string) error {
+	var returnError error
+	for _, src := range strings {
+		returnError = strategy.PerformSingleTransfer(src)
+	}
+	return returnError
 }
 
 func (strategy *AbstractStrategy) DestinationFor(src string) string {
@@ -24,7 +37,8 @@ func (strategy *AbstractStrategy) DestinationFor(src string) string {
 	}
 }
 
-func (strategy *AbstractStrategy) PerformTransfer(src string) error {
+
+func (strategy *AbstractStrategy) PerformSingleTransfer(src string) error {
 	srcStat, err := strategy.SourcePattern.Fs.Stat(src)
 	if err != nil {
 		return err
@@ -40,8 +54,17 @@ func (strategy *AbstractStrategy) PerformTransfer(src string) error {
 		return err
 	}
 
+	if err := strategy.PerformFileTransfer(src, dst, srcStat); err != nil {
+		return err
+	}
+
 	return nil
 }
+
+func (strategy *AbstractStrategy) PerformFileTransfer(src string, dst string, srcStat os.FileInfo) error {
+	return errors.New("method PerformFileTransfer is abstract and must be overridden in strategy")
+}
+
 func (strategy *AbstractStrategy) EnsureDirectoryOfFileExists(src, dst string) error {
 	_, err := strategy.DestinationPattern.Fs.Stat(dst)
 	if os.IsNotExist(err) || strategy.KeepTimes {
@@ -74,4 +97,3 @@ func (strategy *AbstractStrategy) keepTimes(dst string, inStats os.FileInfo) err
 	t := inStats.ModTime()
 	return strategy.DestinationPattern.Fs.Chtimes(dst, t, t)
 }
-

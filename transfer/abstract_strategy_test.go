@@ -47,33 +47,33 @@ func prepareFileSystem() afero.Fs {
 }
 
 
-func TestTransferSourceNotExists(t *testing.T) {
+func TestSingleTransferSourceNotExists(t *testing.T) {
 	expect := assert.New(t)
 	strategy := prepareStrategy("src/*", "dst")
-	expect.Error(strategy.PerformTransfer("non-existing-file.txt"))
+	expect.Error(strategy.PerformSingleTransfer("non-existing-file.txt"))
 }
 
-func TestTransferDir(t *testing.T) {
+func TestSingleTransferDir(t *testing.T) {
 	expect := assert.New(t)
 	strategy := prepareStrategy("src/*", "dst")
-	expect.NoError(strategy.PerformTransfer("src/test-dir"))
+	expect.NoError(strategy.PerformSingleTransfer("src/test-dir"))
 	stat, err := strategy.DestinationPattern.Fs.Stat("dst/test-dir")
 	expect.True(stat.IsDir())
 	expect.NoError(err)
 	expect.Len(strategy.TransferredDirectories, 1)
 }
 
-func TestTransferFileDirectoryCreation(t *testing.T) {
+func TestSingleTransferFileDirectoryCreation(t *testing.T) {
 	expect := assert.New(t)
 	strategy := prepareStrategy("src/*", "dst")
-	expect.NoError(strategy.PerformTransfer("src/test-dir/test-dir-file.txt"))
+	expect.Error(strategy.PerformSingleTransfer("src/test-dir/test-dir-file.txt"), "method PerformFileTransfer is abstract and must be overridden in strategy")
 	stat, err := strategy.DestinationPattern.Fs.Stat("dst/test-dir")
 	expect.True(stat.IsDir())
 	expect.NoError(err)
 	expect.Len(strategy.TransferredDirectories, 0)
 }
 
-func TestTransferTimes(t *testing.T) {
+func TestSingleTransferTimes(t *testing.T) {
 	expect := assert.New(t)
 
 	layout := "2006-01-02T15:04:05.000Z"
@@ -84,8 +84,21 @@ func TestTransferTimes(t *testing.T) {
 	strategy.KeepTimes = true
 	strategy.SourcePattern.Fs.Chtimes("src/test-dir", referenceTime, referenceTime)
 
-	expect.NoError(strategy.PerformTransfer("src/test-dir/test-dir-file.txt"))
+	expect.Error(strategy.PerformSingleTransfer("src/test-dir/test-dir-file.txt"), "method PerformFileTransfer is abstract and must be overridden in strategy")
 
 	stat, _ := strategy.DestinationPattern.Fs.Stat("dst/test-dir")
 	expect.Equal(referenceTime, stat.ModTime())
+}
+
+func TestTransfer(t *testing.T) {
+	expect := assert.New(t)
+	strategy := prepareStrategy("src/*", "dst/$1")
+
+	toTransfer := []string{"src", "src/test-dir"}
+
+	expect.NoError(strategy.Perform(toTransfer))
+	stat, err := strategy.DestinationPattern.Fs.Stat("dst/test-dir")
+	expect.True(stat.IsDir())
+	expect.NoError(err)
+	expect.Len(strategy.TransferredDirectories, 2)
 }
