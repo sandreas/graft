@@ -13,6 +13,7 @@ type AbstractStrategy struct {
 	DestinationPattern     *pattern.DestinationPattern
 	CompiledSourcePattern  *regexp.Regexp
 	TransferredDirectories []string
+	KeepTimes bool
 }
 
 func (strategy *AbstractStrategy) DestinationFor(src string) string {
@@ -43,7 +44,7 @@ func (strategy *AbstractStrategy) PerformTransfer(src string) error {
 }
 func (strategy *AbstractStrategy) EnsureDirectoryOfFileExists(src, dst string) error {
 	_, err := strategy.DestinationPattern.Fs.Stat(dst)
-	if os.IsNotExist(err) /*|| act.keepTimes*/ {
+	if os.IsNotExist(err) || strategy.KeepTimes {
 		srcDirName := filepath.Dir(src)
 		srcDirStat, err := strategy.DestinationPattern.Fs.Stat(srcDirName)
 		if err != nil {
@@ -62,5 +63,15 @@ func (strategy *AbstractStrategy) PerformDirectoryTransfer(src, dst string, srcS
 	if err == nil && shouldRemoveAfterTransfer {
 		strategy.TransferredDirectories = append(strategy.TransferredDirectories, dst)
 	}
+
+	if err == nil && strategy.KeepTimes {
+		err = strategy.keepTimes(dst, srcStat)
+	}
 	return err
 }
+
+func (strategy *AbstractStrategy) keepTimes(dst string, inStats os.FileInfo) error {
+	t := inStats.ModTime()
+	return strategy.DestinationPattern.Fs.Chtimes(dst, t, t)
+}
+

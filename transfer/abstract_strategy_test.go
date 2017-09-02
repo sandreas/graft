@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/sandreas/graft/transfer"
+	"time"
 )
 
 func TestRelativeWildcardMapping(t *testing.T) {
@@ -30,6 +31,7 @@ func prepareStrategy(src string, dst string) *transfer.AbstractStrategy {
 		SourcePattern:         srcPattern,
 		DestinationPattern:    dstPattern,
 		CompiledSourcePattern: compiledSrcPattern,
+		KeepTimes: false,
 	}
 
 }
@@ -69,4 +71,21 @@ func TestTransferFileDirectoryCreation(t *testing.T) {
 	expect.True(stat.IsDir())
 	expect.NoError(err)
 	expect.Len(strategy.TransferredDirectories, 0)
+}
+
+func TestTransferTimes(t *testing.T) {
+	expect := assert.New(t)
+
+	layout := "2006-01-02T15:04:05.000Z"
+	timeAsStr := "2014-11-12T11:45:26.371Z"
+	referenceTime, _ := time.Parse(layout, timeAsStr)
+
+	strategy := prepareStrategy("src/*", "dst")
+	strategy.KeepTimes = true
+	strategy.SourcePattern.Fs.Chtimes("src/test-dir", referenceTime, referenceTime)
+
+	expect.NoError(strategy.PerformTransfer("src/test-dir/test-dir-file.txt"))
+
+	stat, _ := strategy.DestinationPattern.Fs.Stat("dst/test-dir")
+	expect.Equal(referenceTime, stat.ModTime())
 }
