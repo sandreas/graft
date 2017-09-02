@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/sandreas/graft/transfer"
 	"time"
+	"os"
 )
 
 func TestRelativeWildcardMapping(t *testing.T) {
@@ -90,7 +91,7 @@ func TestSingleTransferTimes(t *testing.T) {
 	expect.Equal(referenceTime, stat.ModTime())
 }
 
-func TestTransfer(t *testing.T) {
+func TestMultiTransfer(t *testing.T) {
 	expect := assert.New(t)
 	strategy := prepareStrategy("src/*", "dst/$1")
 
@@ -101,4 +102,17 @@ func TestTransfer(t *testing.T) {
 	expect.True(stat.IsDir())
 	expect.NoError(err)
 	expect.Len(strategy.TransferredDirectories, 2)
+}
+
+func TestDryRun(t *testing.T) {
+	expect := assert.New(t)
+	strategy := prepareStrategy("src/*", "dst/$1")
+	strategy.DryRun = true
+	toTransfer := []string{"src", "src/test-dir"}
+
+	expect.NoError(strategy.Perform(toTransfer))
+	stat, err := strategy.DestinationPattern.Fs.Stat("dst/test-dir")
+	expect.Nil(stat)
+	expect.True(os.IsNotExist(err))
+	expect.Len(strategy.TransferredDirectories, 0)
 }

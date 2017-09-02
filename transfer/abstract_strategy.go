@@ -11,20 +11,27 @@ import (
 )
 
 type AbstractStrategy struct {
-	*designpattern.Observable
+	designpattern.Observable
 
 	SourcePattern          *pattern.SourcePattern
 	DestinationPattern     *pattern.DestinationPattern
 	CompiledSourcePattern  *regexp.Regexp
 	TransferredDirectories []string
 	KeepTimes              bool
+	DryRun					bool
 
 }
 
 func (strategy *AbstractStrategy) Perform(strings []string) error {
-	var returnError error
+	var err, returnError error
+
+	strategy.NotifyObservers("\n")
 	for _, src := range strings {
-		returnError = strategy.PerformSingleTransfer(src)
+		err = strategy.PerformSingleTransfer(src)
+		if err != nil {
+			strategy.NotifyObservers("\n    - failed (" + err.Error() + ")\n")
+			returnError = errors.New("some files failed to transfer")
+		}
 	}
 	return returnError
 }
@@ -45,6 +52,12 @@ func (strategy *AbstractStrategy) PerformSingleTransfer(src string) error {
 	}
 
 	dst := strategy.DestinationFor(src)
+
+	strategy.NotifyObservers(src + " => " + dst + "\n")
+
+	if strategy.DryRun {
+		return nil
+	}
 
 	if srcStat.IsDir() {
 		return strategy.PerformDirectoryTransfer(src, dst, srcStat, true)
@@ -94,6 +107,5 @@ func (strategy *AbstractStrategy) PerformDirectoryTransfer(src, dst string, srcS
 }
 
 func (strategy *AbstractStrategy) keepTimes(dst string, inStats os.FileInfo) error {
-	t := inStats.ModTime()
-	return strategy.DestinationPattern.Fs.Chtimes(dst, t, t)
+	return strategy.DestinationPattern.Fs.Chtimes(dst, inStats.ModTime(), inStats.ModTime())
 }
