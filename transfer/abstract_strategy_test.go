@@ -20,6 +20,20 @@ func TestRelativeWildcardMapping(t *testing.T) {
 	expect.Equal("dst/src-file.txt", strategy.DestinationFor("src/src-file.txt"))
 	expect.Equal("dst/test-dir", strategy.DestinationFor("src/test-dir"))
 	expect.Equal("dst/test-dir/test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+
+
+
+}
+
+func TestComplexRelativeWildcardMapping(t *testing.T) {
+	expect := assert.New(t)
+
+	// copy data/fixtures/global/textfile.txt ../out/
+
+	strategy := prepareStrategy("src/test-dir/test-dir-file.txt", "../out/")
+
+	expect.Equal("../out/test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+
 }
 
 func prepareStrategy(src string, dst string) *transfer.AbstractStrategy {
@@ -116,3 +130,4 @@ func TestDryRun(t *testing.T) {
 	expect.True(os.IsNotExist(err))
 	expect.Len(strategy.TransferredDirectories, 0)
 }
+

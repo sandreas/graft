@@ -8,6 +8,7 @@ import (
 	"log"
 	"github.com/sandreas/graft/designpattern/observer"
 	"errors"
+	"strings"
 )
 
 type AbstractStrategy struct {
@@ -48,6 +49,10 @@ func (strategy *AbstractStrategy) Perform(strings []string) error {
 func (strategy *AbstractStrategy) DestinationFor(src string) string {
 	if strategy.DestinationPattern.Pattern == "" {
 		return strategy.DestinationPattern.Path + src[len(strategy.SourcePattern.Path):]
+	} else if strategy.SourcePattern.Pattern == "" {
+		dirname := filepath.ToSlash(filepath.Dir(strategy.SourcePattern.Path))
+		relativeTarget := strings.TrimPrefix(strategy.SourcePattern.Path, dirname + "/")
+		return strategy.CompiledSourcePattern.ReplaceAllString(src, strategy.DestinationPattern.Path+"/"+strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/") +"/"+ relativeTarget )
 	} else {
 		return strategy.CompiledSourcePattern.ReplaceAllString(src, strategy.DestinationPattern.Path+"/"+strategy.DestinationPattern.Pattern)
 	}
