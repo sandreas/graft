@@ -7,26 +7,26 @@ import (
 	"time"
 )
 
-type CopyAction struct {
+type MoveAction struct {
 	AbstractTransferAction
 }
 
-func (action *CopyAction) Execute(c *cli.Context) error {
-	log.Printf("copy")
+func (action *MoveAction) Execute(c *cli.Context) error {
+	log.Printf("move")
 
 	if err := action.prepareTransferAction(c, 2); err != nil {
 		return err
 	}
 
-	if err := action.CopyFiles(); err != nil {
-		return cli.NewExitError(err.Error(), ErrorCopyFiles)
+	if err := action.MoveFiles(); err != nil {
+		return cli.NewExitError(err.Error(), ErrorMoveFiles)
 	}
 	return nil
 }
 
-func (action *CopyAction) CopyFiles() error {
+func (action *MoveAction) MoveFiles() error {
 	messagePrinter := transfer.NewMessagePrinterObserver(action.suppressablePrintf)
-	transferStrategy, err := transfer.NewTransferStrategy(transfer.CopyResumed, action.sourcePattern, action.destinationPattern)
+	transferStrategy, err := transfer.NewTransferStrategy(transfer.Move, action.sourcePattern, action.destinationPattern)
 	if err != nil {
 		return err
 	}

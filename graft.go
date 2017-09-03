@@ -65,6 +65,11 @@ func main() {
 			Usage: "copy files from a source to a destination",
 			Flags: transferFlags,
 		},
+		{
+			Name: "move", Aliases: []string{"m", "mv"}, Action: action.NewActionFactory("move").Execute,
+			Usage: "move files from a source to a destination",
+			Flags: transferFlags,
+		},
 	}
 
 	app.Run(os.Args)

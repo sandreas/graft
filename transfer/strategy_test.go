@@ -28,11 +28,9 @@ func TestRelativeWildcardMapping(t *testing.T) {
 func TestComplexRelativeMapping(t *testing.T) {
 	expect := assert.New(t)
 
-	// copy data/fixtures/global/textfile.txt ../out/
-var strategy *transfer.Strategy
+	var strategy *transfer.Strategy
 	strategy = prepareStrategy("src/test-dir/test-dir-file.txt", "../out/")
 	expect.Equal("../out/test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
-
 
 	strategy = prepareStrategy("src/test-dir", "../out")
 	expect.Equal("../out/test-dir/test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
@@ -43,6 +41,8 @@ var strategy *transfer.Strategy
 	strategy = prepareStrategy("src/test-dir/test-dir-file.txt", "dst")
 	expect.Equal("dst/test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 
+	strategy = prepareStrategy("src/test-dir/test-dir-file.txt", "dst/new-file.txt")
+	expect.Equal("dst/new-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 }
 
 func prepareStrategy(src string, dst string) *transfer.Strategy {
@@ -171,8 +171,7 @@ func TestCopyNewFile(t *testing.T) {
 
 	sourcePattern, destinationPattern := prepareFilesystemTest(srcFile, srcContents, destinationFile, "")
 
-
-	subject,_ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
+	subject, _ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
 	subject.ProgressHandler = transfer.NewCopyProgressHandler(2, 1*time.Nanosecond)
 	observer := &FakeObserver{}
 	subject.RegisterObserver(observer)
@@ -198,8 +197,7 @@ func TestCopyLargerSourceError(t *testing.T) {
 	dstContents := "this is a dst that is larger than its source and therefore cannot be copied"
 	sourcePattern, destinationPattern := prepareFilesystemTest(srcFile, srcContents, destinationFile, dstContents)
 
-	subject,_ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
-
+	subject, _ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
 
 	srcStats, _ := subject.SourcePattern.Fs.Stat(srcFile)
 	err := subject.PerformFileTransfer(srcFile, destinationFile, srcStats)
@@ -217,7 +215,7 @@ func TestCopyPartial(t *testing.T) {
 	dstContents := "this is the full content of a file with a partial"
 	sourcePattern, destinationPattern := prepareFilesystemTest(srcFile, srcContents, destinationFile, dstContents)
 
-	subject,_ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
+	subject, _ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
 
 	srcStats, _ := subject.SourcePattern.Fs.Stat(srcFile)
 	err := subject.PerformFileTransfer(srcFile, destinationFile, srcStats)
@@ -234,7 +232,7 @@ func TestCopyExistingCompleted(t *testing.T) {
 	dstContents := "this is a file where src and dst are fully equal"
 	sourcePattern, destinationPattern := prepareFilesystemTest(srcFile, srcContents, destinationFile, dstContents)
 
-	subject,_ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
+	subject, _ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
 
 	srcStats, _ := subject.SourcePattern.Fs.Stat(srcFile)
 	err := subject.PerformFileTransfer(srcFile, destinationFile, srcStats)
@@ -252,7 +250,7 @@ func TestCopyZeroBytesFile(t *testing.T) {
 	dstContents := ""
 	sourcePattern, destinationPattern := prepareFilesystemTest(srcFile, srcContents, destinationFile, dstContents)
 
-	subject,_ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
+	subject, _ := transfer.NewTransferStrategy(transfer.CopyResumed, sourcePattern, destinationPattern)
 
 	srcStats, _ := subject.SourcePattern.Fs.Stat(srcFile)
 	err := subject.PerformFileTransfer(srcFile, destinationFile, srcStats)
@@ -275,8 +273,6 @@ func TestCleanupIsAlwaysNil(t *testing.T) {
 	expect.Nil(subject.Cleanup())
 }
 
-
-
 func TestMoveFile(t *testing.T) {
 	expect := assert.New(t)
 
@@ -286,15 +282,13 @@ func TestMoveFile(t *testing.T) {
 
 	sourcePattern, destinationPattern := prepareFilesystemTest(srcFile, srcContents, destinationFile, "")
 
-
-	subject,_ := transfer.NewTransferStrategy(transfer.Move, sourcePattern, destinationPattern)
+	subject, _ := transfer.NewTransferStrategy(transfer.Move, sourcePattern, destinationPattern)
 	srcStats, _ := subject.SourcePattern.Fs.Stat(srcFile)
 	err := subject.PerformFileTransfer(srcFile, destinationFile, srcStats)
 	expect.Equal(nil, err)
 
 	dstContents, _ := afero.ReadFile(subject.SourcePattern.Fs, destinationFile)
 	expect.Equal(srcContents, string(dstContents))
-
 
 	srcStats, err = subject.SourcePattern.Fs.Stat(srcFile)
 

@@ -186,8 +186,18 @@ func (strategy *Strategy) Perform(strings []string) error {
 
 func (strategy *Strategy) DestinationFor(src string) string {
 
-	if strategy.SourcePattern.IsFile() && strategy.DestinationPattern.IsFile() {
-		return strategy.DestinationPattern.Path
+	if strategy.SourcePattern.IsFile() {
+		if strategy.DestinationPattern.IsFile() {
+			return strategy.DestinationPattern.Path
+		}
+
+		if strategy.DestinationPattern.Pattern == "" {
+			return filepath.ToSlash(strategy.DestinationPattern.Path  + "/" + filepath.Base(src))
+		}
+
+		if ! strings.HasSuffix(strategy.DestinationPattern.Pattern, "/") {
+			return filepath.ToSlash(strategy.DestinationPattern.Path  + "/" + strategy.DestinationPattern.Pattern)
+		}
 	}
 
 	// source pattern points to an existing file or directory
@@ -201,8 +211,10 @@ func (strategy *Strategy) DestinationFor(src string) string {
 			destinationPathParts = append(destinationPathParts, strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/"))
 		}
 
+
 		sourcePartAppendToDestination := strings.Trim(strings.TrimPrefix(src, sourceParentDir), "\\/")
 		destinationPathParts = append(destinationPathParts, sourcePartAppendToDestination)
+
 
 		return strings.Join(destinationPathParts, "/")
 	}

@@ -26,11 +26,12 @@ import (
 
 const (
 	ErrorPreventUsingSingleQuotesOnWindows = 1
-	ErrorPositionalArgumentCount
-	ErrorLocateSourceFiles
-	ErrorStartingServer
-	ErrorCopyFiles
-	ErrorPrepareDestination
+	ErrorPositionalArgumentCount = 2
+	ErrorLocateSourceFiles = 3
+	ErrorStartingServer = 4
+	ErrorCopyFiles = 5
+	ErrorMoveFiles = 6
+	ErrorPrepareDestination = 7
 )
 
 func NewActionFactory(action string) CliActionInterface {
@@ -41,6 +42,8 @@ func NewActionFactory(action string) CliActionInterface {
 		return new(ServeAction)
 	case "copy":
 		return new(CopyAction)
+	case "move":
+		return new(MoveAction)
 	}
 
 	return nil
