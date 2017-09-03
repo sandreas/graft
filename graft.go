@@ -61,7 +61,7 @@ func main() {
 			Flags: serveFlags,
 		},
 		{
-			Name: "copy", Aliases: []string{"r"}, Action: action.NewActionFactory("copy").Execute,
+			Name: "copy", Aliases: []string{"c", "cp"}, Action: action.NewActionFactory("copy").Execute,
 			Usage: "copy files from a source to a destination",
 			Flags: transferFlags,
 		},

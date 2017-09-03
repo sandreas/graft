@@ -108,7 +108,12 @@ func (action *AbstractAction) assertPositionalArgumentsCount(expectedPositionalC
 			action.PositionalArguments = cli.Args(positionalStrings)
 			return nil
 		}
-		return errors.New("find takes exactly one argument as search pattern")
+
+		suffix := "argument"
+		if expectedPositionalCount != 1 {
+			suffix += "s"
+		}
+		return errors.New(action.CliContext.Command.Name + " takes " + strconv.Itoa(expectedPositionalCount) + " " + suffix)
 	} else {
 		action.PositionalArguments = action.CliContext.Args()
 	}

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"time"
+	"github.com/sandreas/graft/pattern"
 )
 
 type CopyStrategy struct {
@@ -13,11 +14,18 @@ type CopyStrategy struct {
 	bufferSize      int64
 }
 
-func NewCopyStrategy() *CopyStrategy {
-	return &CopyStrategy{
+func NewCopyStrategy(src *pattern.SourcePattern, dst *pattern.DestinationPattern) (*CopyStrategy, error) {
+	strategy := &CopyStrategy{
 		ProgressHandler: nil,
 		bufferSize:      1024 * 32,
 	}
+	strategy.SourcePattern = src
+	strategy.DestinationPattern = dst
+
+	var err error
+
+	strategy.CompiledSourcePattern, err = strategy.SourcePattern.Compile()
+	return strategy, err
 }
 
 

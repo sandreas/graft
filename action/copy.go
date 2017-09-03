@@ -8,7 +8,7 @@ import (
 )
 
 type CopyAction struct {
-	*AbstractTransferAction
+	AbstractTransferAction
 }
 
 func (action *CopyAction) Execute(c *cli.Context) error {
@@ -26,7 +26,10 @@ func (action *CopyAction) Execute(c *cli.Context) error {
 
 func (action *CopyAction) CopyFiles() error {
 	messagePrinter := transfer.NewMessagePrinterObserver(action.suppressablePrintf)
-	copyStrategy := transfer.NewCopyStrategy()
+	copyStrategy, err := transfer.NewCopyStrategy(action.sourcePattern, action.destinationPattern)
+	if err != nil {
+		return err
+	}
 	copyStrategy.ProgressHandler = transfer.NewCopyProgressHandler(int64(32*1024), 1*time.Second)
 	copyStrategy.RegisterObserver(messagePrinter)
 	copyStrategy.DryRun = action.CliContext.Bool("dry-run")
