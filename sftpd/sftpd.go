@@ -49,6 +49,7 @@ func NewSimpleSftpServer(homePath, listenAddress string, listenPort int, usernam
 	}
 	log.Printf("Listening on %v\n", listener.Addr())
 
+	go func() {
 	for {
 		conn, e := listener.Accept()
 
@@ -57,6 +58,8 @@ func NewSimpleSftpServer(homePath, listenAddress string, listenPort int, usernam
 		}
 		go HandleConn(conn, config, pathMapper)
 	}
+	}()
+	return listener, err
 
 
 }

@@ -1,22 +1,24 @@
 package action
 
 import (
-	"github.com/urfave/cli"
 	"log"
-	"strings"
-	"github.com/sandreas/graft/apputils"
 	"net"
 	"os"
-	"github.com/sandreas/graft/sftpd"
+	"strings"
+	"sync"
+
 	"github.com/oleksandr/bonjour"
+	"github.com/sandreas/graft/apputils"
+	"github.com/sandreas/graft/sftpd"
+	"github.com/urfave/cli"
 )
 
 type ServeAction struct {
-	*AbstractAction
+	AbstractAction
 }
 
 func (action *ServeAction) Execute(c *cli.Context) error {
-	action.PrepareExecution(c, 1)
+	action.PrepareExecution(c, 1, "*")
 	log.Printf("serve")
 	if err := action.locateSourceFiles(); err != nil {
 		return cli.NewExitError(err.Error(), ErrorLocateSourceFiles)
@@ -71,23 +73,47 @@ func (action *ServeAction) ServeFoundFiles() error {
 		}
 	}
 
-	if ! action.CliContext.Bool("silent") {
-		// Run registration (blocking call)
-		_, err := bonjour.Register("graft", "_graft._tcp", "", 9999, []string{"txtv=1", "app=graft"}, nil)
+	wg := &sync.WaitGroup{}
+	//var sftpListener *net.Listener
+	//var bonjourListener *bonjour.Server
+	wg.Add(1)
+	go func() {
+		action.suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", username, outboundIp, port)
+		// sftpListener, err := sftpd.NewSimpleSftpServer(homeDir, listenAddress, port, username, password, pathMapper)
+		_, err := sftpd.NewSimpleSftpServer(homeDir, listenAddress, port, username, password, pathMapper)
 		if err != nil {
-			log.Printf("Error starting mdns: %v", err.Error())
+			log.Printf("Error starting sftp server: " + err.Error())
 		}
+		wg.Done()
+	}()
+
+	if !action.CliContext.Bool("silent") {
+		wg.Add(1)
+		go func() {
+			action.suppressablePrintf("Publishing service via mdns: active\n")
+
+			// Run registration (blocking call)
+			//bonjourListener, err := bonjour.Register("graft", "_graft._tcp", "", 9999, []string{"txtv=1", "app=graft"}, nil)
+			_, err := bonjour.Register("graft", "_graft._tcp", "", 9999, []string{"txtv=1", "app=graft"}, nil)
+
+			if err != nil {
+				log.Printf("Error starting mdns: %v", err.Error())
+			}
+			wg.Done()
+		}()
+
 	}
 
-	action.suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", username, outboundIp, port)
-	sftpd.NewSimpleSftpServer(homeDir, listenAddress, port, username, password, pathMapper)
+	wg.Wait()
 
 	// TODO Ctrl+C handling
 	//handler := make(chan os.Signal, 1)
 	//signal.Notify(handler, os.Interrupt)
 	//for sig := range handler {
 	//	if sig == os.Interrupt {
-	//		s.Shutdown()
+	//		//bonjourListener.Shutdown()
+	//		//sftpListener.Close()
+	//		wg.Done()
 	//		time.Sleep(1e9)
 	//		break
 	//	}
