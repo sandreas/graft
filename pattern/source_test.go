@@ -72,6 +72,20 @@ func TestNewSourcePattern(t *testing.T) {
 	expect.False(sourcePattern.IsFile())
 }
 
+func TestCompileSimple(t *testing.T) {
+	expect := assert.New(t)
+	mockFs := testhelpers.MockFileSystem(map[string]string{
+		"fixtures/global/":         "",
+		"fixtures/global/file.txt": "",
+	})
+
+	var compiled *regexp.Regexp
+	compiled, _ = pattern.NewSourcePattern(mockFs, "fixtures/global/file.txt").Compile()
+	expect.Equal("(?i)fixtures/global/file\\.txt$", compiled.String())
+	expect.Regexp(compiled, "fixtures/global/file.txt")
+
+}
+
 func TestCompileGlob(t *testing.T) {
 	expect := assert.New(t)
 	mockFs := testhelpers.MockFileSystem(map[string]string{

@@ -51,7 +51,7 @@ func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 
 	if regexPath != "" {
 		regexPath = regexp.QuoteMeta(p.Path)
-		if regexPath[len(regexPath)-1:] != "/" {
+		if regexPath[len(regexPath)-1:] != "/" && !p.IsFile() {
 			regexPath += "/"
 		}
 	}
