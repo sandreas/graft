@@ -26,7 +26,7 @@ func (action *CopyAction) Execute(c *cli.Context) error {
 
 func (action *CopyAction) CopyFiles() error {
 	messagePrinter := transfer.NewMessagePrinterObserver(action.suppressablePrintf)
-	copyStrategy, err := transfer.NewTransferStrategy(transfer.Copy, action.sourcePattern, action.destinationPattern)
+	copyStrategy, err := transfer.NewTransferStrategy(transfer.CopyResumed, action.sourcePattern, action.destinationPattern)
 	if err != nil {
 		return err
 	}

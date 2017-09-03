@@ -11,14 +11,15 @@ import (
 	"strings"
 	"io"
 	"time"
+	"sort"
 )
 
 const (
-	Copy = 1
-	//Move
+	CopyResumed = 1
+	Move = 2
 )
 
-type AbstractStrategy struct {
+type Strategy struct {
 	designpattern.Observable
 
 	SourcePattern          *pattern.SourcePattern
@@ -28,34 +29,43 @@ type AbstractStrategy struct {
 	KeepTimes              bool
 	DryRun                 bool
 
-	transferMode    int
+	transferMethod  int
 	ProgressHandler *CopyProgressHandler
 	bufferSize      int64
 }
 
-func NewTransferStrategy(transferMode int, src *pattern.SourcePattern, dst *pattern.DestinationPattern) (*AbstractStrategy, error) {
-	strategy := &AbstractStrategy{
+func NewTransferStrategy(transferMethod int, src *pattern.SourcePattern, dst *pattern.DestinationPattern) (*Strategy, error) {
+	var err error
+	if transferMethod < CopyResumed || transferMethod > Move {
+		return nil, errors.New("invalid transfer method" + string(transferMethod))
+	}
+	strategy := &Strategy{
 		ProgressHandler: nil,
 		bufferSize:      1024 * 32,
-		transferMode:    transferMode,
+		transferMethod:  transferMethod,
 	}
 	strategy.SourcePattern = src
 	strategy.DestinationPattern = dst
-	var err error
+
 
 	strategy.CompiledSourcePattern, err = strategy.SourcePattern.Compile()
 	return strategy, err
 }
 
-func (strategy *AbstractStrategy) PerformFileTransfer(src string, dst string, srcStat os.FileInfo) error {
-	if strategy.transferMode == Copy {
+func (strategy *Strategy) PerformFileTransfer(src string, dst string, srcStat os.FileInfo) error {
+	if strategy.transferMethod == CopyResumed {
 		return strategy.CopyResumed(src, dst, srcStat)
 	}
+
+	if strategy.transferMethod == Move {
+		return strategy.Move(src, dst, srcStat)
+	}
+
 	return nil
 }
 
-func (strategy *AbstractStrategy) CopyResumed(s, d string, srcStats os.FileInfo) error {
 
+func (strategy *Strategy) CopyResumed(s, d string, srcStats os.FileInfo) error {
 	srcSize := srcStats.Size()
 	dstSize := int64(0)
 	dstStats, err := strategy.DestinationPattern.Fs.Stat(d)
@@ -120,7 +130,11 @@ func (strategy *AbstractStrategy) CopyResumed(s, d string, srcStats os.FileInfo)
 	return nil
 }
 
-func (strategy *AbstractStrategy) handleProgress(bytesTransferred, srcSize, bufferSize int64) int64 {
+func (strategy *Strategy) Move(src string, dst string, srcStat os.FileInfo) error {
+	return strategy.SourcePattern.Fs.Rename(src, dst)
+}
+
+func (strategy *Strategy) handleProgress(bytesTransferred, srcSize, bufferSize int64) int64 {
 	if strategy.ProgressHandler == nil {
 		return bufferSize
 	}
@@ -129,15 +143,33 @@ func (strategy *AbstractStrategy) handleProgress(bytesTransferred, srcSize, buff
 	return newBufferSize
 }
 
-func (strategy *AbstractStrategy) Cleanup() error {
-	if strategy.transferMode == Copy {
+func (strategy *Strategy) Cleanup() error {
+	if strategy.transferMethod == CopyResumed {
 		return nil
 	}
 
+	if strategy.transferMethod == Move {
+		sort.Strings(strategy.TransferredDirectories)
+		sliceLen := len(strategy.TransferredDirectories)
+		lastDir := ""
+		for i := sliceLen - 1; i >= 0; i-- {
+			if strategy.TransferredDirectories[i] == lastDir {
+				continue
+			}
+			err := strategy.SourcePattern.Fs.Remove(strategy.TransferredDirectories[i])
+			lastDir = strategy.TransferredDirectories[i]
+			if err != nil {
+				str := err.Error()
+				println(str)
+				return err
+			}
+		}
+		return nil
+	}
 	return nil
 }
 
-func (strategy *AbstractStrategy) Perform(strings []string) error {
+func (strategy *Strategy) Perform(strings []string) error {
 	var err, returnError error
 
 	strategy.NotifyObservers("\n")
@@ -152,7 +184,7 @@ func (strategy *AbstractStrategy) Perform(strings []string) error {
 	return returnError
 }
 
-func (strategy *AbstractStrategy) DestinationFor(src string) string {
+func (strategy *Strategy) DestinationFor(src string) string {
 
 	if strategy.SourcePattern.IsFile() && strategy.DestinationPattern.IsFile() {
 		return strategy.DestinationPattern.Path
@@ -183,7 +215,7 @@ func (strategy *AbstractStrategy) DestinationFor(src string) string {
 	return strategy.CompiledSourcePattern.ReplaceAllString(src, strategy.DestinationPattern.Path+"/"+strategy.DestinationPattern.Pattern)
 }
 
-func (strategy *AbstractStrategy) PerformSingleTransfer(src string) error {
+func (strategy *Strategy) PerformSingleTransfer(src string) error {
 	srcStat, err := strategy.SourcePattern.Fs.Stat(src)
 	if err != nil {
 		return err
@@ -212,7 +244,7 @@ func (strategy *AbstractStrategy) PerformSingleTransfer(src string) error {
 	return nil
 }
 
-func (strategy *AbstractStrategy) EnsureDirectoryOfFileExists(src, dst string) error {
+func (strategy *Strategy) EnsureDirectoryOfFileExists(src, dst string) error {
 	_, err := strategy.DestinationPattern.Fs.Stat(dst)
 	if os.IsNotExist(err) || strategy.KeepTimes {
 		srcDirName := filepath.Dir(src)
@@ -228,7 +260,7 @@ func (strategy *AbstractStrategy) EnsureDirectoryOfFileExists(src, dst string) e
 	return nil
 
 }
-func (strategy *AbstractStrategy) PerformDirectoryTransfer(src, dst string, srcStat os.FileInfo, shouldRemoveAfterTransfer bool) error {
+func (strategy *Strategy) PerformDirectoryTransfer(src, dst string, srcStat os.FileInfo, shouldRemoveAfterTransfer bool) error {
 	err := strategy.DestinationPattern.Fs.MkdirAll(dst, srcStat.Mode())
 	if err == nil && shouldRemoveAfterTransfer {
 		strategy.TransferredDirectories = append(strategy.TransferredDirectories, dst)
@@ -240,6 +272,6 @@ func (strategy *AbstractStrategy) PerformDirectoryTransfer(src, dst string, srcS
 	return err
 }
 
-func (strategy *AbstractStrategy) keepTimes(dst string, inStats os.FileInfo) error {
+func (strategy *Strategy) keepTimes(dst string, inStats os.FileInfo) error {
 	return strategy.DestinationPattern.Fs.Chtimes(dst, inStats.ModTime(), inStats.ModTime())
 }
