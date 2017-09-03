@@ -9,6 +9,13 @@ import (
 	"github.com/sandreas/graft/designpattern/observer"
 	"errors"
 	"strings"
+	"io"
+	"time"
+)
+
+const (
+	Copy = 1
+	//Move
 )
 
 type AbstractStrategy struct {
@@ -19,16 +26,115 @@ type AbstractStrategy struct {
 	CompiledSourcePattern  *regexp.Regexp
 	TransferredDirectories []string
 	KeepTimes              bool
-	DryRun					bool
+	DryRun                 bool
 
+	transferMode    int
+	ProgressHandler *CopyProgressHandler
+	bufferSize      int64
+}
+
+func NewTransferStrategy(transferMode int, src *pattern.SourcePattern, dst *pattern.DestinationPattern) (*AbstractStrategy, error) {
+	strategy := &AbstractStrategy{
+		ProgressHandler: nil,
+		bufferSize:      1024 * 32,
+		transferMode:    transferMode,
+	}
+	strategy.SourcePattern = src
+	strategy.DestinationPattern = dst
+	var err error
+
+	strategy.CompiledSourcePattern, err = strategy.SourcePattern.Compile()
+	return strategy, err
 }
 
 func (strategy *AbstractStrategy) PerformFileTransfer(src string, dst string, srcStat os.FileInfo) error {
-	return errors.New("method PerformFileTransfer is abstract and must be overridden in strategy")
+	if strategy.transferMode == Copy {
+		return strategy.CopyResumed(src, dst, srcStat)
+	}
+	return nil
+}
+
+func (strategy *AbstractStrategy) CopyResumed(s, d string, srcStats os.FileInfo) error {
+
+	srcSize := srcStats.Size()
+	dstSize := int64(0)
+	dstStats, err := strategy.DestinationPattern.Fs.Stat(d)
+
+	dstExists := true
+	if err == nil {
+		dstSize = dstStats.Size()
+	} else if !os.IsNotExist(err) {
+		return err
+	} else {
+		dstExists = false
+	}
+
+	if dstSize > srcSize {
+		return errors.New("File cannot be resumed, destination is larger than source")
+	}
+
+	strategy.handleProgress(dstSize, srcSize, strategy.bufferSize)
+
+	if dstExists && srcSize == dstSize {
+		return nil
+	}
+
+	src, err := strategy.SourcePattern.Fs.OpenFile(s, os.O_RDONLY, srcStats.Mode())
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	dst, err := strategy.DestinationPattern.Fs.OpenFile(d, os.O_RDWR|os.O_CREATE, srcStats.Mode())
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	src.Seek(dstSize, 0)
+	dst.Seek(dstSize, 0)
+
+	buf := make([]byte, strategy.bufferSize)
+	bytesTransferred := dstSize
+	for {
+		n, err := src.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+
+		if _, err := dst.Write(buf[:n]); err != nil {
+			return err
+		}
+		bytesTransferred += int64(n)
+		newBufferSize := strategy.handleProgress(bytesTransferred, srcSize, strategy.bufferSize)
+		if newBufferSize != strategy.bufferSize {
+			strategy.bufferSize = newBufferSize
+			buf = make([]byte, strategy.bufferSize)
+		}
+	}
+	dst.Sync()
+
+	return nil
+}
+
+func (strategy *AbstractStrategy) handleProgress(bytesTransferred, srcSize, bufferSize int64) int64 {
+	if strategy.ProgressHandler == nil {
+		return bufferSize
+	}
+	newBufferSize, message := strategy.ProgressHandler.Update(bytesTransferred, srcSize, bufferSize, time.Now())
+	strategy.NotifyObservers(message)
+	return newBufferSize
 }
 
 func (strategy *AbstractStrategy) Cleanup() error {
-	return errors.New("method Cleanup is abstract and must be overridden in strategy")
+	if strategy.transferMode == Copy {
+		return nil
+	}
+
+	return nil
 }
 
 func (strategy *AbstractStrategy) Perform(strings []string) error {
@@ -47,17 +153,35 @@ func (strategy *AbstractStrategy) Perform(strings []string) error {
 }
 
 func (strategy *AbstractStrategy) DestinationFor(src string) string {
+
+	if strategy.SourcePattern.IsFile() && strategy.DestinationPattern.IsFile() {
+		return strategy.DestinationPattern.Path
+	}
+
+	// source pattern points to an existing file or directory
+	if strategy.SourcePattern.Pattern == "" {
+		sourceParentDir := filepath.ToSlash(filepath.Dir(strategy.SourcePattern.Path))
+		destinationPathParts := []string{
+			strategy.DestinationPattern.Path,
+		}
+
+		if strategy.DestinationPattern.Pattern != "" {
+			destinationPathParts = append(destinationPathParts, strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/"))
+		}
+
+		sourcePartAppendToDestination := strings.Trim(strings.TrimPrefix(src, sourceParentDir), "\\/")
+		destinationPathParts = append(destinationPathParts, sourcePartAppendToDestination)
+
+		return strings.Join(destinationPathParts, "/")
+	}
+
+	// destination pattern points to an existing file or directory
 	if strategy.DestinationPattern.Pattern == "" {
 		return strategy.DestinationPattern.Path + src[len(strategy.SourcePattern.Path):]
-	} else if strategy.SourcePattern.Pattern == "" {
-		dirname := filepath.ToSlash(filepath.Dir(strategy.SourcePattern.Path))
-		relativeTarget := strings.TrimPrefix(strategy.SourcePattern.Path, dirname + "/")
-		return strategy.CompiledSourcePattern.ReplaceAllString(src, strategy.DestinationPattern.Path+"/"+strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/") +"/"+ relativeTarget )
-	} else {
-		return strategy.CompiledSourcePattern.ReplaceAllString(src, strategy.DestinationPattern.Path+"/"+strategy.DestinationPattern.Pattern)
 	}
-}
 
+	return strategy.CompiledSourcePattern.ReplaceAllString(src, strategy.DestinationPattern.Path+"/"+strategy.DestinationPattern.Pattern)
+}
 
 func (strategy *AbstractStrategy) PerformSingleTransfer(src string) error {
 	srcStat, err := strategy.SourcePattern.Fs.Stat(src)
@@ -87,8 +211,6 @@ func (strategy *AbstractStrategy) PerformSingleTransfer(src string) error {
 
 	return nil
 }
-
-
 
 func (strategy *AbstractStrategy) EnsureDirectoryOfFileExists(src, dst string) error {
 	_, err := strategy.DestinationPattern.Fs.Stat(dst)
