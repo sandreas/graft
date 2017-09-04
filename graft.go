@@ -32,6 +32,10 @@ func main() {
 		cli.BoolFlag{Name: "times", Usage: "transfer source modify times to destination"},
 	}
 
+	receiveFlags := append(transferFlags, networkFlags...)
+
+
+
 	app := cli.NewApp()
 	app.Name = "graft"
 	app.Version = "0.2"
@@ -69,6 +73,11 @@ func main() {
 			Name: "move", Aliases: []string{"m", "mv"}, Action: action.NewActionFactory("move").Execute,
 			Usage: "move files from a source to a destination",
 			Flags: transferFlags,
+		},
+		{
+			Name: "receive", Aliases: []string{"r"}, Action: action.NewActionFactory("receive").Execute,
+			Usage: "receive files from a graft server",
+			Flags: receiveFlags,
 		},
 	}
 

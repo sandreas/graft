@@ -29,6 +29,6 @@ func (action *AbstractTransferAction) prepareTransferAction(c *cli.Context, posi
 
 func (action *AbstractTransferAction) prepareDestination() error {
 	destinationFs := afero.NewOsFs()
-	action.destinationPattern = pattern.NewDestinationPattern(destinationFs, action.CliContext.Args().Get(1))
+	action.destinationPattern = pattern.NewDestinationPattern(destinationFs, action.PositionalArguments.Get(1))
 	return nil
 }

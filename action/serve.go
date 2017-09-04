@@ -94,7 +94,7 @@ func (action *ServeAction) ServeFoundFiles() error {
 
 			// Run registration (blocking call)
 			//bonjourListener, err := bonjour.Register("graft", "_graft._tcp", "", 9999, []string{"txtv=1", "app=graft"}, nil)
-			_, err := bonjour.Register("graft", "_graft._tcp", "", 9999, []string{"txtv=1", "app=graft"}, nil)
+			_, err := bonjour.Register("graft", "_graft._tcp", "", action.CliContext.Int("port"), []string{"txtv=1", "app=graft"}, nil)
 
 			if err != nil {
 				log.Printf("Error starting mdns: %v", err.Error())

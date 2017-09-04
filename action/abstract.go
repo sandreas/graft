@@ -44,6 +44,8 @@ func NewActionFactory(action string) CliActionInterface {
 		return new(CopyAction)
 	case "move":
 		return new(MoveAction)
+	case "receive":
+		return new(ReceiveAction)
 	}
 
 	return nil
@@ -65,6 +67,8 @@ type GlobalParameters struct {
 
 type Settings struct {
 	Client bool
+	Host string
+	Port int
 }
 
 type AbstractAction struct {
@@ -213,7 +217,11 @@ func (action *AbstractAction) prepareSourcePattern() error {
 func (action *AbstractAction) prepareSourceFileSystem() error {
 	var err error
 	if action.Settings.Client {
-		action.sourceFs, err = filesystem.NewSftpFs(action.CliContext.String("host"), action.CliContext.Int("port"), action.CliContext.String("username"), action.CliContext.String("password"))
+		host := action.Settings.Host
+		port := action.Settings.Port
+		username := action.CliContext.String("username")
+		password := action.CliContext.String("password")
+		action.sourceFs, err = filesystem.NewSftpFs(host, port, username, password)
 		return err
 	}
 	action.sourceFs = afero.NewOsFs()

@@ -108,9 +108,10 @@ func (s SftpFs) MkdirAll(path string, perm os.FileMode) error {
 func (s SftpFs) Open(name string) (afero.File, error) {
 	return FileOpen(s.client, name)
 }
-
+// changed!!!
 func (s SftpFs) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
-	return nil, nil
+	// return s.client.OpenFile(name, flag)
+ 	return FileOpen(s.client, name)
 }
 
 func (s SftpFs) Remove(name string) error {

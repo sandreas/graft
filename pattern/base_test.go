@@ -45,6 +45,12 @@ func TestBase(t *testing.T) {
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
+	basePattern = pattern.NewBasePattern(mockFs, "")
+	expect.Equal(".", basePattern.Path)
+	expect.Equal("", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
+
 	basePattern = pattern.NewBasePattern(mockFs, "./*")
 	expect.Equal(".", basePattern.Path)
 	expect.Equal("*", basePattern.Pattern)
