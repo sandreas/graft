@@ -76,6 +76,29 @@ func (action *ServeAction) ServeFoundFiles() error {
 	wg := &sync.WaitGroup{}
 	//var sftpListener *net.Listener
 	//var bonjourListener *bonjour.Server
+
+	if !action.CliContext.Bool("silent") {
+		action.suppressablePrintf("Publishing service via mdns: active\n")
+
+		wg.Add(1)
+		go func() {
+			instance := "graft"
+			service := "_graft._tcp"
+			domain := ""
+			port := action.CliContext.Int("port")
+
+
+			log.Printf("Registering bonjour instance %s on domain %s with service %s on port %d", instance, domain, service, port)
+			_, err := bonjour.Register("graft", "_graft._tcp", "", port, []string{"txtv=1", "app=graft"}, nil)
+
+			if err != nil {
+				log.Printf("Error starting mdns: %v", err.Error())
+			}
+			wg.Done()
+		}()
+
+	}
+
 	wg.Add(1)
 	go func() {
 		action.suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", username, outboundIp, port)
@@ -87,22 +110,6 @@ func (action *ServeAction) ServeFoundFiles() error {
 		wg.Done()
 	}()
 
-	if !action.CliContext.Bool("silent") {
-		wg.Add(1)
-		go func() {
-			action.suppressablePrintf("Publishing service via mdns: active\n")
-
-			// Run registration (blocking call)
-			//bonjourListener, err := bonjour.Register("graft", "_graft._tcp", "", 9999, []string{"txtv=1", "app=graft"}, nil)
-			_, err := bonjour.Register("graft", "_graft._tcp", "", action.CliContext.Int("port"), []string{"txtv=1", "app=graft"}, nil)
-
-			if err != nil {
-				log.Printf("Error starting mdns: %v", err.Error())
-			}
-			wg.Done()
-		}()
-
-	}
 
 	wg.Wait()
 

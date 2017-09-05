@@ -1,7 +1,6 @@
 package filesystem
 
 import (
-	"log"
 	"os"
 	"time"
 
@@ -32,11 +31,10 @@ func NewSftpFs(host string, port int, username, password string) (afero.Fs, erro
 		client:  ctx.SftpClient,
 		Context: ctx,
 	}
-	stat, err := fs.client.Getwd()
+	_, err = fs.client.Getwd()
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("stat: %#v, err: %#v", stat, err)
 	return fs, nil
 
 }

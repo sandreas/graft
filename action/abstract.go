@@ -32,6 +32,8 @@ const (
 	ErrorCopyFiles = 5
 	ErrorMoveFiles = 6
 	ErrorPrepareDestination = 7
+	ErrorNoGraftServerAvailable = 8
+	ErrorFailedToInitializeResolver = 9
 )
 
 func NewActionFactory(action string) CliActionInterface {
