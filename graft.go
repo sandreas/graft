@@ -27,10 +27,13 @@ func main() {
 	}
 	serveFlags = append(serveFlags, networkFlags...)
 
-	transferFlags := []cli.Flag{
+	dryRunFlags := []cli.Flag{
 		cli.BoolFlag{Name: "dry-run", Usage: "simulation mode - shows output but files remain unaffected"},
-		cli.BoolFlag{Name: "times", Usage: "transfer source modify times to destination"},
 	}
+
+	transferFlags := append([]cli.Flag{
+		cli.BoolFlag{Name: "times", Usage: "transfer source modify times to destination"},
+	}, dryRunFlags...)
 
 	receiveFlags := append(transferFlags, networkFlags...)
 
@@ -73,6 +76,11 @@ func main() {
 			Name: "move", Aliases: []string{"m", "mv"}, Action: action.NewActionFactory("move").Execute,
 			Usage: "move files from a source to a destination",
 			Flags: transferFlags,
+		},
+		{
+			Name: "delete", Aliases: []string{"d", "rm"}, Action: action.NewActionFactory("delete").Execute,
+			Usage: "delete files recursively",
+			Flags: dryRunFlags,
 		},
 		{
 			Name: "receive", Aliases: []string{"r"}, Action: action.NewActionFactory("receive").Execute,

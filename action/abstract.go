@@ -34,6 +34,7 @@ const (
 	ErrorPrepareDestination = 7
 	ErrorNoGraftServerAvailable = 8
 	ErrorFailedToInitializeResolver = 9
+	ErrorDeleteFiles = 10
 )
 
 func NewActionFactory(action string) CliActionInterface {
@@ -48,6 +49,8 @@ func NewActionFactory(action string) CliActionInterface {
 		return new(MoveAction)
 	case "receive":
 		return new(ReceiveAction)
+	case "delete":
+		return new(DeleteAction)
 	}
 
 	return nil
