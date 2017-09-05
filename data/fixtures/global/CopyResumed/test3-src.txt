@@ -1,0 +1,1 @@
+this is the full content of a file with a partial existing destination

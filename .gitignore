@@ -24,6 +24,7 @@ _testmain.go
 *.prof
 
 
-/.idea/libraries
+/.idea
+/_old
 /data/tmp
 !/data/tmp/.gitkeep
