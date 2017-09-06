@@ -26,7 +26,7 @@ func (action *FindAction) ShowFoundFiles() {
 		return
 	}
 
-	showMatches := !action.CliContext.Bool("hide-matches") && !action.CliGlobalParameters.Quiet
+	showMatches := !action.CliContext.Bool("hide-matches") && !action.CliParameters.Quiet
 	for _, path := range action.locator.SourceFiles {
 		fmt.Println(path) // quiet does not influence the output of the file listing, since this is the only aim of this action
 		if showMatches {

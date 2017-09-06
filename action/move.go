@@ -21,6 +21,7 @@ func (action *MoveAction) Execute(c *cli.Context) error {
 	if err := action.MoveFiles(); err != nil {
 		return cli.NewExitError(err.Error(), ErrorMoveFiles)
 	}
+
 	return nil
 }
 

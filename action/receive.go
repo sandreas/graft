@@ -36,9 +36,9 @@ func (action *ReceiveAction) shouldLookup() bool {
 }
 func (action *ReceiveAction) receive() error {
 
-	action.Settings.Client = true
+	action.CliParameters.Client = true
 
-	action.suppressablePrintf("receive from %s@%s:%d", action.CliContext.String("username"), action.Settings.Host, action.Settings.Port)
+	action.suppressablePrintf("receive from %s@%s:%d", action.CliContext.String("username"), action.CliParameters.Host, action.CliParameters.Port)
 
 	if action.CliContext.String("password") == "" {
 		password, err := action.promptPassword("Enter password:")
@@ -137,8 +137,8 @@ func (action *ReceiveAction) chooseServerAndReceive(serverEntries []*MdnsServerE
 		//fmt.Println(text)
 
 	}
-	action.Settings.Host = selectedServer.Host
-	action.Settings.Port = selectedServer.Port
+	action.CliParameters.Host = selectedServer.Host
+	action.CliParameters.Port = selectedServer.Port
 	action.receive()
 	exitCh <- true
 	time.Sleep(1e9)
