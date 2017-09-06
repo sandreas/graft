@@ -56,7 +56,7 @@ func NewActionFactory(action string) CliActionInterface {
 	return nil
 }
 
-type GlobalParameters struct {
+type CliParameters struct {
 	Quiet         bool   `arg:"help:do not show any output"`
 	Force         bool   `arg:"help:force the requested action - even if it might be not a good idea"`
 	Debug         bool   `arg:"-d,help:debug mode with logging to Stdout and into $HOME/.graft/application.log"`
@@ -68,18 +68,16 @@ type GlobalParameters struct {
 	MinSize       string `arg:"--min-size,help:minimum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
 	ExportTo      string `arg:"--export-to,help:export found matches to a text file - one line per item"`
 	FilesFrom     string `arg:"--files-from,help:import found matches from file - one line per item"`
-}
 
-type Settings struct {
 	Client bool
 	Host string
 	Port int
 }
 
+
 type AbstractAction struct {
-	CliGlobalParameters *GlobalParameters
-	CliContext          *cli.Context
-	Settings            *Settings
+	CliParameters *CliParameters
+	CliContext    *cli.Context
 
 	PositionalArguments cli.Args
 	sourceFs            afero.Fs
@@ -134,24 +132,28 @@ func (action *AbstractAction) assertPositionalArgumentsCount(expectedPositionalC
 
 func (action *AbstractAction) ParseCliContext(c *cli.Context) {
 	action.CliContext = c
-	action.CliGlobalParameters = &GlobalParameters{
-		Debug:     c.GlobalBool("debug"),
-		FilesFrom: c.GlobalString("files-from"),
-		ExportTo:  c.GlobalString("export-to"),
-		MinAge:    c.GlobalString("min-age"),
-		MaxAge:    c.GlobalString("max-age"),
-		MinSize:   c.GlobalString("min-size"),
-		MaxSize:   c.GlobalString("min-size"),
+	action.CliParameters = &CliParameters{
+		Debug:     c.Bool("debug"),
+		FilesFrom: c.String("files-from"),
+		ExportTo:  c.String("export-to"),
+		MinAge:    c.String("min-age"),
+		MaxAge:    c.String("max-age"),
+		MinSize:   c.String("min-size"),
+		MaxSize:   c.String("min-size"),
+		Client: c.IsSet("client") && c.Bool("client"),
 	}
 
-	// TODO replace with c.Set
-	action.Settings = &Settings{
-		Client: c.IsSet("client") && c.Bool("client"),
+	if c.IsSet("host")  {
+		action.CliParameters.Host = c.String("host")
+	}
+
+	if c.IsSet("port")  {
+		action.CliParameters.Port = c.Int("port")
 	}
 }
 
 func (action *AbstractAction) initLogging() {
-	if !action.CliGlobalParameters.Debug {
+	if !action.CliParameters.Debug {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 		return
@@ -221,9 +223,9 @@ func (action *AbstractAction) prepareSourcePattern() error {
 
 func (action *AbstractAction) prepareSourceFileSystem() error {
 	var err error
-	if action.Settings.Client {
-		host := action.Settings.Host
-		port := action.Settings.Port
+	if action.CliParameters.Client {
+		host := action.CliParameters.Host
+		port := action.CliParameters.Port
 		username := action.CliContext.String("username")
 		password := action.CliContext.String("password")
 		action.sourceFs, err = filesystem.NewSftpFs(host, port, username, password)
@@ -235,10 +237,10 @@ func (action *AbstractAction) prepareSourceFileSystem() error {
 
 func (action *AbstractAction) parseSourcePatternBitFlags() bitflag.Flag {
 	var patternFlags bitflag.Flag
-	if action.CliGlobalParameters.CaseSensitive {
+	if action.CliParameters.CaseSensitive {
 		patternFlags |= pattern.CASE_SENSITIVE
 	}
-	if action.CliGlobalParameters.Regex {
+	if action.CliParameters.Regex {
 		patternFlags |= pattern.USE_REAL_REGEX
 	}
 	return patternFlags
@@ -253,8 +255,8 @@ func (action *AbstractAction) prepareLocator() error {
 		return err
 	}
 
-	if action.CliGlobalParameters.FilesFrom != "" {
-		locatorCache := file.NewLocatorCache(action.CliGlobalParameters.FilesFrom)
+	if action.CliParameters.FilesFrom != "" {
+		locatorCache := file.NewLocatorCache(action.CliParameters.FilesFrom)
 		if err = locatorCache.Load(); err != nil {
 			return err
 		}
@@ -266,14 +268,14 @@ func (action *AbstractAction) prepareLocator() error {
 		minAge := time.Time{}
 		maxAge := time.Time{}
 
-		if action.CliGlobalParameters.MinAge != "" {
-			if minAge, err = pattern.StrToAge(action.CliGlobalParameters.MinAge, time.Now()); err != nil {
+		if action.CliParameters.MinAge != "" {
+			if minAge, err = pattern.StrToAge(action.CliParameters.MinAge, time.Now()); err != nil {
 				return err
 			}
 		}
 
-		if action.CliGlobalParameters.MaxAge != "" {
-			if maxAge, err = pattern.StrToAge(action.CliGlobalParameters.MaxAge, time.Now()); err != nil {
+		if action.CliParameters.MaxAge != "" {
+			if maxAge, err = pattern.StrToAge(action.CliParameters.MaxAge, time.Now()); err != nil {
 				return err
 			}
 		}
@@ -284,14 +286,14 @@ func (action *AbstractAction) prepareLocator() error {
 
 		minSize := int64(-1)
 		maxSize := int64(-1)
-		if action.CliGlobalParameters.MinSize != "" {
-			if minSize, err = pattern.StrToSize(action.CliGlobalParameters.MinSize); err != nil {
+		if action.CliParameters.MinSize != "" {
+			if minSize, err = pattern.StrToSize(action.CliParameters.MinSize); err != nil {
 				return err
 			}
 		}
 
-		if action.CliGlobalParameters.MaxSize != "" {
-			if maxSize, err = pattern.StrToSize(action.CliGlobalParameters.MaxSize); err != nil {
+		if action.CliParameters.MaxSize != "" {
+			if maxSize, err = pattern.StrToSize(action.CliParameters.MaxSize); err != nil {
 
 			}
 		}
@@ -301,8 +303,8 @@ func (action *AbstractAction) prepareLocator() error {
 		}
 
 		locator.Find(compositeMatcher)
-		if action.CliGlobalParameters.ExportTo != "" {
-			locatorCache := file.NewLocatorCache(action.CliGlobalParameters.ExportTo)
+		if action.CliParameters.ExportTo != "" {
+			locatorCache := file.NewLocatorCache(action.CliParameters.ExportTo)
 			locatorCache.Items = locator.SourceFiles
 			if err = locatorCache.Save(); err != nil {
 				return err
@@ -316,7 +318,7 @@ func (action *AbstractAction) prepareLocator() error {
 }
 
 func (action *AbstractAction) suppressablePrintf(format string, a ...interface{}) (n int, err error) {
-	if !action.CliGlobalParameters.Quiet {
+	if !action.CliParameters.Quiet {
 		return fmt.Printf(format, a...)
 	}
 	log.Printf(format, a...)

@@ -21,6 +21,7 @@ func (action *CopyAction) Execute(c *cli.Context) error {
 	if err := action.CopyFiles(); err != nil {
 		return cli.NewExitError(err.Error(), ErrorCopyFiles)
 	}
+
 	return nil
 }
 

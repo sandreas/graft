@@ -1,47 +1,34 @@
 # Things to do
 
-- Switch to subcommands with https://github.com/urfave/cli
-    graft find
-    graft copy
-    graft delete
-    graft move
-    graft serve
-    graft receive
+- switch mdns library to https://github.com/grandcat/zeroconf
+
+- global
+    - add matcher for mimetype (image/*, image/jpeg)
+    - max-depth parameter (?)
+    - limit-results parameter
+- find
+    - hide matches by default
+    - quiet should affect only file-counter-output
     
-    global flags
-        MaxAge        string `arg:"--max-age,help:maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
-        MinAge        string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
-        MaxSize       string `arg:"--max-size,help:maximum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
-        MinSize       string `arg:"--min-size,help:minimum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
-        Regex         bool `arg:"help:use a real regex instead of glob patterns (e.g. src/.*\\.jpg)"`
-        CaseSensitive 
-        ShowMatches bool `arg:"--show-matches,help:show pattern matches for each found file"`
-        ExportTo  string `arg:"--export-to,help:export found matches to a text file - one line per item"`
-        FilesFrom string `arg:"--files-from,help:import found matches from file - one line per item"`
+- copy
+    - check issue with nil-pointer panic
+    - support copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
+    - support file compare stitching (reading first, last and middle bytes)
+        - compare-strategy: quick, hash, full
 
-
-
-- add transfer.move_strategy_test
-- add action.transfer_test
-
-find
-copy
-move
-delete
-serve
-receive
-
-
+- serve
+    - supportmultiple mdns entries - switch mdns library to https://github.com/grandcat/zeroconf
+    
+- delete
+    - ask before delete by default, quiet or force does not ask
+    
+Possible improvements
 - update Matchers to use existing FileInfo for faster matching / use matcher.setFileInfo in FileMatcherInterface
 - calculate and show transfer speed
-- graft le/d.img ../out/$1 does not work
-- fix possible concurrency problem with pathMapper
 - --verbose (ls -lah like output)
 - --files-only / --directories-only
 - javascript plugins? https://github.com/robertkrimen/otto
 - --hide-progress (for working like find)
-- copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
-- compare-strategy: quick, hash, full
 - improve progress-bar output (progress speed is not accurate enough)
 - sftp-server:
 	    filezilla takes long and produces 0 byte files
@@ -49,8 +36,6 @@ receive
 	accept connections from specific ip: 		conn, e := listener.Accept() clientAddr := conn.RemoteAddr() if clientAddr
 - sftp client
   - mdns / bonjour client https://github.com/hashicorp/mdns
-- --max-depth parameter (?)
-- limit-results when searching or moving
 - Input / Colors: https://github.com/dixonwille/wlog
 
 

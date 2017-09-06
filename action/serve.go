@@ -33,7 +33,7 @@ func (action *ServeAction) ServeFoundFiles() error {
 	var homeDir string
 	var fi os.FileInfo
 
-	if len(action.locator.SourceFiles) == 0 && !action.CliGlobalParameters.Force {
+	if len(action.locator.SourceFiles) == 0 && !action.CliParameters.Force {
 		action.suppressablePrintf("\nNo matching files found, server does not need to be started - use force to start server anyway\n")
 		return nil
 	}
