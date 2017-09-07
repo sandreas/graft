@@ -1,13 +1,13 @@
 # graft
-graft is a command line application to search directories and transfer files. It started as a learning project and it still is, so much of the code could be vastly improved, but for now it already is a useful tool. 
+graft is a command line utility to search and transfer files. It started as a learning project and it still is, so much of the code could be vastly improved, but for now it already is a useful tool. 
 
 ## Features
-- Finding and transferring files via glob patterns (`data/\*.jp\*g`) 
-- Finding and transferring files via real regular expressions (`data/.\*\.jpe?g`)
+- Finding and transferring files via glob like patterns (`data/*.jp*g`) 
+- Finding and transferring files via real regular expressions (`data/\.*\.jpe?g`)
 - Provide additional filters like --max-age=2d (files older than 2 days are skipped)
 - Copy and resume partially transferred files
 - Exporting and importing file lists
-- Providing files via sftp server
+- Providing and receive files over network via sftp server
 
 ## Setup
 **graft** should support Windows, MacOS and Linux, although the usage instructions might be different for each operating system. The easiest way to setup graft is to use the go package manager. See [installing go](https://golang.org/doc/install).
@@ -29,95 +29,108 @@ go get -u github.com/sandreas/graft
 ## Quickstart
 
 ###Important notes: 
-- Every action is performed recursively by default, so all subdirectories are scanned
-- It usually is a good idea to use the `--dry-run` option, to see, what graft is going to do with your files
-- **Linux and Unix:** Use single quotes (') to encapsulate patterns 
-- **Windows:** Use double quotes (") to encapsulate patterns
+- Every action is performed recursively by default, so all subdirectories are concerned
+- For file creation commands, it usually is a good idea to use the `--dry-run` option, to see what graft is going to do
+- **Linux and Unix:** Use single quotes (') to encapsulate patterns to prevent shell expansion
+- **Windows:** Use double quotes (") to encapsulate patterns, since single quotes are treated as chars
 
 ### Examples
 ```
 # recursively search all jpg files in current directory and export a textfile
-graft '*.jpg' --export-to=all-jpg-files.txt
+graft find '*.jpg' --export-to=all-jpg-files.txt
 ```
 
 ```
 # recursively copy all png files in data/ to /tmp
-graft 'data/*.png' '/tmp/'
+graft copy 'data/*.png' '/tmp/'
 ```
 
 ```
-# start an sftp server promoting all txt files in data/ in a chroot 
-graft 'data/*.txt' --serve --sftp-password=graft
+# start an sftp server promoting all txt files in data/ in a chroot environment via mdns/zeroconf
+graft serve 'data/*.txt' --password=graft
 ```
 ```
 # move all jpeg files in /tmp/ to <filename>_new.<jpeg> (dry-run), e.g. /tmp/DSC0008.jpeg => /tmp/DSC0008_new.jpeg
-graft '/tmp/(*).(jpeg)' '/home/johndoe/pictures/$1_new.$2' --move --dry-run
+graft move '/tmp/(*).(jpeg)' '/home/johndoe/pictures/$1_new.$2' --dry-run
 ```
 
 ```
-# copy all jpeg files in /tmp/ to  <filename>_new.<jpeg>, showing matching subexpressions
-graft '/tmp/(*).(jpeg)' '/home/johndoe/pictures/$1_new.$2' --show-matches
+# copy all jpeg files in /tmp/ to  <filename>_new.<jpeg>
+graft copy '/tmp/(*).(jpeg)' '/home/johndoe/pictures/$1_new.$2' 
+```
+
+### Network transfer
+**graft** is designed to easily transfer files from a host to another. To achieve this, you can use `graft serve` and `graft receive` together.
+
+To transfer all jpg files in `/tmp` from host A to host B, all you have to do is the following:
+
+Host A:
+```
+graft serve '/tmp/*.jpg'
+```
+
+Host B:
+```
+graft receive
 ```
 
 ## Usage Details
 
 **graft** internally uses a combination of glob pattern conversion and regular expressions for matching and replacing file names.
 
-### Basic Usage
 
-Basic usage is:
+### ***find***
 
-```
-graft [options] source [destination]
-```
-
-It usually is a good idea, to use the `--dry-run` option, to see, what graft is going to do with your files before something goes wrong.
-
-### Notes for Windows and Unix 
-Unix-Shells expand * and $1 by default, so use **single quotes**  (`'`) for all patterns to prevent unexpected results:
-
-```
-graft '/tmp/*.jpg' #
-```
-
-On Windows single quotes are treated as char, so use ***double quotes*** (`"`) and ***slashes*** (`/`) as directory separator:
-
-```
-graft "C:/Temp/*.jpg"
-```
-
-### Mode ***find***
-
-The destination pattern is optional. If you do not specify a destination pattern, **graft** recursively lists all matching files and directories in all subdirectories, so it can also be used as a file search tool like find on unix systems. If you need to export these finds, there is an option for this.
+The find command is used to find files. In this mode **graft** recursively lists all matching files and directories in all subdirectories, so it can also be used as a file search tool like `find` on unix systems.
 
 #### Examples
 
 Recursive listing of all jpg files in /tmp directory using a simple glob pattern:
 ```
-graft '/tmp/*.jpg'
+graft find '/tmp/*.jpg'
 ```
 
 Using some regex-magic to find jpeg files, too:
 ```
-graft '/tmp/*.jp[e]?g'
+graft find '/tmp/*.jp[e]?g'
 ```
 
 Exporting all results to a text file, one line for each find:
 ```
-graft '/tmp/*.jpg' --export-to="~/jpg-in-tmp.txt"
+graft find '/tmp/*.jpg' --export-to="~/jpg-in-tmp.txt"
 ```
 
 Finding all files that are between 3 and 5 days old:
 ```
-graft '/tmp/*.jpg' --min-age=3d --max-age=5d
+graft find '/tmp/*.jpg' --min-age=3d --max-age=5d
 ```
 
-You can also delete files - be careful with that... graft takes no prisoners and offers no apologies.
+### ***serve***
+
+The serve command is used to provide files via sftp. Similar to find, all matching files are provided via sftp. You can now use a sftp client like `Filezilla` or `WinSCP` to download files from the serving host.
+
+Additionally, graft tries to use mdns/zeroconf to announce the sftp server within the current network, so that `graft receive` finds the server automatically and downloads all provided files.
+
+Provide:
 ```
-graft '/tmp/*.jpg' --min-age=3d --max-age=5d --delete
+graft find '/tmp/*.jpg'
+```
+
+
+### ***delete***
+
+You can also delete files - be careful with that... graft takes no prisoners and offers no apologies. By default you have to confirm the deletion.
+```
+graft delete '/tmp/*.jpg' --min-age=3d --max-age=5d
 ```
 
 See **[Option reference](#option-reference)** for more info.
+
+
+
+
+
+
 
 ### Modes ***copy*** and ***move***
 

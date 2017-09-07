@@ -1,10 +1,12 @@
 package filesystem
 
 import (
-	"path/filepath"
-	"github.com/spf13/afero"
 	"os"
+	"path/filepath"
 	"sort"
+
+	"github.com/spf13/afero"
+	"runtime"
 )
 
 func Walk(fs afero.Fs, root string, walkFn filepath.WalkFunc) error {
@@ -80,7 +82,12 @@ func readDirNames(fs afero.Fs, dirname string) ([]string, error) {
 	return names, nil
 }
 
-func ToAbsIfOsFs(fs afero.Fs, path string) (string, error) {
+// fixes the fact that on windows relative paths cannot be longer than 256 chars - replace them with absolute paths
+func ToAbsIfWindowsOsFs(fs afero.Fs, path string) (string, error) {
+	if runtime.GOOS != "windows" {
+		return path, nil
+	}
+
 	var absSrc string
 	var err error
 

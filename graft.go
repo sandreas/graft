@@ -35,7 +35,7 @@ func main() {
 	}
 
 	serveFlags := []cli.Flag{
-		cli.BoolFlag{Name: "silent", Usage: "do not use mdns to publish multicast sftp server (graft receive will not work without parameters)"},
+		cli.BoolFlag{Name: "no-zeroconf", Usage: "do not use mdns/zeroconf to publish multicast sftp server (graft receive will not work without parameters)"},
 	}
 
 	dryRunFlags := []cli.Flag{

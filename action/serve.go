@@ -77,7 +77,7 @@ func (action *ServeAction) ServeFoundFiles() error {
 	//var sftpListener *net.Listener
 	//var bonjourListener *bonjour.Server
 
-	if !action.CliContext.Bool("silent") {
+	if !action.CliContext.Bool("no-zeroconf") {
 		action.suppressablePrintf("Publishing service via mdns: active\n")
 
 		wg.Add(1)

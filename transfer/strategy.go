@@ -227,7 +227,7 @@ func (strategy *Strategy) DestinationFor(src string) string {
 func (strategy *Strategy) PerformSingleTransfer(src string) error {
 
 	// workaround for relative path length limitation on windows
-	absSrc, err := filesystem.ToAbsIfOsFs(strategy.SourcePattern.Fs, src)
+	absSrc, err := filesystem.ToAbsIfWindowsOsFs(strategy.SourcePattern.Fs, src)
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (strategy *Strategy) PerformSingleTransfer(src string) error {
 
 	dst := strategy.DestinationFor(src)
 
-	absDst, err := filesystem.ToAbsIfOsFs(strategy.DestinationPattern.Fs, dst)
+	absDst, err := filesystem.ToAbsIfWindowsOsFs(strategy.DestinationPattern.Fs, dst)
 	if err != nil  {
 		return err
 	}

@@ -49,7 +49,7 @@ func (action *DeleteAction) DeleteFiles() error {
 		action.suppressablePrintf(path + "\n")
 		// delete
 		if !action.CliContext.Bool("dry-run") {
-			absPath,err  := filesystem.ToAbsIfOsFs(action.sourcePattern.Fs, path)
+			absPath,err  := filesystem.ToAbsIfWindowsOsFs(action.sourcePattern.Fs, path)
 			if err != nil {
 				log.Printf("File %s could not be converted to absolute path: %s", path, err.Error())
 			}
