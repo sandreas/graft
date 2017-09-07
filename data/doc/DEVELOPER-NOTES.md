@@ -6,10 +6,9 @@
     - add matcher for mimetype (image/*, image/jpeg)
     - max-depth parameter (?)
     - limit-results parameter
-- find
-    - hide matches by default
-    - quiet should affect only file-counter-output
-    
+    - hide progress?!
+    - shouldStop return parameter for filesystem.Walk
+
 - copy
     - check issue with nil-pointer panic => path: node_modules\babel-preset-es2015\node_modules\babel-plugin-transform-es2015-block-scoping\node_modules\babel-traverse\node_modules\babel-code-frame\node_modules\chalk\node_modules\strip-ansi\node_modules\ansi-regex\package.json
                                             info: <nil>
@@ -17,7 +16,7 @@
                                             Hint: https://github.com/golang/go/issues/8130, https://github.com/golang/go/commit/0b8bc7cee9cc8c2bedc030e9a59a687201210212
     - support copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
     - support file compare stitching (reading first, last and middle bytes)
-        - compare-strategy: quick, hash, full
+    - compare-strategy: quick, hash, full
 
 - serve
     - supportmultiple mdns entries - switch mdns library to https://github.com/grandcat/zeroconf

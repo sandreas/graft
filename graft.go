@@ -30,7 +30,7 @@ func main() {
 	}
 
 	findFlags := []cli.Flag{
-		cli.BoolFlag{Name: "hide-matches", Usage: "do not show matches for search pattern ($1=filename)"},
+		cli.BoolFlag{Name: "show-matches", Usage: "do not show matches for search pattern ($1=filename)"},
 		cli.BoolFlag{Name: "client", Usage: "client mode - act as sftp client and search files remotely instead of local search"},
 	}
 

@@ -26,15 +26,15 @@ import (
 
 const (
 	ErrorPreventUsingSingleQuotesOnWindows = 1
-	ErrorPositionalArgumentCount = 2
-	ErrorLocateSourceFiles = 3
-	ErrorStartingServer = 4
-	ErrorCopyFiles = 5
-	ErrorMoveFiles = 6
-	ErrorPrepareDestination = 7
-	ErrorNoGraftServerAvailable = 8
-	ErrorFailedToInitializeResolver = 9
-	ErrorDeleteFiles = 10
+	ErrorPositionalArgumentCount           = 2
+	ErrorLocateSourceFiles                 = 3
+	ErrorStartingServer                    = 4
+	ErrorCopyFiles                         = 5
+	ErrorMoveFiles                         = 6
+	ErrorPrepareDestination                = 7
+	ErrorNoGraftServerAvailable            = 8
+	ErrorFailedToInitializeResolver        = 9
+	ErrorDeleteFiles                       = 10
 )
 
 func NewActionFactory(action string) CliActionInterface {
@@ -70,10 +70,9 @@ type CliParameters struct {
 	FilesFrom     string `arg:"--files-from,help:import found matches from file - one line per item"`
 
 	Client bool
-	Host string
-	Port int
+	Host   string
+	Port   int
 }
-
 
 type AbstractAction struct {
 	CliParameters *CliParameters
@@ -134,20 +133,21 @@ func (action *AbstractAction) ParseCliContext(c *cli.Context) {
 	action.CliContext = c
 	action.CliParameters = &CliParameters{
 		Debug:     c.Bool("debug"),
+		Quiet:     c.Bool("quiet"),
 		FilesFrom: c.String("files-from"),
 		ExportTo:  c.String("export-to"),
 		MinAge:    c.String("min-age"),
 		MaxAge:    c.String("max-age"),
 		MinSize:   c.String("min-size"),
 		MaxSize:   c.String("min-size"),
-		Client: c.IsSet("client") && c.Bool("client"),
+		Client:    c.IsSet("client") && c.Bool("client"),
 	}
 
-	if c.IsSet("host")  {
+	if c.IsSet("host") {
 		action.CliParameters.Host = c.String("host")
 	}
 
-	if c.IsSet("port")  {
+	if c.IsSet("port") {
 		action.CliParameters.Port = c.Int("port")
 	}
 }
