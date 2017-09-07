@@ -5,6 +5,10 @@ import (
 	"github.com/urfave/cli"
 	"os"
 	"github.com/sandreas/graft/filesystem"
+	"bufio"
+	"fmt"
+	"strings"
+	"errors"
 )
 
 type DeleteAction struct {
@@ -29,6 +33,17 @@ func (action *DeleteAction) Execute(c *cli.Context) error {
 
 func (action *DeleteAction) DeleteFiles() error {
 	var dirsToRemove = []string{}
+	dryRun := action.CliContext.Bool("dry-run")
+	fileCount := len(action.locator.SourceFiles)
+	if !dryRun && fileCount > 0 && !action.CliParameters.Quiet && !action.CliParameters.Force {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Printf("%d files will be deleted. proceed (y/N)?:", fileCount)
+		text, _ := reader.ReadString('\n')
+
+		if strings.ToLower(strings.TrimSpace(text)) != "y" {
+			return errors.New("Deletion aborted by user")
+		}
+	}
 
 	for _, path := range action.locator.SourceFiles {
 		action.suppressablePrintf(path + "\n")

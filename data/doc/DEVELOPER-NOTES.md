@@ -8,6 +8,7 @@
     - limit-results parameter
     - hide progress?!
     - shouldStop return parameter for filesystem.Walk
+    - change filesystem.ToAbsPath to be os dependent (_windows.go)
 
 - copy
     - check issue with nil-pointer panic => path: node_modules\babel-preset-es2015\node_modules\babel-plugin-transform-es2015-block-scoping\node_modules\babel-traverse\node_modules\babel-code-frame\node_modules\chalk\node_modules\strip-ansi\node_modules\ansi-regex\package.json
