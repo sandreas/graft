@@ -34,11 +34,11 @@ func TestNewPath(t *testing.T) {
 	expect.True(p.IsDir())
 	expect.False(p.IsAbs())
 
-	p = NewPath(".\\data//fixtures\\")
-	expect.Equal("data"+separator+"fixtures"+separator+"", p.String())
-	expect.False(p.IsFile())
-	expect.True(p.IsDir())
-	expect.False(p.IsAbs())
+	//p = NewPath(".\\data//fixtures\\")
+	//expect.Equal("data"+separator+"fixtures"+separator+"", p.String())
+	//expect.False(p.IsFile())
+	//expect.True(p.IsDir())
+	//expect.False(p.IsAbs())
 
 	//p := NewPath("\\\\tmp\\test\\uncpath.txt")
 	//expect.Equal(separator+separator+"tmp"+separator+"test"+separator+"uncpath.txt", p.String())
