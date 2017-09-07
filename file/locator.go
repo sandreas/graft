@@ -7,13 +7,15 @@ import (
 	"os"
 	"github.com/sandreas/graft/matcher"
 	"strings"
-	"github.com/spf13/afero"
+	"log"
+	"github.com/sandreas/graft/filesystem"
 )
 
 const (
-	LOCATOR_INCREASE_ITEMS = 1
-	LOCATOR_INCREASE_MATCHES = 2
-	LOCATOR_FINISH = 3
+	LocatorIncreaseItems   = 1
+	LocatorIncreaseMatches = 2
+	LocatorFinish          = 3
+	LocatorIncreaseErrors  = 4
 )
 
 type Locator struct {
@@ -35,15 +37,22 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 	if t.Src.IsFile() {
 		t.SourceFiles = append(t.SourceFiles, t.Src.Path)
 
-		t.NotifyObservers(LOCATOR_INCREASE_MATCHES)
-		t.NotifyObservers(LOCATOR_FINISH)
+		t.NotifyObservers(LocatorIncreaseMatches)
+		t.NotifyObservers(LocatorFinish)
 		return
 	}
 
-	afero.Walk(t.Src.Fs, t.Src.Path, func(innerPath string, info os.FileInfo, err error) error {
+	filesystem.Walk(t.Src.Fs, t.Src.Path, func(innerPath string, info os.FileInfo, err error) error {
 		if innerPath == "." || innerPath == ".." {
 			return nil
 		}
+
+		if err != nil {
+			t.NotifyObservers(LocatorIncreaseErrors)
+			log.Printf("WalkError: %s, Details: %v", err.Error(), err)
+			return nil
+		}
+
 		normalizedInnerPath := strings.TrimRight(filepath.ToSlash(innerPath), "/")
 
 		// skip direct path matches (data/* should not match data/ itself)
@@ -57,13 +66,13 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 
 		if matcher.Matches(normalizedInnerPath) {
 			t.SourceFiles = append(t.SourceFiles, normalizedInnerPath)
-			t.NotifyObservers(LOCATOR_INCREASE_MATCHES)
+			t.NotifyObservers(LocatorIncreaseMatches)
 		} else {
-			t.NotifyObservers(LOCATOR_INCREASE_ITEMS)
+			t.NotifyObservers(LocatorIncreaseItems)
 		}
 
 		return nil
 	})
 
-	t.NotifyObservers(LOCATOR_FINISH)
+	t.NotifyObservers(LocatorFinish)
 }

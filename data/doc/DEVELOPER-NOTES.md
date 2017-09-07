@@ -11,13 +11,17 @@
     - quiet should affect only file-counter-output
     
 - copy
-    - check issue with nil-pointer panic
+    - check issue with nil-pointer panic => path: node_modules\babel-preset-es2015\node_modules\babel-plugin-transform-es2015-block-scoping\node_modules\babel-traverse\node_modules\babel-code-frame\node_modules\chalk\node_modules\strip-ansi\node_modules\ansi-regex\package.json
+                                            info: <nil>
+                                            err: GetFileAttributesEx node_modules\babel-preset-es2015\node_modules\babel-plugin-transform-es2015-block-scoping\node_modules\babel-traverse\node_modules\babel-code-frame\node_modules\chalk\node_modules\strip-ansi\node_modules\ansi-regex\package.json: Das System kann den angegebenen Pfad nicht finden.
+                                            Hint: https://github.com/golang/go/issues/8130, https://github.com/golang/go/commit/0b8bc7cee9cc8c2bedc030e9a59a687201210212
     - support copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
     - support file compare stitching (reading first, last and middle bytes)
         - compare-strategy: quick, hash, full
 
 - serve
     - supportmultiple mdns entries - switch mdns library to https://github.com/grandcat/zeroconf
+    - Improve handling of huge amounts of files
     
 - delete
     - ask before delete by default, quiet or force does not ask

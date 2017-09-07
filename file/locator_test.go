@@ -18,17 +18,17 @@ type FakeObserver struct {
 }
 
 func(ph *FakeObserver) Notify(a...interface{}){
-	if a[0] == file.LOCATOR_INCREASE_MATCHES {
+	if a[0] == file.LocatorIncreaseMatches {
 		ph.increaseMatchesCalls++
 		return
 	}
 
-	if a[0] == file.LOCATOR_INCREASE_ITEMS {
+	if a[0] == file.LocatorIncreaseItems {
 		ph.increaseItemsCalls++
 		return
 	}
 
-	if a[0] == file.LOCATOR_FINISH {
+	if a[0] == file.LocatorFinish {
 		ph.finishCalls++
 		return
 	}
@@ -47,12 +47,12 @@ func preparePattern(patternString string) (*file.Locator, *FakeObserver, *matche
 
 	sourcePattern := pattern.NewSourcePattern(mockFs, patternString)
 	compiledRegex, _ := sourcePattern.Compile()
-	m := matcher.NewRegexMatcher(*compiledRegex)
+	m := matcher.NewRegexMatcher(compiledRegex)
 	composite := matcher.NewCompositeMatcher()
 	composite.Add(m)
 	fakeObserver := &FakeObserver{}
 
-	subject := file.NewLocator(*sourcePattern)
+	subject := file.NewLocator(sourcePattern)
 	subject.RegisterObserver(fakeObserver)
 
 	return subject, fakeObserver, composite

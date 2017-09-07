@@ -24,30 +24,33 @@ func TestParse(t *testing.T) {
 	expect := assert.New(t)
 	handler := file.NewWalkObserver(FakePrintf)
 	handler.Interval = 2
-	handler.Notify(file.LOCATOR_INCREASE_ITEMS)
+	handler.Notify(file.LocatorIncreaseItems)
 
 	expect.Equal("\rscanning - total: %d,  matches: %d", lastFakePrintfString)
 	expect.Len(lastFakePrintfParams, 2)
 
-	handler.Notify(file.LOCATOR_INCREASE_ITEMS)
+	handler.Notify(file.LocatorIncreaseItems)
 
 	expect.Equal("\rscanning - total: %d,  matches: %d", lastFakePrintfString)
 	expect.Len(lastFakePrintfParams, 2)
 
-	handler.Notify(file.LOCATOR_INCREASE_ITEMS)
-	handler.Notify(file.LOCATOR_INCREASE_MATCHES)
+	handler.Notify(file.LocatorIncreaseItems)
+	handler.Notify(file.LocatorIncreaseMatches)
 
 	expect.Equal("\rscanning - total: %d,  matches: %d", lastFakePrintfString)
 	expect.Len(lastFakePrintfParams, 2)
 
 	for i := 0; i < 20; i++ {
-		handler.Notify(file.LOCATOR_INCREASE_ITEMS)
+		handler.Notify(file.LocatorIncreaseItems)
 	}
 
 	expect.Equal(int64(500), handler.Interval)
 
-	handler.Notify(file.LOCATOR_FINISH)
+	handler.Notify(file.LocatorIncreaseErrors)
+	expect.Equal("\rscanning - total: %d,  matches: %d, errors: %d", lastFakePrintfString)
+	expect.Len(lastFakePrintfParams, 3)
+
+	handler.Notify(file.LocatorFinish)
 	expect.Equal("\n", lastFakePrintfString)
 	expect.Len(lastFakePrintfParams, 0)
-
 }

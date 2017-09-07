@@ -12,11 +12,12 @@ import (
 	"io"
 	"time"
 	"sort"
+	"github.com/sandreas/graft/filesystem"
 )
 
 const (
 	CopyResumed = 1
-	Move = 2
+	Move        = 2
 )
 
 type Strategy struct {
@@ -47,7 +48,6 @@ func NewTransferStrategy(transferMethod int, src *pattern.SourcePattern, dst *pa
 	strategy.SourcePattern = src
 	strategy.DestinationPattern = dst
 
-
 	strategy.CompiledSourcePattern, err = strategy.SourcePattern.Compile()
 	return strategy, err
 }
@@ -63,7 +63,6 @@ func (strategy *Strategy) PerformFileTransfer(src string, dst string, srcStat os
 
 	return nil
 }
-
 
 func (strategy *Strategy) CopyResumed(s, d string, srcStats os.FileInfo) error {
 	srcSize := srcStats.Size()
@@ -192,11 +191,11 @@ func (strategy *Strategy) DestinationFor(src string) string {
 		}
 
 		if strategy.DestinationPattern.Pattern == "" {
-			return filepath.ToSlash(strategy.DestinationPattern.Path  + "/" + filepath.Base(src))
+			return filepath.ToSlash(strategy.DestinationPattern.Path + "/" + filepath.Base(src))
 		}
 
 		if ! strings.HasSuffix(strategy.DestinationPattern.Pattern, "/") {
-			return filepath.ToSlash(strategy.DestinationPattern.Path  + "/" + strategy.DestinationPattern.Pattern)
+			return filepath.ToSlash(strategy.DestinationPattern.Path + "/" + strategy.DestinationPattern.Pattern)
 		}
 	}
 
@@ -211,10 +210,8 @@ func (strategy *Strategy) DestinationFor(src string) string {
 			destinationPathParts = append(destinationPathParts, strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/"))
 		}
 
-
 		sourcePartAppendToDestination := strings.Trim(strings.TrimPrefix(src, sourceParentDir), "\\/")
 		destinationPathParts = append(destinationPathParts, sourcePartAppendToDestination)
-
 
 		return strings.Join(destinationPathParts, "/")
 	}
@@ -228,12 +225,25 @@ func (strategy *Strategy) DestinationFor(src string) string {
 }
 
 func (strategy *Strategy) PerformSingleTransfer(src string) error {
-	srcStat, err := strategy.SourcePattern.Fs.Stat(src)
+
+	// workaround for relative path length limitation on windows
+	absSrc, err := filesystem.ToAbsIfOsFs(strategy.SourcePattern.Fs, src)
+	if err != nil {
+		return err
+	}
+	// workaround end
+
+	srcStat, err := strategy.SourcePattern.Fs.Stat(absSrc)
 	if err != nil {
 		return err
 	}
 
 	dst := strategy.DestinationFor(src)
+
+	absDst, err := filesystem.ToAbsIfOsFs(strategy.DestinationPattern.Fs, dst)
+	if err != nil  {
+		return err
+	}
 
 	strategy.NotifyObservers(src + " => " + dst + "\n")
 
@@ -242,14 +252,14 @@ func (strategy *Strategy) PerformSingleTransfer(src string) error {
 	}
 
 	if srcStat.IsDir() {
-		return strategy.PerformDirectoryTransfer(src, dst, srcStat, true)
+		return strategy.PerformDirectoryTransfer(absSrc, absDst, srcStat, true)
 	}
 
-	if err := strategy.EnsureDirectoryOfFileExists(src, dst); err != nil {
+	if err := strategy.EnsureDirectoryOfFileExists(absSrc, absDst); err != nil {
 		return err
 	}
 
-	if err := strategy.PerformFileTransfer(src, dst, srcStat); err != nil {
+	if err := strategy.PerformFileTransfer(absSrc, absDst, srcStat); err != nil {
 		return err
 	}
 
