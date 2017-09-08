@@ -17,6 +17,10 @@ func Walk(fs afero.Fs, root string, walkFn filepath.WalkFunc) error {
 	return walk(fs, root, info, walkFn)
 }
 
+func Stat(fs afero.Fs, path string) (os.FileInfo, error) {
+	return lstatIfOs(fs, path)
+}
+
 func lstatIfOs(fs afero.Fs, path string) (info os.FileInfo, err error) {
 	_, ok := fs.(*afero.OsFs)
 	if ok {
@@ -28,7 +32,7 @@ func lstatIfOs(fs afero.Fs, path string) (info os.FileInfo, err error) {
 	} else {
 		info, err = fs.Stat(path)
 	}
-	return
+	return info, err
 }
 
 func walk(fs afero.Fs, path string, info os.FileInfo, walkFn filepath.WalkFunc) error {
@@ -69,7 +73,12 @@ func walk(fs afero.Fs, path string, info os.FileInfo, walkFn filepath.WalkFunc) 
 }
 
 func readDirNames(fs afero.Fs, dirname string) ([]string, error) {
-	f, err := fs.Open(dirname)
+	convertedDirName, err := ToAbsIfWindowsOsFs(fs, dirname)
+	if err != nil {
+		convertedDirName = dirname
+	}
+
+	f, err := fs.Open(convertedDirName)
 	if err != nil {
 		return nil, err
 	}

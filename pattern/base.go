@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"os"
 	"runtime"
+	"github.com/sandreas/graft/filesystem"
 )
 
 type BasePattern struct {
@@ -14,12 +15,18 @@ type BasePattern struct {
 	Path        string
 	Pattern     string
 	isDirectory bool
+	isLocalFs   bool
 }
 
 func NewBasePattern(fs afero.Fs, patternString string) *BasePattern {
+	_, isOsFs := fs.(*afero.OsFs)
+	_, isMemMapFs := fs.(*afero.MemMapFs)
+
 	basePattern := &BasePattern{
-		Fs: fs,
+		Fs:        fs,
+		isLocalFs: isOsFs || isMemMapFs,
 	}
+
 	basePattern.parse(patternString)
 	return basePattern
 }
@@ -49,19 +56,20 @@ func (p *BasePattern) parse(patternString string) {
 }
 
 func (p *BasePattern) AbsStat(path string) (os.FileInfo, error, string) {
-	fi, err := p.Fs.Stat(path)
+	fi, err := filesystem.Stat(p.Fs, path)
 	//println(len(path))
-	if runtime.GOOS != "windows" || len(path) < 250 || filepath.IsAbs(path) {
+
+	if !p.isLocalFs || runtime.GOOS != "windows" || len(path) < 250 || filepath.IsAbs(path) {
 		return fi, err, path
 	}
 
-	absPath, err := filepath.Abs(path)
-	if err != nil {
+	var absPath string
+	if absPath, err = filepath.Abs(path); err != nil {
 		return nil, err, path
 	}
-	fi, err = p.Fs.Stat(absPath)
+	fi, err = filesystem.Stat(p.Fs, absPath)
 	// fi, err = os.Stat(absPath)
-	return fi, err, absPath
+	return fi, err, filepath.ToSlash(absPath)
 }
 
 func (p *BasePattern) IsDir() bool {
