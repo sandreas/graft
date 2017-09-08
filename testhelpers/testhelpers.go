@@ -10,7 +10,7 @@ func MockFileSystem(initialFiles map[string]string) afero.Fs {
 
 	for key, value := range initialFiles {
 		if strings.HasSuffix(key, "/") || strings.HasSuffix(key, "\\") {
-			mockFs.Mkdir(key, 0644)
+			mockFs.MkdirAll(key, 0644)
 		} else {
 			afero.WriteFile(mockFs,key, []byte(value), 0755)
 		}

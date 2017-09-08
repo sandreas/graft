@@ -1,9 +1,12 @@
 package pattern
 
 import (
-	"path/filepath"
+	// "path/filepath"
 	"strings"
 	"github.com/spf13/afero"
+	"path/filepath"
+	"os"
+	"runtime"
 )
 
 type BasePattern struct {
@@ -22,31 +25,43 @@ func NewBasePattern(fs afero.Fs, patternString string) *BasePattern {
 }
 
 func (p *BasePattern) parse(patternString string) {
-	if fi, err := p.Fs.Stat(patternString); err != nil {
-		pathPart := patternString
-		path := ""
-		for {
-			slashIndex := strings.IndexAny(pathPart, "\\/")
-			if slashIndex == -1 {
-				break
-			}
-			pathCandidate := path + pathPart[0:slashIndex+1]
-			fi, err := p.Fs.Stat(pathCandidate)
-			if err != nil {
-				break
-			}
-
-			path = pathCandidate
-			pathPart = pathPart[slashIndex+1:]
-			p.isDirectory = fi.IsDir()
+	pathPart := patternString
+	var slashIndex int
+	for {
+		if fi, err, path := p.AbsStat(pathPart); err == nil {
+			p.Path = filepath.ToSlash(filepath.Clean(path))
+			p.isDirectory = fi == nil || fi.IsDir()
+			break
 		}
-		p.Path = filepath.ToSlash(filepath.Clean(path))
-		p.Pattern = strings.TrimPrefix(patternString, path)
-	} else {
-		p.Path = filepath.ToSlash(filepath.Clean(patternString))
-		p.Pattern = ""
-		p.isDirectory = fi.IsDir()
+		slashIndex = strings.LastIndexAny(pathPart, "\\/")
+		if slashIndex == -1 {
+			p.Path = "."
+			p.Pattern = pathPart
+			break
+		}
+		pathPart = pathPart[0:slashIndex]
 	}
+
+	if pathPart != patternString {
+		p.Pattern = patternString[len(pathPart)+1:]
+	}
+
+}
+
+func (p *BasePattern) AbsStat(path string) (os.FileInfo, error, string) {
+	fi, err := p.Fs.Stat(path)
+	//println(len(path))
+	if runtime.GOOS != "windows" || len(path) < 250 || filepath.IsAbs(path) {
+		return fi, err, path
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err, path
+	}
+	fi, err = p.Fs.Stat(absPath)
+	// fi, err = os.Stat(absPath)
+	return fi, err, absPath
 }
 
 func (p *BasePattern) IsDir() bool {
