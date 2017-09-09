@@ -84,7 +84,7 @@ func (OsFs) Chtimes(name string, atime time.Time, mtime time.Time) error {
 }
 
 func normalizePath(path string) string {
-	if filepath.IsAbs(path) || len(path) < 255 {
+	if filepath.IsAbs(path) || len(path) < 227 {
 		return path
 	}
 

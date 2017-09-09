@@ -28,7 +28,7 @@ func lstatIfOs(fs afero.Fs, path string) (info os.FileInfo, err error) {
 	return info, err
 }
 
-func walk(fs Fs, path string, info os.FileInfo, walkFn filepath.WalkFunc) error {
+func walk(fs afero.Fs, path string, info os.FileInfo, walkFn filepath.WalkFunc) error {
 	err := walkFn(path, info, nil)
 	if err != nil {
 		if info.IsDir() && err == filepath.SkipDir {
@@ -65,7 +65,7 @@ func walk(fs Fs, path string, info os.FileInfo, walkFn filepath.WalkFunc) error 
 	return nil
 }
 
-func readDirNames(fs Fs, dirname string) ([]string, error) {
+func readDirNames(fs afero.Fs, dirname string) ([]string, error) {
 	f, err := fs.Open(dirname)
 	if err != nil {
 		return nil, err
