@@ -3,6 +3,7 @@ package action
 import (
 	"fmt"
 	"log"
+
 	"github.com/urfave/cli"
 )
 
@@ -11,10 +12,6 @@ type FindAction struct {
 }
 
 func (action *FindAction) Execute(c *cli.Context) error {
-	//fs := filesystem.NewOsFs()
-	//fs.Stat("graft.go")
-	//os.Exit(0)
-
 	action.PrepareExecution(c, 1)
 	log.Printf("find")
 	if err := action.locateSourceFiles(); err != nil {

@@ -1,11 +1,14 @@
+// +build !windows
+
 package filesystem
 
 import (
 	"os"
 	"time"
 
-	"github.com/spf13/afero"
 	"log"
+
+	"github.com/spf13/afero"
 )
 
 type OsFs struct {
