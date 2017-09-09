@@ -3,19 +3,20 @@
 - switch mdns library to https://github.com/grandcat/zeroconf
 
 - global
+    - update documentation
+    - support unc paths / correct slash handling
+        - base.go / base_test.go (filepath.ToSlash)
+        - locator.go / locator_test.go (filepath.ToSlash)
+        - pattern/functions.go (filepath.ToSlash)
+    - replace pathmapper with file_tree
     - close source fs
     - add matcher for mimetype (image/*, image/jpeg)
     - max-depth parameter (?)
-    - limit-results parameter
     - hide progress?!
     - shouldStop return parameter for filesystem.Walk
-    - change filesystem.ToAbsPath to be os dependent (_windows.go)
+        - limit-results parameter
 
 - copy
-    - check issue with nil-pointer panic => path: node_modules\babel-preset-es2015\node_modules\babel-plugin-transform-es2015-block-scoping\node_modules\babel-traverse\node_modules\babel-code-frame\node_modules\chalk\node_modules\strip-ansi\node_modules\ansi-regex\package.json
-                                            info: <nil>
-                                            err: GetFileAttributesEx node_modules\babel-preset-es2015\node_modules\babel-plugin-transform-es2015-block-scoping\node_modules\babel-traverse\node_modules\babel-code-frame\node_modules\chalk\node_modules\strip-ansi\node_modules\ansi-regex\package.json: Das System kann den angegebenen Pfad nicht finden.
-                                            Hint: https://github.com/golang/go/issues/8130, https://github.com/golang/go/commit/0b8bc7cee9cc8c2bedc030e9a59a687201210212
     - support copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
     - support file compare stitching (reading first, last and middle bytes)
     - compare-strategy: quick, hash, full
