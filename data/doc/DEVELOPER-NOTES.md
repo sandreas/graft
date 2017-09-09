@@ -3,6 +3,7 @@
 - switch mdns library to https://github.com/grandcat/zeroconf
 
 - global
+    - close source fs
     - add matcher for mimetype (image/*, image/jpeg)
     - max-depth parameter (?)
     - limit-results parameter

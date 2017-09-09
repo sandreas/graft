@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/howeyc/gopass"
 	"github.com/sandreas/graft/bitflag"
 	"github.com/sandreas/graft/file"
 	"github.com/sandreas/graft/filesystem"
@@ -21,7 +22,6 @@ import (
 	"github.com/sandreas/graft/pattern"
 	"github.com/spf13/afero"
 	"github.com/urfave/cli"
-	"github.com/howeyc/gopass"
 )
 
 const (
@@ -231,7 +231,7 @@ func (action *AbstractAction) prepareSourceFileSystem() error {
 		action.sourceFs, err = filesystem.NewSftpFs(host, port, username, password)
 		return err
 	}
-	action.sourceFs = afero.NewOsFs()
+	action.sourceFs = filesystem.NewOsFs()
 	return nil
 }
 

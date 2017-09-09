@@ -69,7 +69,7 @@ func (OsFs) Rename(oldname, newname string) error {
 }
 
 func (OsFs) Stat(name string) (os.FileInfo, error) {
-	log.Println("default osfs.Stat", name)
+	log.Println("windows osfs.Stat", name)
 	return os.Stat(name)
 }
 

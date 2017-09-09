@@ -1,6 +1,7 @@
 package matcher
 
 import (
+	"github.com/sandreas/graft/filesystem"
 	"github.com/spf13/afero"
 )
 
@@ -13,7 +14,7 @@ type FileSizeMatcher struct {
 
 func NewFileSizeMatcher(minSize, maxSize int64) *FileSizeMatcher {
 	return &FileSizeMatcher{
-		Fs:      afero.NewOsFs(),
+		Fs:      filesystem.NewOsFs(),
 		minSize: minSize,
 		maxSize: maxSize,
 	}

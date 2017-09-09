@@ -4,10 +4,12 @@ import (
 	"github.com/spf13/afero"
 
 	"bufio"
-	"strings"
-	"os"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+
+	"github.com/sandreas/graft/filesystem"
 )
 
 type LocatorCache struct {
@@ -19,7 +21,7 @@ type LocatorCache struct {
 func NewLocatorCache(cacheFile string) *LocatorCache {
 	return &LocatorCache{
 		cacheFile: cacheFile,
-		Fs:        afero.NewOsFs(),
+		Fs:        filesystem.NewOsFs(),
 		Items:     []string{},
 	}
 }

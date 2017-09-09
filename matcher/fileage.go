@@ -2,6 +2,8 @@ package matcher
 
 import (
 	"time"
+
+	"github.com/sandreas/graft/filesystem"
 	"github.com/spf13/afero"
 )
 
@@ -14,7 +16,7 @@ type FileAgeMatcher struct {
 
 func NewFileAgeMatcher(minAge, maxAge time.Time) *FileAgeMatcher {
 	return &FileAgeMatcher{
-		Fs:     afero.NewOsFs(),
+		Fs:     filesystem.NewOsFs(),
 		minAge: minAge,
 		maxAge: maxAge,
 	}
