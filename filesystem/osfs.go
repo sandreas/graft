@@ -6,8 +6,6 @@ import (
 	"os"
 	"time"
 
-	"log"
-
 	"github.com/spf13/afero"
 )
 
@@ -72,7 +70,6 @@ func (OsFs) Rename(oldname, newname string) error {
 }
 
 func (OsFs) Stat(name string) (os.FileInfo, error) {
-	log.Println("default osfs.Stat", name)
 	return os.Stat(name)
 }
 

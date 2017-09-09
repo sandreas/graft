@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/sandreas/graft/designpattern/observer"
+	"github.com/sandreas/graft/filesystem"
 	"github.com/sandreas/graft/matcher"
 	"github.com/sandreas/graft/pattern"
-	"github.com/spf13/afero"
 )
 
 const (
@@ -41,7 +41,7 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 		return
 	}
 
-	afero.Walk(t.Src.Fs, t.Src.Path, func(innerPath string, info os.FileInfo, err error) error {
+	filesystem.Walk(t.Src.Fs, t.Src.Path, func(innerPath string, info os.FileInfo, err error) error {
 		if innerPath == "." || innerPath == ".." {
 			return nil
 		}
