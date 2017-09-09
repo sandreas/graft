@@ -1,14 +1,15 @@
 package file
 
 import (
-	"github.com/sandreas/graft/pattern"
-	"github.com/sandreas/graft/designpattern/observer"
-	"path/filepath"
-	"os"
-	"github.com/sandreas/graft/matcher"
-	"strings"
 	"log"
-	"github.com/sandreas/graft/filesystem"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/sandreas/graft/designpattern/observer"
+	"github.com/sandreas/graft/matcher"
+	"github.com/sandreas/graft/pattern"
+	"github.com/spf13/afero"
 )
 
 const (
@@ -24,13 +25,11 @@ type Locator struct {
 	SourceFiles []string
 }
 
-
 func NewLocator(pattern *pattern.SourcePattern) *Locator {
 	return &Locator{
 		Src: *pattern,
 	}
 }
-
 
 func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 	t.SourceFiles = []string{}
@@ -42,7 +41,7 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 		return
 	}
 
-	filesystem.Walk(t.Src.Fs, t.Src.Path, func(innerPath string, info os.FileInfo, err error) error {
+	afero.Walk(t.Src.Fs, t.Src.Path, func(innerPath string, info os.FileInfo, err error) error {
 		if innerPath == "." || innerPath == ".." {
 			return nil
 		}

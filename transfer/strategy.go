@@ -1,18 +1,18 @@
 package transfer
 
 import (
-	"github.com/sandreas/graft/pattern"
-	"regexp"
+	"errors"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
-	"log"
-	"github.com/sandreas/graft/designpattern/observer"
-	"errors"
-	"strings"
-	"io"
-	"time"
+	"regexp"
 	"sort"
-	"github.com/sandreas/graft/filesystem"
+	"strings"
+	"time"
+
+	"github.com/sandreas/graft/designpattern/observer"
+	"github.com/sandreas/graft/pattern"
 )
 
 const (
@@ -194,7 +194,7 @@ func (strategy *Strategy) DestinationFor(src string) string {
 			return filepath.ToSlash(strategy.DestinationPattern.Path + "/" + filepath.Base(src))
 		}
 
-		if ! strings.HasSuffix(strategy.DestinationPattern.Pattern, "/") {
+		if !strings.HasSuffix(strategy.DestinationPattern.Pattern, "/") {
 			return filepath.ToSlash(strategy.DestinationPattern.Path + "/" + strategy.DestinationPattern.Pattern)
 		}
 	}
@@ -226,24 +226,12 @@ func (strategy *Strategy) DestinationFor(src string) string {
 
 func (strategy *Strategy) PerformSingleTransfer(src string) error {
 
-	// workaround for relative path length limitation on windows
-	absSrc, err := filesystem.ToAbsIfWindowsOsFs(strategy.SourcePattern.Fs, src)
-	if err != nil {
-		return err
-	}
-	// workaround end
-
-	srcStat, err := strategy.SourcePattern.Fs.Stat(absSrc)
+	srcStat, err := strategy.SourcePattern.Fs.Stat(src)
 	if err != nil {
 		return err
 	}
 
 	dst := strategy.DestinationFor(src)
-
-	absDst, err := filesystem.ToAbsIfWindowsOsFs(strategy.DestinationPattern.Fs, dst)
-	if err != nil  {
-		return err
-	}
 
 	strategy.NotifyObservers(src + " => " + dst + "\n")
 
@@ -252,14 +240,14 @@ func (strategy *Strategy) PerformSingleTransfer(src string) error {
 	}
 
 	if srcStat.IsDir() {
-		return strategy.PerformDirectoryTransfer(absSrc, absDst, srcStat, true)
+		return strategy.PerformDirectoryTransfer(src, dst, srcStat, true)
 	}
 
-	if err := strategy.EnsureDirectoryOfFileExists(absSrc, absDst); err != nil {
+	if err := strategy.EnsureDirectoryOfFileExists(src, dst); err != nil {
 		return err
 	}
 
-	if err := strategy.PerformFileTransfer(absSrc, absDst, srcStat); err != nil {
+	if err := strategy.PerformFileTransfer(src, dst, srcStat); err != nil {
 		return err
 	}
 

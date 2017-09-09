@@ -1,14 +1,14 @@
 package action
 
 import (
-	"log"
-	"github.com/urfave/cli"
-	"os"
-	"github.com/sandreas/graft/filesystem"
 	"bufio"
-	"fmt"
-	"strings"
 	"errors"
+	"fmt"
+	"log"
+	"os"
+	"strings"
+
+	"github.com/urfave/cli"
 )
 
 type DeleteAction struct {
@@ -18,7 +18,7 @@ type DeleteAction struct {
 func (action *DeleteAction) Execute(c *cli.Context) error {
 	log.Printf("delete")
 
-	if err := action.PrepareExecution(c, 1); err != nil  {
+	if err := action.PrepareExecution(c, 1); err != nil {
 		return cli.NewExitError(err.Error(), ErrorLocateSourceFiles)
 	}
 	if err := action.locateSourceFiles(); err != nil {
@@ -49,26 +49,21 @@ func (action *DeleteAction) DeleteFiles() error {
 		action.suppressablePrintf(path + "\n")
 		// delete
 		if !action.CliContext.Bool("dry-run") {
-			absPath,err  := filesystem.ToAbsIfWindowsOsFs(action.sourcePattern.Fs, path)
-			if err != nil {
-				log.Printf("File %s could not be converted to absolute path: %s", path, err.Error())
-			}
-			stat, err := action.sourcePattern.Fs.Stat(absPath)
+			stat, err := action.sourcePattern.Fs.Stat(path)
 			if !os.IsNotExist(err) {
 				if stat.Mode().IsRegular() {
-					if err := action.sourcePattern.Fs.Remove(absPath); err != nil  {
-						log.Printf("File %s could not be deleted: %s", absPath, err.Error())
+					if err := action.sourcePattern.Fs.Remove(path); err != nil {
+						log.Printf("File %s could not be deleted: %s", path, err.Error())
 					}
 				} else if stat.Mode().IsDir() {
-					dirsToRemove = append(dirsToRemove, absPath)
+					dirsToRemove = append(dirsToRemove, path)
 				}
 			}
 		}
 	}
 
-
 	for _, path := range dirsToRemove {
-		if err := action.sourcePattern.Fs.Remove(path); err != nil  {
+		if err := action.sourcePattern.Fs.Remove(path); err != nil {
 			log.Printf("Directory %s could not be deleted: %s", path, err.Error())
 		}
 	}
