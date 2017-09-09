@@ -21,7 +21,7 @@ func Walk(fs afero.Fs, root string, walkFn filepath.WalkFunc) error {
 func lstatIfOs(fs afero.Fs, path string) (info os.FileInfo, err error) {
 	_, ok := fs.(*OsFs)
 	if ok {
-		info, err = os.Lstat(normalizePath(path))
+		info, err = os.Lstat(makeAbsolute(path))
 	} else {
 		info, err = fs.Stat(path)
 	}
