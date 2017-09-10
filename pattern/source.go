@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"github.com/sandreas/graft/bitflag"
 	"github.com/spf13/afero"
+	"os"
 )
 
 
@@ -50,10 +51,12 @@ func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 	}
 
 	if regexPath != "" {
-		regexPath = regexp.QuoteMeta(p.Path)
-		if regexPath[len(regexPath)-1:] != "/" && !p.IsFile() {
-			regexPath += "/"
+		regexPath = p.Path
+		sep := string(os.PathSeparator)
+		if regexPath[len(regexPath)-1:] != sep && !p.IsFile() {
+			regexPath += sep
 		}
+		regexPath = regexp.QuoteMeta(regexPath)
 	}
 
 	if ! p.caseSensitive {

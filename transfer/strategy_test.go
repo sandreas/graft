@@ -4,14 +4,16 @@ import (
 	"testing"
 
 	"os"
-	"time"
 
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/transfer"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	"time"
 	"github.com/sandreas/graft/designpattern/observer"
 )
+
+var sep = string(os.PathSeparator)
 
 func TestRelativeWildcardMapping(t *testing.T) {
 	expect := assert.New(t)
@@ -19,30 +21,31 @@ func TestRelativeWildcardMapping(t *testing.T) {
 	strategy := prepareStrategy("src/*", "dst")
 
 	expect.Equal("dst", strategy.DestinationFor("src"))
-	expect.Equal("dst/src-file.txt", strategy.DestinationFor("src/src-file.txt"))
-	expect.Equal("dst/test-dir", strategy.DestinationFor("src/test-dir"))
-	expect.Equal("dst/test-dir/test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+	expect.Equal("dst"+sep+"src-file.txt", strategy.DestinationFor("src/src-file.txt"))
+	expect.Equal("dst"+sep+"test-dir", strategy.DestinationFor("src/test-dir"))
+	expect.Equal("dst"+sep+"test-dir"+sep+"test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 
 }
+
 
 func TestComplexRelativeMapping(t *testing.T) {
 	expect := assert.New(t)
 
 	var strategy *transfer.Strategy
 	strategy = prepareStrategy("src/test-dir/test-dir-file.txt", "../out/")
-	expect.Equal("../out/test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+	expect.Equal(".."+sep+"out"+sep+"test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 
 	strategy = prepareStrategy("src/test-dir", "../out")
-	expect.Equal("../out/test-dir/test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+	expect.Equal(".."+sep+"out"+sep+"test-dir"+sep+"test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 
 	strategy = prepareStrategy("src/test-dir/test-dir-file.txt", "dst/overwrite.txt")
-	expect.Equal("dst/overwrite.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+	expect.Equal("dst"+sep+"overwrite.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 
 	strategy = prepareStrategy("src/test-dir/test-dir-file.txt", "dst")
-	expect.Equal("dst/test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+	expect.Equal("dst"+sep+"test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 
 	strategy = prepareStrategy("src/test-dir/test-dir-file.txt", "dst/new-file.txt")
-	expect.Equal("dst/new-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+	expect.Equal("dst"+sep+"new-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 }
 
 func prepareStrategy(src string, dst string) *transfer.Strategy {

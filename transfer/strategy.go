@@ -13,6 +13,7 @@ import (
 
 	"github.com/sandreas/graft/designpattern/observer"
 	"github.com/sandreas/graft/pattern"
+	"github.com/sandreas/graft/filesystem"
 )
 
 const (
@@ -184,6 +185,7 @@ func (strategy *Strategy) Perform(strings []string) error {
 }
 
 func (strategy *Strategy) DestinationFor(src string) string {
+	cleanedSrc := filesystem.CleanPath(strategy.SourcePattern.Fs, src)
 
 	if strategy.SourcePattern.IsFile() {
 		if strategy.DestinationPattern.IsFile() {
@@ -191,7 +193,7 @@ func (strategy *Strategy) DestinationFor(src string) string {
 		}
 
 		if strategy.DestinationPattern.Pattern == "" {
-			return strategy.DestinationPattern.Path + string(os.PathSeparator) + filepath.Base(src)
+			return strategy.DestinationPattern.Path + string(os.PathSeparator) + filepath.Base(cleanedSrc)
 		}
 
 		if !strings.HasSuffix(strategy.DestinationPattern.Pattern, "/") {
@@ -210,18 +212,18 @@ func (strategy *Strategy) DestinationFor(src string) string {
 			destinationPathParts = append(destinationPathParts, strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/"))
 		}
 
-		sourcePartAppendToDestination := strings.Trim(strings.TrimPrefix(src, sourceParentDir), "\\/")
+		sourcePartAppendToDestination := strings.Trim(strings.TrimPrefix(cleanedSrc, sourceParentDir), "\\/")
 		destinationPathParts = append(destinationPathParts, sourcePartAppendToDestination)
 
-		return strings.Join(destinationPathParts, "/")
+		return strings.Join(destinationPathParts, string(os.PathSeparator))
 	}
 
 	// destination pattern points to an existing file or directory
 	if strategy.DestinationPattern.Pattern == "" {
-		return strategy.DestinationPattern.Path + src[len(strategy.SourcePattern.Path):]
+		return strategy.DestinationPattern.Path + cleanedSrc[len(strategy.SourcePattern.Path):]
 	}
 
-	return strategy.CompiledSourcePattern.ReplaceAllString(src, strategy.DestinationPattern.Path+"/"+strategy.DestinationPattern.Pattern)
+	return strategy.CompiledSourcePattern.ReplaceAllString(cleanedSrc, strategy.DestinationPattern.Path+string(os.PathSeparator)+strategy.DestinationPattern.Pattern)
 }
 
 func (strategy *Strategy) PerformSingleTransfer(src string) error {
