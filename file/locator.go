@@ -3,8 +3,6 @@ package file
 import (
 	"log"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/sandreas/graft/designpattern/observer"
 	"github.com/sandreas/graft/filesystem"
@@ -52,7 +50,7 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 			return nil
 		}
 
-		normalizedInnerPath := strings.TrimRight(filepath.ToSlash(innerPath), "/")
+		normalizedInnerPath := filesystem.CleanPath(t.Src.Fs, innerPath)
 
 		// skip direct path matches (data/* should not match data/ itself)
 		if normalizedInnerPath == t.Src.Path && t.Src.Pattern != "" {
@@ -60,7 +58,7 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 		}
 
 		if info.IsDir() {
-			normalizedInnerPath += "/"
+			normalizedInnerPath += string(os.PathSeparator)
 		}
 
 		if matcher.Matches(normalizedInnerPath) {

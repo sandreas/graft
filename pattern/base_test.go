@@ -3,16 +3,14 @@ package pattern_test
 import (
 	"testing"
 
-	"os"
-
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/testhelpers"
 	"github.com/stretchr/testify/assert"
+	"os"
 )
 
 func TestBase(t *testing.T) {
 	sep := string(os.PathSeparator)
-
 	expect := assert.New(t)
 
 	// long paths on windows have to be converted to absolute ones
@@ -89,4 +87,5 @@ func TestBase(t *testing.T) {
 	expect.Equal("*", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
+
 }

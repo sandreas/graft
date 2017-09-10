@@ -1,7 +1,7 @@
 package pattern
 
 import (
-	"strings"
+	"path/filepath"
 
 	"github.com/sandreas/graft/filesystem"
 	"github.com/spf13/afero"
@@ -30,24 +30,30 @@ func NewBasePattern(fs afero.Fs, patternString string) *BasePattern {
 
 func (p *BasePattern) parse(patternString string) {
 	pathPart := patternString
-	var slashIndex int
 	for {
 		if fi, err := p.Fs.Stat(pathPart); err == nil {
-			p.Path = strings.TrimRight(filesystem.CleanPath(p.Fs, pathPart), "\\/")
+			p.Path = filesystem.CleanPath(p.Fs, pathPart)
 			p.isDirectory = fi == nil || fi.IsDir()
 			break
 		}
-		slashIndex = strings.LastIndexAny(pathPart, "\\/")
-		if slashIndex == -1 {
+		parent := filepath.Dir(pathPart)
+		if parent == pathPart {
 			p.Path = "."
 			p.Pattern = pathPart
 			break
 		}
-		pathPart = pathPart[0:slashIndex]
+		pathPart = parent
 	}
 
+
+
 	if pathPart != patternString {
-		p.Pattern = patternString[len(pathPart)+1:]
+		if pathPart == "." && len(patternString) == 1 {
+			p.Path = "."
+			p.Pattern = patternString
+		} else {
+			p.Pattern = patternString[len(pathPart)+1:]
+		}
 	}
 
 }

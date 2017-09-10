@@ -2,14 +2,13 @@ package pattern
 
 import (
 	"bytes"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
-	"regexp"
-	"path/filepath"
 )
 
-func GlobToRegexString(glob string) (string) {
+func GlobToRegexString(glob string) string {
 	var buffer bytes.Buffer
 	r := strings.NewReader(glob)
 
@@ -70,7 +69,7 @@ func StrToAge(t string, reference time.Time) (time.Time, error) {
 			return reference.AddDate(0, 0, modifier), nil
 		}
 		if strings.HasPrefix(unit, "w") {
-			return reference.AddDate(0, 0, modifier * 7), nil
+			return reference.AddDate(0, 0, modifier*7), nil
 		}
 		if strings.HasPrefix(unit, "mon") {
 			return reference.AddDate(0, modifier, 0), nil
@@ -93,7 +92,7 @@ func StrToAge(t string, reference time.Time) (time.Time, error) {
 			unit = "h"
 		}
 
-		d, err := time.ParseDuration(strconv.Itoa(modifier)+unit)
+		d, err := time.ParseDuration(strconv.Itoa(modifier) + unit)
 		if err != nil {
 			return reference, err
 		}
@@ -113,21 +112,19 @@ func StrToAge(t string, reference time.Time) (time.Time, error) {
 
 func StrToSize(sizeString string) (int64, error) {
 
-
-
 	lower := strings.ToLower(sizeString)
 
 	factor := 1
-	if strings.HasSuffix(lower, "k"){
+	if strings.HasSuffix(lower, "k") {
 		factor = 1024
 		lower = strings.TrimSuffix(lower, "k")
-	} else if strings.HasSuffix(lower, "m"){
+	} else if strings.HasSuffix(lower, "m") {
 		factor = 1024 * 1024
 		lower = strings.TrimSuffix(lower, "m")
-	} else if strings.HasSuffix(lower, "g"){
+	} else if strings.HasSuffix(lower, "g") {
 		factor = 1024 * 1024 * 1024
 		lower = strings.TrimSuffix(lower, "g")
-	} else if strings.HasSuffix(lower, "t"){
+	} else if strings.HasSuffix(lower, "t") {
 		factor = 1024 * 1024 * 1024 * 1024
 		lower = strings.TrimSuffix(lower, "t")
 	}
@@ -137,11 +134,9 @@ func StrToSize(sizeString string) (int64, error) {
 	return int64(ret * factor), err
 }
 
-
-func BuildMatchList(sourcePattern *regexp.Regexp, subject string)([]string) {
+func BuildMatchList(sourcePattern *regexp.Regexp, subject string) []string {
 	list := make([]string, 0)
-	normalizedPath := filepath.ToSlash(subject)
-	sourcePattern.ReplaceAllStringFunc(normalizedPath, func(m string) string {
+	sourcePattern.ReplaceAllStringFunc(subject, func(m string) string {
 		parts := sourcePattern.FindStringSubmatch(m)
 		i := 1
 		for range parts[1:] {

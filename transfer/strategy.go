@@ -191,17 +191,17 @@ func (strategy *Strategy) DestinationFor(src string) string {
 		}
 
 		if strategy.DestinationPattern.Pattern == "" {
-			return filepath.ToSlash(strategy.DestinationPattern.Path + "/" + filepath.Base(src))
+			return strategy.DestinationPattern.Path + string(os.PathSeparator) + filepath.Base(src)
 		}
 
 		if !strings.HasSuffix(strategy.DestinationPattern.Pattern, "/") {
-			return filepath.ToSlash(strategy.DestinationPattern.Path + "/" + strategy.DestinationPattern.Pattern)
+			return strategy.DestinationPattern.Path + string(os.PathSeparator) + strategy.DestinationPattern.Pattern
 		}
 	}
 
 	// source pattern points to an existing file or directory
 	if strategy.SourcePattern.Pattern == "" {
-		sourceParentDir := filepath.ToSlash(filepath.Dir(strategy.SourcePattern.Path))
+		sourceParentDir := filepath.Dir(strategy.SourcePattern.Path)
 		destinationPathParts := []string{
 			strategy.DestinationPattern.Path,
 		}
