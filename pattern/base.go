@@ -33,7 +33,7 @@ func (p *BasePattern) parse(patternString string) {
 	var slashIndex int
 	for {
 		if fi, err := p.Fs.Stat(pathPart); err == nil {
-			p.Path = strings.TrimRight(filepath.ToSlash(filepath.Clean(pathPart)), "/")
+			p.Path = strings.TrimRight(filepath.Clean(pathPart), "\\/")
 			p.isDirectory = fi == nil || fi.IsDir()
 			break
 		}

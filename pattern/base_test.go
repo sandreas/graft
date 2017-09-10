@@ -3,12 +3,16 @@ package pattern_test
 import (
 	"testing"
 
+	"os"
+
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/testhelpers"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBase(t *testing.T) {
+	sep := string(os.PathSeparator)
+
 	expect := assert.New(t)
 
 	// long paths on windows have to be converted to absolute ones
@@ -22,26 +26,32 @@ func TestBase(t *testing.T) {
 	})
 
 	basePattern := pattern.NewBasePattern(mockFs, "fixtures/global/*")
-	expect.Equal("fixtures/global", basePattern.Path)
+	expect.Equal("fixtures"+sep+"global", basePattern.Path)
 	expect.Equal("*", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
+
+	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/(.*)")
+	expect.Equal("fixtures"+sep+"global", basePattern.Path)
+	expect.Equal("(.*)", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
+
+	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/file.txt")
+	expect.Equal("fixtures"+sep+"global"+sep+"file.txt", basePattern.Path)
+	expect.Equal("", basePattern.Pattern)
+	expect.False(basePattern.IsDir())
+	expect.True(basePattern.IsFile())
+
+	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/")
+	expect.Equal("fixtures"+sep+"global", basePattern.Path)
+	expect.Equal("", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, "fixtures/non-existing/*.*")
 	expect.Equal("fixtures", basePattern.Path)
 	expect.Equal("non-existing/*.*", basePattern.Pattern)
-	expect.True(basePattern.IsDir())
-	expect.False(basePattern.IsFile())
-
-	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/file.txt")
-	expect.Equal("fixtures/global/file.txt", basePattern.Path)
-	expect.Equal("", basePattern.Pattern)
-	expect.False(basePattern.IsDir())
-	expect.True(basePattern.IsFile())
-
-	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/")
-	expect.Equal("fixtures/global", basePattern.Path)
-	expect.Equal("", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
@@ -60,12 +70,6 @@ func TestBase(t *testing.T) {
 	basePattern = pattern.NewBasePattern(mockFs, "./*")
 	expect.Equal(".", basePattern.Path)
 	expect.Equal("*", basePattern.Pattern)
-	expect.True(basePattern.IsDir())
-	expect.False(basePattern.IsFile())
-
-	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/(.*)")
-	expect.Equal("fixtures/global", basePattern.Path)
-	expect.Equal("(.*)", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
