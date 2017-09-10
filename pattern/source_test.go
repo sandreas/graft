@@ -9,6 +9,7 @@ import (
 	"os"
 )
 var sep = string(os.PathSeparator)
+var quotedSep = regexp.QuoteMeta(sep)
 
 func TestNewSourcePattern(t *testing.T) {
 	expect := assert.New(t)
@@ -82,7 +83,7 @@ func TestCompileSimple(t *testing.T) {
 
 	var compiled *regexp.Regexp
 	compiled, _ = pattern.NewSourcePattern(mockFs, "fixtures/global/file.txt").Compile()
-	expect.Equal("(?i)fixtures"+sep+sep+"global"+sep+sep+"file\\.txt$", compiled.String())
+	expect.Equal("(?i)fixtures"+quotedSep+"global"+quotedSep+"file\\.txt$", compiled.String())
 	expect.Regexp(compiled, "fixtures"+sep+"global"+sep+"file.txt")
 
 }
@@ -95,24 +96,24 @@ func TestCompileGlob(t *testing.T) {
 	})
 	var compiled *regexp.Regexp
 	compiled, _ = pattern.NewSourcePattern(mockFs, "fixtures/global/*").Compile()
-	expect.Equal("(?i)fixtures"+sep+sep+"global"+sep+sep+"(.*)$", compiled.String())
+	expect.Equal("(?i)fixtures"+quotedSep+"global"+quotedSep+"(.*)$", compiled.String())
 	expect.Regexp(compiled, "fixtures"+sep+"global"+sep+"test.txt")
 
 	compiled, _ = pattern.NewSourcePattern(mockFs, "fixtures/global/").Compile()
-	expect.Equal("(?i)fixtures"+sep+sep+"global"+sep+sep+"(.*)$", compiled.String())
+	expect.Equal("(?i)fixtures"+quotedSep+"global"+quotedSep+"(.*)$", compiled.String())
 	expect.Regexp(compiled, "fixtures"+sep+"global"+sep+"test.txt")
 
 	compiled, _ = pattern.NewSourcePattern(mockFs, "fixtures/global/t(*)t.(txt)").Compile()
-	expect.Equal("(?i)fixtures"+sep+sep+"global"+sep+sep+"t(.*)t\\.(txt)$", compiled.String())
+	expect.Equal("(?i)fixtures"+quotedSep+"global"+quotedSep+"t(.*)t\\.(txt)$", compiled.String())
 	expect.Regexp(compiled, "fixtures"+sep+"global"+sep+"Test.txt")
 
 	compiled, _ = pattern.NewSourcePattern(mockFs, "fixtures/global/t(*)t.(txt)", pattern.CASE_SENSITIVE).Compile()
-	expect.Equal("fixtures"+sep+sep+"global"+sep+sep+"t(.*)t\\.(txt)$", compiled.String())
+	expect.Equal("fixtures"+quotedSep+"global"+quotedSep+"t(.*)t\\.(txt)$", compiled.String())
 	expect.NotRegexp(compiled, "fixtures"+sep+"global"+sep+"Test.txt")
 
 	sourcePattern := pattern.NewSourcePattern(mockFs, "fixtures/global/.*.?", pattern.CASE_SENSITIVE|pattern.USE_REAL_REGEX)
 	compiled, _ = sourcePattern.Compile()
-	expect.Equal("fixtures"+sep+sep+"global"+sep+sep+"(.*.?)$", compiled.String())
+	expect.Equal("fixtures"+quotedSep+"global"+quotedSep+"(.*.?)$", compiled.String())
 
 	sourcePattern = pattern.NewSourcePattern(mockFs, ".")
 	compiled, _ = sourcePattern.Compile()
