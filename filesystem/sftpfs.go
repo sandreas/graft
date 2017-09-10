@@ -4,9 +4,14 @@ import (
 	"os"
 	"time"
 
+	"fmt"
+
 	"github.com/pkg/sftp"
 	"github.com/spf13/afero"
-	"fmt"
+)
+
+const (
+	NameSftpfs = "sftpfs"
 )
 
 // Fs is a afero.Fs implementation that uses functions provided by the sftp package.
@@ -46,7 +51,7 @@ func NormalizeDir(name string, client *sftp.Client) (string, error) {
 	return name, nil
 }
 
-func (s SftpFs) Name() string { return "sftpfs" }
+func (s SftpFs) Name() string { return NameSftpfs }
 
 func (s SftpFs) Create(name string) (afero.File, error) {
 	return FileCreate(s.client, name)
@@ -106,10 +111,11 @@ func (s SftpFs) MkdirAll(path string, perm os.FileMode) error {
 func (s SftpFs) Open(name string) (afero.File, error) {
 	return FileOpen(s.client, name)
 }
+
 // changed!!!
 func (s SftpFs) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
 	// return s.client.OpenFile(name, flag)
- 	return FileOpen(s.client, name)
+	return FileOpen(s.client, name)
 }
 
 func (s SftpFs) Remove(name string) error {

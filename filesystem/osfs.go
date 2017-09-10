@@ -9,6 +9,10 @@ import (
 	"github.com/spf13/afero"
 )
 
+const (
+	NameOsfs = "OsFs"
+)
+
 type OsFs struct {
 	afero.Fs
 }
@@ -17,7 +21,7 @@ func NewOsFs() afero.Fs {
 	return &OsFs{}
 }
 
-func (OsFs) Name() string { return "OsFs" }
+func (OsFs) Name() string { return NameOsfs }
 
 func (OsFs) Create(name string) (afero.File, error) {
 	f, e := os.Create(name)
@@ -81,6 +85,6 @@ func (OsFs) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	return os.Chtimes(name, atime, mtime)
 }
 
-func (fs *OsFs) Close() {
+func (OsFs) Close() {
 	// osfs does not need to be closed
 }

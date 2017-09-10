@@ -1,9 +1,9 @@
 package pattern
 
 import (
-	"path/filepath"
 	"strings"
 
+	"github.com/sandreas/graft/filesystem"
 	"github.com/spf13/afero"
 )
 
@@ -33,7 +33,7 @@ func (p *BasePattern) parse(patternString string) {
 	var slashIndex int
 	for {
 		if fi, err := p.Fs.Stat(pathPart); err == nil {
-			p.Path = strings.TrimRight(filepath.Clean(pathPart), "\\/")
+			p.Path = strings.TrimRight(filesystem.CleanPath(p.Fs, pathPart), "\\/")
 			p.isDirectory = fi == nil || fi.IsDir()
 			break
 		}
