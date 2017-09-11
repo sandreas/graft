@@ -111,11 +111,32 @@ The serve command is used to provide files via sftp. Similar to find, all matchi
 
 Additionally, graft tries to use mdns/zeroconf to announce the sftp server within the current network, so that `graft receive` finds the server automatically and downloads all provided files.
 
-Provide:
+Provide all jpg files in /tmp:
 ```
-graft find '/tmp/*.jpg'
+graft serve '/tmp/*.jpg'
 ```
 
+By default graft serve will provide all files in the current directory:
+```
+graft serve
+
+# is same as
+
+graft serve .
+```
+
+### ***receive***
+**graft** can receive files from a graft server. In most cases, it should find its pairing host automatically with zeroconf, but you can also specify, from which host you would like to receive.
+
+Lookup host via zeroconf and receive files to current directory:
+```
+graft receive
+```
+
+Specify host:
+```
+graft receive --host 192.168.1.111
+```
 
 ### ***delete***
 
@@ -128,16 +149,10 @@ See **[Option reference](#option-reference)** for more info.
 
 
 
+### ***copy***
+**graft** can copy files recursively and resumes partially transferred files by default. 
 
-
-
-
-### Modes ***copy*** and ***move***
-
-**graft** copies recursively and resumes partially transferred files by default. If you would like to move / rename files instead, use the ---move option 
-
-
-Recursive copy every jpg file from tmp to /home/johndoe/pictures (dry-run)
+Recursive copy every jpg file from `tmp` to `/home/johndoe/pictures (dry-run)
 
 ```
 graft '/tmp/*.jpg' '/home/johndoe/pictures/$1' --dry-run
@@ -145,7 +160,7 @@ graft '/tmp/*.jpg' '/home/johndoe/pictures/$1' --dry-run
 
 #### Submatches and more complex examples 
 
-As a result of using regular expressions, you can use `()` in combination with `$` to create submatches, e.g.:
+As a result of using regular expressions internally, you can use `()` in combination with `$` to create submatches, e.g.:
 
 ```
 graft '/tmp/(*).(jpeg)' '/home/johndoe/pictures/$1_new.$2'
@@ -157,7 +172,7 @@ will copy following source files to their destination:
 /tmp/test.jpeg          => /home/johndoe/pictures/test_new.jpeg
 /tmp/subdir/other.jpeg  => /home/johndoe/pictures/subdir/other_new.jpeg
 ```
-If you do not specify a submatch using ***()***, the whole pattern is treated as submatch.
+If you do not specify a submatch using `(), the whole pattern is treated as submatch.
 
 ```
 graft '/tmp/*.jpg'
@@ -167,12 +182,12 @@ graft '/tmp/*.jpg'
 graft '/tmp/(*.jpg)'
 ```
 
-If you would like to match ***()*** in directory names or file names, they have to be escaped via backslash:
+If you would like to match `()` in directory names or file names, they have to be quoted via backslash:
 ```
 graft '/tmp/videos \(2016\)' '/home/johndoe/'
 ```
 
-You can also use pipes to match groups of chars:
+You can also use pipes to match multiple variants of char combinations:
 ```
 graft '/tmp/(*.)(jpg|png)' '/home/johndoe/pictures/$1$2'
 ```
@@ -183,42 +198,82 @@ This will copy following source files to their destination:
 /tmp/subdir/other.PNG  => /home/johndoe/pictures/subdir/other_new.PNG
 ```
 
+### ***move***
+**graft** can also move files recursively. It should work exactly like copy except of moving files to its destination, instead of copy
 
-### Option reference
 
-Following options are available:
+
+### Reference
+
 ```
-Positional arguments:
-  SOURCE
-  DESTINATION
+Usage: graft <action> SOURCE [OPTIONS]
+  or   graft <action> SOURCE DESTINATION [OPTIONS] 
 
-Options:
-  --move                 rename files instead of copy
-  --delete               delete found files (be careful with this one - use --dry-run before execution)
-  --dry-run              simulation mode - shows output but files remain unaffected
-  --times                transfer source modify times to destination
-  --force                force the requested action - even if it might be not a good idea
-  --debug, -d            debug mode with logging to Stdout and into $HOME/.graft/application.log
-  --quiet                do not show any output
-  --show-matches         show pattern matches for each found file
-  --export-to EXPORT-TO
-                         export found matches to a text file - one line per item
-  --files-from FILES-FROM
-                         import found matches from file - one line per item
-  --max-age MAX-AGE      maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )
-  --min-age MIN-AGE      minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )
-  --max-size MAX-SIZE    maximum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )
-  --min-size MIN-SIZE    minimum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )
-  --regex                use a real regex instead of glob patterns (e.g. src/.*\.jpg)
-  --case-sensitive       be case sensitive when matching files and folders
-  --sftpd                start sftp server providing only matching files and directories
-  --sftp-password SFTP-PASSWORD
-                         Specify the password for the sftp server
-  --sftp-username SFTP-USERNAME
-                         Specify the username for the sftp server [default: graft]
-  --sftp-port SFTP-PORT
-                         Specifies the port on which the server listens for connections [default: 2022]
-  --help, -h             display this help and exit
+Positional arguments:
+  SOURCE                Source file or directory
+  DESTINATION           Destination file or directory (only available on transfer actions)
+  
+COMMANDS:
+     find, f        find files
+     serve, s       serve files
+     copy, c, cp    copy files from a source to a destination
+     move, m, mv    move files from a source to a destination
+     delete, d, rm  delete files recursively
+     receive, r     receive files from a graft server
+     help, h        Shows a list of commands or help for one command
+
+
+GLOBAL OPTIONS:
+   --help, -h     show help
+   --version, -v  print the version
+
+GLOBAL ACTION OPTIONS:
+   --quiet, -q         do not show any output
+   --force, -f         force the requested action - even if it might be not a good idea
+   --debug             debug mode with logging to Stdout and into $HOME/.graft/application.log
+   --regex             use a real regex instead of glob patterns (e.g. src/.*\.jpg)
+   --case-sensitive    be case sensitive when matching files and folders
+   --max-age value     maximum age (e.g. 2d / 8w / 2016-12-24 / etc. )
+   --min-age value     minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )
+   --max-size value    maximum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )
+   --min-size value    minimum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )
+   --export-to value   export found matches to a text file - one line per item (can also be used as save cache for large scans)
+   --files-from value  import found matches from file - one line per item (can also be used as load cache for large scans)
+
+FIND OPTIONS:
+   --host value        Specify the hostname for the server (client mode only)
+   --port value        Specifiy server port (used for server- and client mode) (default: 2022)
+   --username value    Specify server username (used in server- and client mode) (default: "graft")
+   --password value    Specify server password (used for server- and client mode)
+   --show-matches      do not show matches for search pattern ($1=filename)
+   --client            client mode - act as sftp client and search files remotely instead of local search
+
+
+SERVE OPTIONS:
+   --host value        Specify the hostname for the server (client mode only)
+   --port value        Specifiy server port (used for server- and client mode) (default: 2022)
+   --username value    Specify server username (used in server- and client mode) (default: "graft")
+   --password value    Specify server password (used for server- and client mode)
+   --no-zeroconf       do not use mdns/zeroconf to publish multicast sftp server (graft receive will not work without parameters)
+
+COPY OPTIONS:
+   --times             transfer source modify times to destination
+   --dry-run           simulation mode - shows output but files remain unaffected
+   
+MOVE OPTIONS:
+   --times             transfer source modify times to destination
+   --dry-run           simulation mode - shows output but files remain unaffected   
+
+DELETE OPTIONS:
+   --dry-run           simulation mode - shows output but files remain unaffected
+
+RECEIVE OPTIONS:
+   --dry-run           simulation mode - shows output but files remain unaffected
+   --times             transfer source modify times to destination
+   --host value        Specify the hostname for the server (client mode only)
+   --port value        Specifiy server port (used for server- and client mode) (default: 2022)
+   --username value    Specify server username (used in server- and client mode) (default: "graft")
+   --password value    Specify server password (used for server- and client mode)
 ```
 
 The parameters `--min-age` and `--max-age` take duration or date strings to specify the age. Valid formats for age parameters, used like --min-age=X are:
@@ -256,8 +311,4 @@ cd graft
 go build
 ```
 
-If the build is successful, the directory should contain a binary named `graft`
-
-## IDE recommendation
-
-**graft** is developed with JetBrains IntelliJ IDEA using the golang plugin, so this is the recommended IDE
+If the build is successful, the directory should contain a binary named `graft` or `graft.exe` on windows systems

@@ -4,10 +4,7 @@
 
 - global
     - update documentation
-    - support unc paths / correct slash handling
-        - base.go / base_test.go (filepath.ToSlash)
-        - locator.go / locator_test.go (filepath.ToSlash)
-        - pattern/functions.go (filepath.ToSlash)
+    - find a device id to ensure that "move" is safe to do / otherwise use copy and delete afterwards
     - replace pathmapper with file_tree
     - close source fs
     - add matcher for mimetype (image/*, image/jpeg)
@@ -25,8 +22,6 @@
     - supportmultiple mdns entries - switch mdns library to https://github.com/grandcat/zeroconf
     - Improve handling of huge amounts of files
     
-- delete
-    - ask before delete by default, quiet or force does not ask
     
 Possible improvements
 - update Matchers to use existing FileInfo for faster matching / use matcher.setFileInfo in FileMatcherInterface
@@ -37,7 +32,6 @@ Possible improvements
 - --hide-progress (for working like find)
 - improve progress-bar output (progress speed is not accurate enough)
 - sftp-server:
-	    filezilla takes long and produces 0 byte files
 		filesystem watcher for sftp server (https://godoc.org/github.com/fsnotify/fsnotify)
 	accept connections from specific ip: 		conn, e := listener.Accept() clientAddr := conn.RemoteAddr() if clientAddr
 - sftp client
