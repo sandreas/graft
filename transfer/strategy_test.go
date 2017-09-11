@@ -5,12 +5,13 @@ import (
 
 	"os"
 
+	"time"
+
+	"github.com/sandreas/graft/designpattern/observer"
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/transfer"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
-	"time"
-	"github.com/sandreas/graft/designpattern/observer"
 )
 
 var sep = string(os.PathSeparator)
@@ -26,7 +27,6 @@ func TestRelativeWildcardMapping(t *testing.T) {
 	expect.Equal("dst"+sep+"test-dir"+sep+"test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 
 }
-
 
 func TestComplexRelativeMapping(t *testing.T) {
 	expect := assert.New(t)
@@ -46,6 +46,12 @@ func TestComplexRelativeMapping(t *testing.T) {
 
 	strategy = prepareStrategy("src/test-dir/test-dir-file.txt", "dst/new-file.txt")
 	expect.Equal("dst"+sep+"new-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+
+	strategy = prepareStrategy("src/test-dir/test-dir-file.txt", "C:/TestMissingDir/")
+	expect.Equal("C:"+sep+"TestMissingDir"+sep+"test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+
+	strategy = prepareStrategy("src/test-dir", "C:/TestMissingDir")
+	expect.Equal("C:"+sep+"TestMissingDir"+sep+"test-dir"+sep+"test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
 }
 
 func prepareStrategy(src string, dst string) *transfer.Strategy {
@@ -71,6 +77,7 @@ func prepareFileSystem() afero.Fs {
 	appFS.Mkdir("dst", 0644)
 	afero.WriteFile(appFS, "dst/overwrite.txt", []byte(""), 0755)
 	afero.WriteFile(appFS, "src/test-dir/test-dir-file.txt", []byte(""), 0755)
+	appFS.Mkdir("C:"+sep+"Temp", 0644)
 	return appFS
 }
 
@@ -263,6 +270,7 @@ func TestCopyZeroBytesFile(t *testing.T) {
 	_, err = subject.SourcePattern.Fs.Stat(destinationFile)
 	expect.Nil(err)
 }
+
 func TestCleanupIsAlwaysNil(t *testing.T) {
 	expect := assert.New(t)
 	srcFile := "test-src.txt"

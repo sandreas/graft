@@ -196,9 +196,12 @@ func (strategy *Strategy) DestinationFor(src string) string {
 			return strategy.DestinationPattern.Path + string(os.PathSeparator) + filepath.Base(cleanedSrc)
 		}
 
-		if !strings.HasSuffix(strategy.DestinationPattern.Pattern, "/") {
+		l:=len(strategy.DestinationPattern.Pattern)
+		if !os.IsPathSeparator(strategy.DestinationPattern.Pattern[l-1]) {
 			return strategy.DestinationPattern.Path + string(os.PathSeparator) + strategy.DestinationPattern.Pattern
 		}
+		cleanedPattern := strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/")
+		return strategy.DestinationPattern.Path+string(os.PathSeparator)+cleanedPattern+string(os.PathSeparator)+filepath.Base(cleanedSrc)
 	}
 
 	// source pattern points to an existing file or directory

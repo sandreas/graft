@@ -3,13 +3,16 @@
 - switch mdns library to https://github.com/grandcat/zeroconf
 
 - global
+    - choose a release strategy (https://github.com/goreleaser/goreleaser)
     - update documentation
+    - graft archive command
     - find a device id to ensure that "move" is safe to do / otherwise use copy and delete afterwards
     - replace pathmapper with file_tree
     - close source fs
     - add matcher for mimetype (image/*, image/jpeg)
     - max-depth parameter (?)
     - hide progress?!
+    - improve performance of huge amounts of small files
     - shouldStop return parameter for filesystem.Walk
         - limit-results parameter
 

@@ -21,9 +21,11 @@ func TestBase(t *testing.T) {
 		"fixtures/global/":         "",
 		"fixtures/global/file.txt": "",
 		veryLongRelativePathFile:   "{}",
+		"C:" + sep + "Temp" : "",
 	})
 
-	basePattern := pattern.NewBasePattern(mockFs, "fixtures/global/*")
+	var basePattern *pattern.BasePattern
+	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/*")
 	expect.Equal("fixtures"+sep+"global", basePattern.Path)
 	expect.Equal("*", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
@@ -85,6 +87,12 @@ func TestBase(t *testing.T) {
 
 	basePattern = pattern.NewBasePattern(mockFs, veryLongRelativePath+"/*")
 	expect.Equal("*", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
+
+	basePattern = pattern.NewBasePattern(mockFs, "C:/TestMissingDir/")
+	expect.Equal("C:", basePattern.Path)
+	expect.Equal("TestMissingDir/", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
