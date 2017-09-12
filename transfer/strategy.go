@@ -178,6 +178,14 @@ func (strategy *Strategy) Perform(strings []string) error {
 func (strategy *Strategy) DestinationFor(src string) string {
 	cleanedSrc := filesystem.CleanPath(strategy.SourcePattern.Fs, src)
 
+
+
+	srcPatternPathLen := len(strategy.SourcePattern.Path)
+	if strategy.SourcePattern.Path == "." {
+		srcPatternPathLen = 0
+	}
+
+
 	if strategy.SourcePattern.IsFile() {
 		if strategy.DestinationPattern.IsFile() {
 			return strategy.DestinationPattern.Path
@@ -194,6 +202,8 @@ func (strategy *Strategy) DestinationFor(src string) string {
 		cleanedPattern := strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/")
 		return strategy.DestinationPattern.Path+string(os.PathSeparator)+cleanedPattern+string(os.PathSeparator)+filepath.Base(cleanedSrc)
 	}
+
+
 
 	// source pattern points to an existing file or directory
 	if strategy.SourcePattern.Pattern == "" {
@@ -214,10 +224,10 @@ func (strategy *Strategy) DestinationFor(src string) string {
 
 	// destination pattern points to an existing file or directory
 	if strategy.DestinationPattern.Pattern == "" {
-		return strategy.DestinationPattern.Path + cleanedSrc[len(strategy.SourcePattern.Path):]
+		return strategy.DestinationPattern.Path + string(os.PathSeparator) + strings.TrimLeft(cleanedSrc[srcPatternPathLen:], "\\/")
 	}
 
-	return strategy.CompiledSourcePattern.ReplaceAllString(cleanedSrc, strategy.DestinationPattern.Path+string(os.PathSeparator)+strategy.DestinationPattern.Pattern)
+	return strategy.CompiledSourcePattern.ReplaceAllString(cleanedSrc, strategy.DestinationPattern.Path+string(os.PathSeparator)+strings.TrimLeft(strategy.DestinationPattern.Pattern, "\\/"))
 }
 
 func (strategy *Strategy) PerformSingleTransfer(src string) error {
