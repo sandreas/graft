@@ -1,13 +1,22 @@
 package action
 
 import (
-	"github.com/urfave/cli"
-	"github.com/oleksandr/bonjour"
 	"log"
 	"time"
-	"github.com/sandreas/graft/transfer"
 
+	"github.com/sandreas/graft/transfer"
+	"github.com/urfave/cli"
+
+	"context"
 	"errors"
+
+	"fmt"
+
+	"github.com/grandcat/zeroconf"
+	"bufio"
+	"os"
+	"strings"
+	"strconv"
 )
 
 type ReceiveAction struct {
@@ -23,6 +32,39 @@ func (action *ReceiveAction) Execute(c *cli.Context) error {
 	if err := action.PrepareExecution(c, 2, "*", "$1"); err != nil {
 		return err
 	}
+	//if action.CliParameters.Host== "" {
+	//	service := "_graft._tcp"
+	//	domain := "local"
+	//
+	//	waitTime := 10
+	//
+	//	// Discover all services on the network (e.g. _workstation._tcp)
+	//	resolver, err := zeroconf.NewResolver(nil)
+	//	if err != nil {
+	//		log.Fatalln("Failed to initialize resolver:", err.Error())
+	//	}
+	//
+	//	entries := make(chan *zeroconf.ServiceEntry)
+	//	go func(results <-chan *zeroconf.ServiceEntry) {
+	//		for entry := range results {
+	//			fmt.Println(entry)
+	//		}
+	//		fmt.Println("No more entries.")
+	//	}(entries)
+	//
+	//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(waitTime))
+	//	defer cancel()
+	//	err = resolver.Browse(ctx, service, domain, entries)
+	//	if err != nil {
+	//		log.Fatalln("Failed to browse:", err.Error())
+	//	}
+	//
+	//	<-ctx.Done()
+	//	// Wait some additional time to see debug messages on go routine shutdown.
+	//	time.Sleep(1 * time.Second)
+	//	return nil
+	//}
+	//return nil
 
 	if action.shouldLookup() {
 		return action.lookupServiceAndReceive()
@@ -69,79 +111,82 @@ func (action *ReceiveAction) receive() error {
 }
 
 func (action *ReceiveAction) lookupServiceAndReceive() error {
+	var err error
 	action.suppressablePrintf("hostname parameter is not set, trying to find graft servers...\n")
 
-	resolver, err := bonjour.NewResolver(nil)
-	if err != nil {
-		log.Println("Failed to initialize resolver:", err.Error())
-		return cli.NewExitError("Failed to initialize resolver: "+err.Error(), ErrorFailedToInitializeResolver)
-	}
-	results := make(chan *bonjour.ServiceEntry)
+	service := "_graft._tcp"
+	domain := ""
 
-	err = resolver.Lookup("graft", "_graft._tcp.", "", results)
+	waitTime := 10
+
+	// Discover all services on the network (e.g. _workstation._tcp)
+	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
-		return cli.NewExitError("Could not find graft server: "+err.Error(), ErrorNoGraftServerAvailable)
+		log.Fatalln("Failed to initialize resolver:", err.Error())
 	}
+
 	serverEntries := []*MdnsServerEntry{}
-	retriesWithoutNewEntry := 0
-	receiveTriggered := false
-	for {
-		select {
-		case nextResult := <-results:
+
+	entries := make(chan *zeroconf.ServiceEntry)
+	go func(results <-chan *zeroconf.ServiceEntry) {
+		for entry := range results {
+			fmt.Printf("%#v", entry)
 			server := &MdnsServerEntry{
-				Host: nextResult.HostName,
-				Port: nextResult.Port,
+				Host: entry.HostName,
+				Port: entry.Port,
 			}
 			serverEntries = append(serverEntries, server)
-			log.Printf("found new server %s:%d\n", server.Host, server.Port)
-		default:
-			retriesWithoutNewEntry++
-			log.Printf("try %d\n", retriesWithoutNewEntry)
-			if !receiveTriggered && retriesWithoutNewEntry > 20 {
-				receiveTriggered = true
-				return action.chooseServerAndReceive(serverEntries, resolver.Exit)
-			}
-
+			println("fount new server: " + fmt.Sprintf("%s:%d", server.Host, server.Port))
 		}
-		time.Sleep(200 * time.Millisecond)
+		err = action.chooseServerAndReceive(serverEntries)
+	}(entries)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(waitTime))
+	defer cancel()
+	err = resolver.Browse(ctx, service, domain, entries)
+	if err != nil {
+		return err
 	}
+
+	<-ctx.Done()
+	// Wait some additional time to see debug messages on go routine shutdown.
+	time.Sleep(1 * time.Second)
+	return err
 }
-func (action *ReceiveAction) chooseServerAndReceive(serverEntries []*MdnsServerEntry, exitCh chan<- bool) error {
+func (action *ReceiveAction) chooseServerAndReceive(serverEntries []*MdnsServerEntry) error {
 	serverCount := len(serverEntries)
 	log.Printf("server entries found: %d", serverCount)
 
 	if serverCount == 0 {
-		//action.suppressablePrintf("graft did not find a server instance to receive from, exiting\n")
-		exitCh <- true
-		time.Sleep(1e9)
 		return errors.New("graft did not find a server instance to receive from, exiting")
 	}
 	var selectedServer *MdnsServerEntry
 	if serverCount == 1 {
 		selectedServer = serverEntries[0]
 	} else {
-		//println("found multiple servers to receive from - please provide hostname, port, username and password", serverCount)
-		exitCh <- true
-		time.Sleep(1e9)
-		return errors.New("found multiple servers to receive from - please provide hostname, port, username and password")
+		action.suppressablePrintf("found %d servers, choose the one to receive from:\n", serverCount)
 
-		// Todo: Handle multiple found servers
-		//action.suppressablePrintf("found %d servers, choose the one to receive from:\n", serverCount)
-		//for i:=0;i<serverCount;i++ {
-		//	fmt.Printf("%d.)  %s:%d\n", i+1, serverEntries[i].Host, serverEntries[i].Port)
-		//}
-		//
-		//reader := bufio.NewReader(os.Stdin)
-		//fmt.Print("Enter text: ")
-		//text, _ := reader.ReadString('\n')
-		//fmt.Println(text)
+		for i := 0; i < serverCount; i++ {
+			fmt.Printf("%d.)  %s:%d\n", i+1, serverEntries[i].Host, serverEntries[i].Port)
+		}
 
+		for {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print("Choose Server: ")
+			text, _ := reader.ReadString('\n')
+
+			chosenServerNum, err := strconv.Atoi(strings.Trim(text, "\r\n"))
+			if err != nil || chosenServerNum < 1 || chosenServerNum > len(serverEntries) {
+				fmt.Println("Invalid choice, please specify a valid number")
+			} else {
+				selectedServer = serverEntries[chosenServerNum-1]
+				break;
+			}
+		}
 	}
 	action.CliParameters.Host = selectedServer.Host
 	action.CliParameters.Port = selectedServer.Port
 	action.receive()
-	exitCh <- true
-	time.Sleep(1e9)
 	return nil
 
 }

@@ -5,12 +5,16 @@ import (
 	"net"
 	"os"
 	"strings"
-	"sync"
 
-	"github.com/oleksandr/bonjour"
+	"os/signal"
+	"syscall"
+
+	"github.com/grandcat/zeroconf"
 	"github.com/sandreas/graft/apputils"
 	"github.com/sandreas/graft/sftpd"
 	"github.com/urfave/cli"
+	"fmt"
+	"strconv"
 )
 
 type ServeAction struct {
@@ -73,33 +77,29 @@ func (action *ServeAction) ServeFoundFiles() error {
 		}
 	}
 
-	wg := &sync.WaitGroup{}
-	//var sftpListener *net.Listener
-	//var bonjourListener *bonjour.Server
-
 	if !action.CliContext.Bool("no-zeroconf") {
 		action.suppressablePrintf("Publishing service via mdns: active\n")
 
-		wg.Add(1)
-		go func() {
-			instance := "graft"
-			service := "_graft._tcp"
-			domain := ""
-			port := action.CliContext.Int("port")
+		hostname, _ := os.Hostname()
+		port := action.CliContext.Int("port")
+		name := "graft on " +hostname + ":" +strconv.Itoa(port)
+		service := "_graft._tcp"
+		domain := "local."
 
 
-			log.Printf("Registering bonjour instance %s on domain %s with service %s on port %d", instance, domain, service, port)
-			_, err := bonjour.Register("graft", "_graft._tcp", "", port, []string{"txtv=1", "app=graft"}, nil)
-
-			if err != nil {
-				log.Printf("Error starting mdns: %v", err.Error())
-			}
-			wg.Done()
-		}()
+		server, err := zeroconf.Register(name, service, domain, port, []string{"txtv=0", "domain="+domain, "la=2"}, nil)
+		if err != nil {
+			panic(err)
+		}
+		defer server.Shutdown()
+		fmt.Println("Published service:")
+		fmt.Println("- Name:", name)
+		fmt.Println("- Type:", service)
+		fmt.Println("- Domain:", domain)
+		fmt.Println("- Port:", port)
 
 	}
 
-	wg.Add(1)
 	go func() {
 		action.suppressablePrintf("Running sftp server, login as %s@%s:%d\nPress CTRL+C to stop\n", username, outboundIp, port)
 		// sftpListener, err := sftpd.NewSimpleSftpServer(homeDir, listenAddress, port, username, password, pathMapper)
@@ -107,11 +107,17 @@ func (action *ServeAction) ServeFoundFiles() error {
 		if err != nil {
 			log.Printf("Error starting sftp server: " + err.Error())
 		}
-		wg.Done()
 	}()
 
+	// Clean exit.
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	// Timeout timer
 
-	wg.Wait()
+	select {
+	case <-sig:
+		// Exit by user
+	}
 
 	// TODO Ctrl+C handling
 	//handler := make(chan os.Signal, 1)
