@@ -36,26 +36,32 @@ func prepareFileSystem() afero.Fs {
 	// not resumable - diff at end
 	afero.WriteFile(appFS, "file6-src.txt", []byte("0123456789012345678901234567890123456789"), 0755)
 	afero.WriteFile(appFS, "file6-dst.txt", []byte("0123456789012345678a"), 0755)
-	//
+
 	// not resumable - diff at middle
 	afero.WriteFile(appFS, "file7-src.txt", []byte("0123456789012345678901234567890123456789"), 0755)
 	afero.WriteFile(appFS, "file7-dst.txt", []byte("01234567890123aaaaaaaa234567890123"), 0755)
 
+
+	// resumable with spaces
+	afero.WriteFile(appFS, "file8-src.txt", []byte("this is the full content of a file with a partial existing destination"), 0755)
+	afero.WriteFile(appFS, "file8-dst.txt", []byte("this is the full content of a file with a partial"), 0755)
+
+
 	return appFS
 }
 
-func prepareTestSubect(fileNamePrefix string) (*compare.Stitch, error) {
+func prepareTestSubect(fileNamePrefix string, bufferSize int64) (*compare.Stitch, error) {
 	fs := prepareFileSystem()
 	src, _ := fs.Open(fileNamePrefix+"-src.txt")
 	dst, _ := fs.OpenFile(fileNamePrefix+"-dst.txt", os.O_RDWR|os.O_CREATE, 0755)
 
-	return compare.NewStich(src, dst, 2)
+	return compare.NewStich(src, dst, bufferSize)
 }
 
 func TestNotExistingFile(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, err := prepareTestSubect("file1")
+	subject, err := prepareTestSubect("file1",2)
 
 	expect.NoError(err)
 	expect.NotNil(subject)
@@ -65,7 +71,7 @@ func TestNotExistingFile(t *testing.T) {
 func TestBiggerDestinationFile(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, err := prepareTestSubect("file2")
+	subject, err := prepareTestSubect("file2",2)
 
 	expect.Error(err)
 	expect.Equal("source is smaller than destination", err.Error())
@@ -75,7 +81,7 @@ func TestBiggerDestinationFile(t *testing.T) {
 func TestAlreadyCompletedFile(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, err := prepareTestSubect("file3")
+	subject, err := prepareTestSubect("file3",2 )
 
 	expect.NoError(err)
 	expect.NotNil(subject)
@@ -85,7 +91,7 @@ func TestAlreadyCompletedFile(t *testing.T) {
 func TestPartialFileCanBeResumed(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, err := prepareTestSubect("file4")
+	subject, err := prepareTestSubect("file4", 2)
 
 	expect.NoError(err)
 	expect.NotNil(subject)
@@ -95,7 +101,7 @@ func TestPartialFileCanBeResumed(t *testing.T) {
 func TestFileDiffAtStartCannotBeResumed(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, err := prepareTestSubect("file5")
+	subject, err := prepareTestSubect("file5",2 )
 
 	expect.Error(err)
 	expect.Equal("source file does not match destination file", err.Error())
@@ -105,7 +111,7 @@ func TestFileDiffAtStartCannotBeResumed(t *testing.T) {
 func TestFileDiffAtEndCannotBeResumed(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, err := prepareTestSubect("file6")
+	subject, err := prepareTestSubect("file6", 2)
 
 	expect.Error(err)
 	expect.Equal("source file does not match destination file", err.Error())
@@ -115,9 +121,19 @@ func TestFileDiffAtEndCannotBeResumed(t *testing.T) {
 func TestFileDiffAtMiddleCannotBeResumed(t *testing.T) {
 	expect := assert.New(t)
 
-	subject, err := prepareTestSubect("file7")
+	subject, err := prepareTestSubect("file7",2 )
 
 	expect.Error(err)
 	expect.Equal("source file does not match destination file", err.Error())
 	expect.Nil(subject)
+}
+
+func TestFileCanBeResumedWithHigherBufferSize(t *testing.T) {
+	expect := assert.New(t)
+
+	subject, err := prepareTestSubect("file8",1024 * 32 )
+
+	expect.NoError(err)
+	expect.NotNil(subject)
+	expect.False(subject.IsComplete())
 }

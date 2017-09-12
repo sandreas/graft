@@ -61,7 +61,7 @@ func (s *Stitch) initialize() error {
 		return nil
 	}
 
-	if s.BufferSize < outSize  {
+	if s.BufferSize > outSize  {
 		s.BufferSize = outSize
 	}
 

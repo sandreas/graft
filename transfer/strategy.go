@@ -14,6 +14,7 @@ import (
 	"github.com/sandreas/graft/designpattern/observer"
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/filesystem"
+	"github.com/sandreas/graft/file/compare"
 )
 
 const (
@@ -66,29 +67,6 @@ func (strategy *Strategy) PerformFileTransfer(src string, dst string, srcStat os
 }
 
 func (strategy *Strategy) CopyResumed(s, d string, srcStats os.FileInfo) error {
-	srcSize := srcStats.Size()
-	dstSize := int64(0)
-	dstStats, err := strategy.DestinationPattern.Fs.Stat(d)
-
-	dstExists := true
-	if err == nil {
-		dstSize = dstStats.Size()
-	} else if !os.IsNotExist(err) {
-		return err
-	} else {
-		dstExists = false
-	}
-
-	if dstSize > srcSize {
-		return errors.New("File cannot be resumed, destination is larger than source")
-	}
-
-	strategy.handleProgress(dstSize, srcSize, strategy.bufferSize)
-
-	if dstExists && srcSize == dstSize {
-		return nil
-	}
-
 	src, err := strategy.SourcePattern.Fs.OpenFile(s, os.O_RDONLY, srcStats.Mode())
 	if err != nil {
 		return err
@@ -100,6 +78,19 @@ func (strategy *Strategy) CopyResumed(s, d string, srcStats os.FileInfo) error {
 		return err
 	}
 	defer dst.Close()
+
+	compareStrategy, err := compare.NewStich(src, dst, strategy.bufferSize)
+	if err != nil  {
+		return err
+	}
+
+	srcSize := compareStrategy.SourceFileStat.Size()
+		dstSize := compareStrategy.DestinationFileStat.Size()
+	strategy.handleProgress(dstSize, srcSize, strategy.bufferSize)
+
+	if compareStrategy.IsComplete()  {
+		return nil
+	}
 
 	src.Seek(dstSize, 0)
 	dst.Seek(dstSize, 0)
