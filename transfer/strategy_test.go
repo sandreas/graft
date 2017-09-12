@@ -52,6 +52,9 @@ func TestComplexRelativeMapping(t *testing.T) {
 
 	strategy = prepareStrategy("src/test-dir", "C:/TestMissingDir")
 	expect.Equal("C:"+sep+"TestMissingDir"+sep+"test-dir"+sep+"test-dir-file.txt", strategy.DestinationFor("src/test-dir/test-dir-file.txt"))
+
+	strategy = prepareStrategy("*", ".")
+	expect.Equal("."+sep+"file", strategy.DestinationFor("file"))
 }
 
 func prepareStrategy(src string, dst string) *transfer.Strategy {
