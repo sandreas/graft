@@ -10,31 +10,24 @@ import (
 )
 
 type Stitch struct {
-	BufferSize          int64
-	sourceFs            afero.Fs
-	source              string
-	destinationFs       afero.Fs
-	destination         string
-	SourceFileStat      os.FileInfo
-	DestinationFileStat os.FileInfo
-
-	fi afero.File
-	fo afero.File
+	BufferSize             int64
+	SourceFileStat         os.FileInfo
+	DestinationFileStat    os.FileInfo
+	SourceFilePointer      afero.File
+	DestinationFilePointer afero.File
 
 	isTransferCompleted bool
 }
 
-func NewStich(srcFs afero.Fs, src string, dstFs afero.Fs, dst string, bufferSize int64) (*Stitch, error) {
+func NewStich(src afero.File, dst afero.File, bufferSize int64) (*Stitch, error) {
 	stitchStrategy := &Stitch{
-		BufferSize:    bufferSize,
-		sourceFs:      srcFs,
-		source:        src,
-		destinationFs: dstFs,
-		destination:   dst,
+		BufferSize:             bufferSize,
+		SourceFilePointer:      src,
+		DestinationFilePointer: dst,
 	}
 
 	var err error
-	stitchStrategy.SourceFileStat, err = srcFs.Stat(src)
+	stitchStrategy.SourceFileStat, err = src.Stat()
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +40,7 @@ func NewStich(srcFs afero.Fs, src string, dstFs afero.Fs, dst string, bufferSize
 }
 func (s *Stitch) initialize() error {
 	var err error
-	s.DestinationFileStat, err = s.destinationFs.Stat(s.destination)
+	s.DestinationFileStat, err = s.DestinationFilePointer.Stat()
 	if os.IsNotExist(err) {
 		s.isTransferCompleted = false
 		return nil
@@ -57,7 +50,6 @@ func (s *Stitch) initialize() error {
 		return err
 	}
 
-
 	inSize := s.SourceFileStat.Size()
 	outSize := s.DestinationFileStat.Size()
 
@@ -65,20 +57,15 @@ func (s *Stitch) initialize() error {
 		return errors.New("source is smaller than destination")
 	}
 
-	s.fi, err = s.sourceFs.Open(s.source)
-	if err != nil {
-		return err
+	if outSize == 0 {
+		return nil
 	}
-	defer s.fi.Close()
 
-	s.fo, err = s.destinationFs.Open(s.destination)
-	if err != nil {
-		return err
+	if s.BufferSize < outSize  {
+		s.BufferSize = outSize
 	}
-	defer s.fo.Close()
 
-
-	if err := s.ensureFileContentsEqual(s.fi, s.fo, 0); err != nil {
+	if err := s.ensureFileContentsEqual(0); err != nil {
 		return err
 	}
 
@@ -87,24 +74,24 @@ func (s *Stitch) initialize() error {
 		return nil
 	}
 
-	backOffset := outSize-s.BufferSize
+	backOffset := outSize - s.BufferSize
 	shouldCheckMiddle := true
-	if backOffset <= outSize / 2  {
+	if backOffset <= outSize/2 {
 		backOffset = s.BufferSize
 		shouldCheckMiddle = false
 	}
 
-	if err := s.ensureFileContentsEqual(s.fi, s.fo, backOffset); err != nil {
+	if err := s.ensureFileContentsEqual(backOffset); err != nil {
 		return err
 	}
-	if !shouldCheckMiddle  {
+	if !shouldCheckMiddle {
 		s.isTransferCompleted = inSize == outSize
 		return nil
 	}
 
-	middleOffset := int64(math.Floor(float64(outSize / 2) - float64(s.BufferSize / 2)))
+	middleOffset := int64(math.Floor(float64(outSize/2) - float64(s.BufferSize/2)))
 
-	if err := s.ensureFileContentsEqual(s.fi, s.fo, middleOffset); err != nil {
+	if err := s.ensureFileContentsEqual(middleOffset); err != nil {
 		return err
 	}
 
@@ -112,16 +99,16 @@ func (s *Stitch) initialize() error {
 	return nil
 }
 
-func (s *Stitch) ensureFileContentsEqual(fi afero.File, fo afero.File, offset int64) error{
+func (s *Stitch) ensureFileContentsEqual(offset int64) error {
 	fiBuf := make([]byte, s.BufferSize)
-	_, err := fi.ReadAt(fiBuf, offset)
+	_, err := s.SourceFilePointer.ReadAt(fiBuf, offset)
 
 	if err != nil {
 		return err
 	}
 
 	foBuf := make([]byte, s.BufferSize)
-	_, err = fo.ReadAt(foBuf, offset)
+	_, err = s.DestinationFilePointer.ReadAt(foBuf, offset)
 
 	if err != nil {
 		return err
@@ -131,8 +118,6 @@ func (s *Stitch) ensureFileContentsEqual(fi afero.File, fo afero.File, offset in
 	}
 	return nil
 }
-
-
 
 func (s *Stitch) IsComplete() bool {
 	return s.isTransferCompleted

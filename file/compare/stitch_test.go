@@ -6,6 +6,7 @@ import (
 	"github.com/sandreas/graft/file/compare"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	"os"
 )
 
 func prepareFileSystem() afero.Fs {
@@ -45,7 +46,10 @@ func prepareFileSystem() afero.Fs {
 
 func prepareTestSubect(fileNamePrefix string) (*compare.Stitch, error) {
 	fs := prepareFileSystem()
-	return compare.NewStich(fs, fileNamePrefix+"-src.txt", fs, fileNamePrefix+"-dst.txt", 2)
+	src, _ := fs.Open(fileNamePrefix+"-src.txt")
+	dst, _ := fs.OpenFile(fileNamePrefix+"-dst.txt", os.O_RDWR|os.O_CREATE, 0755)
+
+	return compare.NewStich(src, dst, 2)
 }
 
 func TestNotExistingFile(t *testing.T) {
