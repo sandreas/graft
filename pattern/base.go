@@ -49,7 +49,7 @@ func (p *BasePattern) parse(patternString string) {
 	}
 
 	if pathPart != patternString {
-		if pathPart == "." && len(patternString) == 1 {
+		if pathPart == "." && !strings.HasPrefix(patternString, ".") {
 			p.Path = "."
 			p.Pattern = patternString
 		} else {
