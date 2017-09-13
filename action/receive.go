@@ -17,10 +17,12 @@ import (
 	"os"
 	"strings"
 	"strconv"
+	"net"
 )
 
 type ReceiveAction struct {
 	AbstractTransferAction
+	serverEntries []*MdnsServerEntry
 }
 
 type MdnsServerEntry struct {
@@ -29,6 +31,7 @@ type MdnsServerEntry struct {
 }
 
 func (action *ReceiveAction) Execute(c *cli.Context) error {
+	action.serverEntries = []*MdnsServerEntry{}
 	if err := action.PrepareExecution(c, 2, "*", "$1"); err != nil {
 		return err
 	}
@@ -117,7 +120,7 @@ func (action *ReceiveAction) lookupServiceAndReceive() error {
 	service := "_graft._tcp"
 	domain := ""
 
-	waitTime := 10
+	waitTime := 2
 
 	// Discover all services on the network (e.g. _workstation._tcp)
 	resolver, err := zeroconf.NewResolver(nil)
@@ -125,20 +128,18 @@ func (action *ReceiveAction) lookupServiceAndReceive() error {
 		log.Fatalln("Failed to initialize resolver:", err.Error())
 	}
 
-	serverEntries := []*MdnsServerEntry{}
-
 	entries := make(chan *zeroconf.ServiceEntry)
 	go func(results <-chan *zeroconf.ServiceEntry) {
 		for entry := range results {
-			fmt.Printf("%#v", entry)
+			fmt.Printf("%+v\n", entry)
 			server := &MdnsServerEntry{
 				Host: entry.HostName,
 				Port: entry.Port,
 			}
-			serverEntries = append(serverEntries, server)
-			println("fount new server: " + fmt.Sprintf("%s:%d", server.Host, server.Port))
+			action.serverEntries = append(action.serverEntries, server)
+			println("found new server: " + fmt.Sprintf("%s:%d", server.Host, server.Port))
 		}
-		err = action.chooseServerAndReceive(serverEntries)
+
 	}(entries)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(waitTime))
@@ -151,41 +152,69 @@ func (action *ReceiveAction) lookupServiceAndReceive() error {
 	<-ctx.Done()
 	// Wait some additional time to see debug messages on go routine shutdown.
 	time.Sleep(1 * time.Second)
-	return err
+	action.chooseServerAndReceive()
+	return nil
 }
-func (action *ReceiveAction) chooseServerAndReceive(serverEntries []*MdnsServerEntry) error {
-	serverCount := len(serverEntries)
+func (action *ReceiveAction) chooseServerAndReceive() error {
+	serverCount := len(action.serverEntries)
 	log.Printf("server entries found: %d", serverCount)
 
 	if serverCount == 0 {
-		return errors.New("graft did not find a server instance to receive from, exiting")
+		return errors.New("graft did not find a server instance to receive from")
 	}
 	var selectedServer *MdnsServerEntry
 	if serverCount == 1 {
-		selectedServer = serverEntries[0]
+		selectedServer = action.serverEntries[0]
 	} else {
 		action.suppressablePrintf("found %d servers, choose the one to receive from:\n", serverCount)
 
 		for i := 0; i < serverCount; i++ {
-			fmt.Printf("%d.)  %s:%d\n", i+1, serverEntries[i].Host, serverEntries[i].Port)
+			fmt.Printf("%d.) %s:%d\n", i+1, action.serverEntries[i].Host, action.serverEntries[i].Port)
 		}
 
 		for {
 			reader := bufio.NewReader(os.Stdin)
-			fmt.Print("Choose Server: ")
+			fmt.Print("Choose server: ")
 			text, _ := reader.ReadString('\n')
 
 			chosenServerNum, err := strconv.Atoi(strings.Trim(text, "\r\n"))
-			if err != nil || chosenServerNum < 1 || chosenServerNum > len(serverEntries) {
+			if err != nil || chosenServerNum < 1 || chosenServerNum > len(action.serverEntries) {
 				fmt.Println("Invalid choice, please specify a valid number")
 			} else {
-				selectedServer = serverEntries[chosenServerNum-1]
-				break;
+				selectedServer = action.serverEntries[chosenServerNum-1]
+				break
 			}
 		}
 	}
-	action.CliParameters.Host = selectedServer.Host
+
+	action.suppressablePrintf("selected server %s:%d\n", selectedServer.Host, selectedServer.Port)
+
+	addr, err := net.LookupIP(selectedServer.Host)
+	if err != nil {
+		log.Printf("Could not lookup host %s\n", selectedServer.Host)
+		action.CliParameters.Host = selectedServer.Host
+	} else {
+		for _, ip := range addr {
+			ip := ip.To4()
+			if ip == nil {
+				ip = ip.To16()
+			}
+			if ip == nil {
+				continue
+			}
+
+			log.Printf("Host lookup resolved to %s\n", ip)
+			action.CliParameters.Host = ip.String()
+			break
+		}
+
+	}
+
 	action.CliParameters.Port = selectedServer.Port
+
+	action.suppressablePrintf("connecting to %s:%d\n", action.CliParameters.Host, selectedServer.Port)
+
+
 	action.receive()
 	return nil
 

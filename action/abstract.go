@@ -143,12 +143,13 @@ func (action *AbstractAction) ParseCliContext(c *cli.Context) {
 		Client:    c.IsSet("client") && c.Bool("client"),
 	}
 
-	if c.IsSet("host") {
-		action.CliParameters.Host = c.String("host")
-	}
-
-	if c.IsSet("port") {
-		action.CliParameters.Port = c.Int("port")
+	for _,name := range c.FlagNames() {
+		if name == "host" {
+			action.CliParameters.Host = c.String("host")
+		}
+		if name == "port" {
+			action.CliParameters.Port = c.Int("port")
+		}
 	}
 }
 

@@ -9,12 +9,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	"strconv"
+
 	"github.com/grandcat/zeroconf"
 	"github.com/sandreas/graft/apputils"
 	"github.com/sandreas/graft/sftpd"
 	"github.com/urfave/cli"
 	"fmt"
-	"strconv"
+	"crypto/rand"
 )
 
 type ServeAction struct {
@@ -32,6 +34,21 @@ func (action *ServeAction) Execute(c *cli.Context) error {
 	}
 	return nil
 }
+
+func pseudoUuid() (uuid string) {
+
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+
+	uuid = fmt.Sprintf("%X-%X-%X-%X-%X", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+
+	return
+}
+
 func (action *ServeAction) ServeFoundFiles() error {
 	var err error
 	var homeDir string
@@ -80,23 +97,23 @@ func (action *ServeAction) ServeFoundFiles() error {
 	if !action.CliContext.Bool("no-zeroconf") {
 		action.suppressablePrintf("Publishing service via mdns: active\n")
 
-		hostname, _ := os.Hostname()
-		port := action.CliContext.Int("port")
-		name := "graft on " +hostname + ":" +strconv.Itoa(port)
+		uuid := pseudoUuid()
+		port := action.CliParameters.Port
+
+		name := "graft-sftp-server-" + uuid + "_" + outboundIp + ":" + strconv.Itoa(port)
 		service := "_graft._tcp"
 		domain := "local."
 
-
-		server, err := zeroconf.Register(name, service, domain, port, []string{"txtv=0", "domain="+domain, "la=2"}, nil)
+		server, err := zeroconf.Register(name, service, domain, port, []string{"txtv=0.2", "domain=" + domain, "ip=" + outboundIp}, nil)
 		if err != nil {
 			panic(err)
 		}
 		defer server.Shutdown()
-		fmt.Println("Published service:")
-		fmt.Println("- Name:", name)
-		fmt.Println("- Type:", service)
-		fmt.Println("- Domain:", domain)
-		fmt.Println("- Port:", port)
+		log.Println("Published service:")
+		log.Println("- Name:", name)
+		log.Println("- Type:", service)
+		log.Println("- Domain:", domain)
+		log.Println("- Port:", port)
 
 	}
 
