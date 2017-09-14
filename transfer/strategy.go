@@ -224,10 +224,13 @@ func (strategy *Strategy) DestinationFor(src string) string {
 
 	// destination pattern points to an existing file or directory
 	if strategy.DestinationPattern.Pattern == "" {
-		return strategy.DestinationPattern.Path + string(os.PathSeparator) + strings.TrimLeft(cleanedSrc[srcPatternPathLen:], "\\/")
+		return strings.TrimRight(strategy.DestinationPattern.Path + string(os.PathSeparator) + strings.TrimLeft(cleanedSrc[srcPatternPathLen:], "\\/"), "\\/")
 	}
 
-	return strategy.CompiledSourcePattern.ReplaceAllString(cleanedSrc, strategy.DestinationPattern.Path+string(os.PathSeparator)+strings.TrimLeft(strategy.DestinationPattern.Pattern, "\\/"))
+	toSlashSrc := filepath.ToSlash(cleanedSrc)
+	toSlashDst := filepath.ToSlash(strategy.DestinationPattern.Path)+"/"+strings.TrimLeft(strategy.DestinationPattern.Pattern, "\\/")
+	result := strategy.CompiledSourcePattern.ReplaceAllString(toSlashSrc, toSlashDst)
+	return filepath.FromSlash(result)
 }
 
 func (strategy *Strategy) PerformSingleTransfer(src string) error {

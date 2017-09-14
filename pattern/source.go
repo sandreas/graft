@@ -1,12 +1,12 @@
 package pattern
 
 import (
+	"path/filepath"
 	"regexp"
+
 	"github.com/sandreas/graft/bitflag"
 	"github.com/spf13/afero"
-	"os"
 )
-
 
 const (
 	CASE_SENSITIVE bitflag.Flag = 1 << iota
@@ -16,14 +16,13 @@ const (
 type SourcePattern struct {
 	BasePattern
 	caseSensitive bool
-	useRealRegex bool
+	useRealRegex  bool
 }
 
 func NewSourcePattern(fs afero.Fs, patternString string, params ...bitflag.Flag) *SourcePattern {
 	sourcePattern := &SourcePattern{}
 	sourcePattern.Fs = fs
 	sourcePattern.parse(patternString)
-
 
 	bitFlags := bitflag.NewParser(params...)
 	sourcePattern.caseSensitive = bitFlags.HasFlag(CASE_SENSITIVE)
@@ -32,11 +31,10 @@ func NewSourcePattern(fs afero.Fs, patternString string, params ...bitflag.Flag)
 	return sourcePattern
 }
 
-
 func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 	// pattern handling
 	regexPattern := p.Pattern
-	if ! p.useRealRegex {
+	if !p.useRealRegex {
 		regexPattern = GlobToRegexString(p.Pattern)
 	}
 	if p.IsDir() && p.Pattern == "" {
@@ -51,18 +49,16 @@ func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 	}
 
 	if regexPath != "" {
-		regexPath = p.Path
-		sep := string(os.PathSeparator)
-		if regexPath[len(regexPath)-1:] != sep && !p.IsFile() {
-			regexPath += sep
+		regexPath = filepath.ToSlash(p.Path)
+		if regexPath[len(regexPath)-1] != '/' && !p.IsFile() {
+			regexPath += "/"
 		}
 		regexPath = regexp.QuoteMeta(regexPath)
 	}
 
-	if ! p.caseSensitive {
+	if !p.caseSensitive {
 		regexPath = "(?i)" + regexPath
 	}
-
 
 	suffix := "$"
 	compiledPattern, err := regexp.Compile(regexPath + regexPattern + suffix)

@@ -9,7 +9,6 @@ import (
 	"os"
 )
 var sep = string(os.PathSeparator)
-var quotedSep = regexp.QuoteMeta(sep)
 
 func TestNewSourcePattern(t *testing.T) {
 	expect := assert.New(t)
@@ -75,6 +74,8 @@ func TestNewSourcePattern(t *testing.T) {
 }
 
 func TestCompileSimple(t *testing.T) {
+	quotedSep := "/"
+	sep := "/"
 	expect := assert.New(t)
 	mockFs := testhelpers.MockFileSystem(map[string]string{
 		"fixtures/global/":         "",
@@ -89,6 +90,8 @@ func TestCompileSimple(t *testing.T) {
 }
 
 func TestCompileGlob(t *testing.T) {
+	quotedSep := "/"
+	sep := "/"
 	expect := assert.New(t)
 	mockFs := testhelpers.MockFileSystem(map[string]string{
 		"fixtures/global/":         "",

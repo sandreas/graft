@@ -8,6 +8,7 @@ import (
 	"github.com/sandreas/graft/filesystem"
 	"github.com/sandreas/graft/matcher"
 	"github.com/sandreas/graft/pattern"
+	"path/filepath"
 )
 
 const (
@@ -61,7 +62,7 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 			normalizedInnerPath += string(os.PathSeparator)
 		}
 
-		if matcher.Matches(normalizedInnerPath) {
+		if matcher.Matches(filepath.ToSlash(normalizedInnerPath)) {
 			t.SourceFiles = append(t.SourceFiles, normalizedInnerPath)
 			t.NotifyObservers(LocatorIncreaseMatches)
 		} else {
