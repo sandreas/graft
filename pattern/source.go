@@ -63,7 +63,7 @@ func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 	}
 
 	// replace double path separator with single slash
-	r := regexp.MustCompile(regexp.QuoteMeta(string(os.PathSeparator)) + "{2,}")
+	r := regexp.MustCompile("[" +regexp.QuoteMeta(string(os.PathSeparator)) + "/]{2,}")
 	regexPattern = r.ReplaceAllStringFunc(regexPattern, func(m string) string {
 		return "/"
 	})
