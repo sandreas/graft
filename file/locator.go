@@ -4,12 +4,12 @@ import (
 	"log"
 	"os"
 
+	"path/filepath"
+
 	"github.com/sandreas/graft/designpattern/observer"
 	"github.com/sandreas/graft/filesystem"
 	"github.com/sandreas/graft/matcher"
 	"github.com/sandreas/graft/pattern"
-	"path/filepath"
-	"strings"
 )
 
 const (
@@ -41,9 +41,12 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 		return
 	}
 
-	walkPath := strings.TrimSuffix(t.Src.Path , string(os.PathSeparator))
-
-	filesystem.Walk(t.Src.Fs, walkPath, func(innerPath string, info os.FileInfo, err error) error {
+	walkPath := filesystem.CleanPath(t.Src.Fs, t.Src.Path)
+	walkPathSeparator := string(os.PathSeparator)
+	if t.Src.Fs.Name() == filesystem.NameSftpfs {
+		walkPathSeparator = "/"
+	}
+	ferr := filesystem.Walk(t.Src.Fs, walkPath, func(innerPath string, info os.FileInfo, err error) error {
 		if innerPath == "." || innerPath == ".." {
 			return nil
 		}
@@ -62,7 +65,7 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 		}
 
 		if info.IsDir() {
-			normalizedInnerPath += string(os.PathSeparator)
+			normalizedInnerPath += walkPathSeparator
 		}
 
 		if matcher.Matches(filepath.ToSlash(normalizedInnerPath)) {
@@ -74,6 +77,10 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 
 		return nil
 	})
+
+	if ferr != nil {
+		log.Printf("Error walking files: %s\n", ferr.Error())
+	}
 
 	t.NotifyObservers(LocatorFinish)
 }

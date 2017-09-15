@@ -32,42 +32,9 @@ type MdnsServerEntry struct {
 
 func (action *ReceiveAction) Execute(c *cli.Context) error {
 	action.serverEntries = []*MdnsServerEntry{}
-	if err := action.PrepareExecution(c, 2, "*", "$1"); err != nil {
+	if err := action.PrepareExecution(c, 2, "*", "."); err != nil {
 		return err
 	}
-	//if action.CliParameters.Host== "" {
-	//	service := "_graft._tcp"
-	//	domain := "local"
-	//
-	//	waitTime := 10
-	//
-	//	// Discover all services on the network (e.g. _workstation._tcp)
-	//	resolver, err := zeroconf.NewResolver(nil)
-	//	if err != nil {
-	//		log.Fatalln("Failed to initialize resolver:", err.Error())
-	//	}
-	//
-	//	entries := make(chan *zeroconf.ServiceEntry)
-	//	go func(results <-chan *zeroconf.ServiceEntry) {
-	//		for entry := range results {
-	//			fmt.Println(entry)
-	//		}
-	//		fmt.Println("No more entries.")
-	//	}(entries)
-	//
-	//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(waitTime))
-	//	defer cancel()
-	//	err = resolver.Browse(ctx, service, domain, entries)
-	//	if err != nil {
-	//		log.Fatalln("Failed to browse:", err.Error())
-	//	}
-	//
-	//	<-ctx.Done()
-	//	// Wait some additional time to see debug messages on go routine shutdown.
-	//	time.Sleep(1 * time.Second)
-	//	return nil
-	//}
-	//return nil
 
 	if action.shouldLookup() {
 		return action.lookupServiceAndReceive()
@@ -83,10 +50,10 @@ func (action *ReceiveAction) receive() error {
 
 	action.CliParameters.Client = true
 
-	action.suppressablePrintf("receive from %s@%s:%d", action.CliContext.String("username"), action.CliParameters.Host, action.CliParameters.Port)
+	action.suppressablePrintf("receive from %s@%s:%d\n", action.CliContext.String("username"), action.CliParameters.Host, action.CliParameters.Port)
 
 	if action.CliContext.String("password") == "" {
-		password, err := action.promptPassword("Enter password:")
+		password, err := action.promptPassword("\nEnter password:")
 		if err != nil {
 			return err
 		}
@@ -120,7 +87,7 @@ func (action *ReceiveAction) lookupServiceAndReceive() error {
 	service := "_graft._tcp"
 	domain := ""
 
-	waitTime := 2
+	waitTime := 1
 
 	// Discover all services on the network (e.g. _workstation._tcp)
 	resolver, err := zeroconf.NewResolver(nil)
@@ -131,7 +98,6 @@ func (action *ReceiveAction) lookupServiceAndReceive() error {
 	entries := make(chan *zeroconf.ServiceEntry)
 	go func(results <-chan *zeroconf.ServiceEntry) {
 		for entry := range results {
-			fmt.Printf("%+v\n", entry)
 			server := &MdnsServerEntry{
 				Host: entry.HostName,
 				Port: entry.Port,
@@ -139,7 +105,6 @@ func (action *ReceiveAction) lookupServiceAndReceive() error {
 			action.serverEntries = append(action.serverEntries, server)
 			println("found new server: " + fmt.Sprintf("%s:%d", server.Host, server.Port))
 		}
-
 	}(entries)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(waitTime))

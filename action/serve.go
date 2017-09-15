@@ -88,7 +88,7 @@ func (action *ServeAction) ServeFoundFiles() error {
 	port := action.CliContext.Int("port")
 
 	if password == "" {
-		password, err = action.promptPassword("Which password shall be used for user " + username + "?")
+		password, err = action.promptPassword("\nWhich password shall be requested for user " + username + " on login?")
 		if err != nil {
 			return err
 		}
