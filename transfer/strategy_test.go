@@ -5,16 +5,42 @@ import (
 
 	"os"
 
-	"time"
-
-	"github.com/sandreas/graft/designpattern/observer"
 	"github.com/sandreas/graft/pattern"
 	"github.com/sandreas/graft/transfer"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	"time"
+	"github.com/sandreas/graft/designpattern/observer"
 )
 
 var sep = string(os.PathSeparator)
+
+func prepareStrategy(src string, dst string) *transfer.Strategy {
+	fs := prepareFileSystem()
+	srcPattern := pattern.NewSourcePattern(fs, src)
+	dstPattern := pattern.NewDestinationPattern(fs, dst)
+	compiledSrcPattern, _ := srcPattern.Compile()
+
+	return &transfer.Strategy{
+		SourcePattern:         srcPattern,
+		DestinationPattern:    dstPattern,
+		CompiledSourcePattern: compiledSrcPattern,
+		KeepTimes:             false,
+	}
+
+}
+
+func prepareFileSystem() afero.Fs {
+	appFS := afero.NewMemMapFs()
+	appFS.Mkdir("src", 0644)
+	afero.WriteFile(appFS, "src/src-file.txt", []byte(""), 0755)
+	appFS.Mkdir("src/test-dir", 0644)
+	appFS.Mkdir("dst", 0644)
+	afero.WriteFile(appFS, "dst/overwrite.txt", []byte(""), 0755)
+	afero.WriteFile(appFS, "src/test-dir/test-dir-file.txt", []byte(""), 0755)
+	appFS.Mkdir("C:"+sep+"Temp", 0644)
+	return appFS
+}
 
 func TestRelativeWildcardMapping(t *testing.T) {
 	expect := assert.New(t)
@@ -55,33 +81,6 @@ func TestComplexRelativeMapping(t *testing.T) {
 
 	strategy = prepareStrategy("*", ".")
 	expect.Equal("."+sep+"file", strategy.DestinationFor("file"))
-}
-
-func prepareStrategy(src string, dst string) *transfer.Strategy {
-	fs := prepareFileSystem()
-	srcPattern := pattern.NewSourcePattern(fs, src)
-	dstPattern := pattern.NewDestinationPattern(fs, dst)
-	compiledSrcPattern, _ := srcPattern.Compile()
-
-	return &transfer.Strategy{
-		SourcePattern:         srcPattern,
-		DestinationPattern:    dstPattern,
-		CompiledSourcePattern: compiledSrcPattern,
-		KeepTimes:             false,
-	}
-
-}
-
-func prepareFileSystem() afero.Fs {
-	appFS := afero.NewMemMapFs()
-	appFS.Mkdir("src", 0644)
-	afero.WriteFile(appFS, "src/src-file.txt", []byte(""), 0755)
-	appFS.Mkdir("src/test-dir", 0644)
-	appFS.Mkdir("dst", 0644)
-	afero.WriteFile(appFS, "dst/overwrite.txt", []byte(""), 0755)
-	afero.WriteFile(appFS, "src/test-dir/test-dir-file.txt", []byte(""), 0755)
-	appFS.Mkdir("C:"+sep+"Temp", 0644)
-	return appFS
 }
 
 func TestSingleTransferSourceNotExists(t *testing.T) {
@@ -139,6 +138,7 @@ func TestMultiTransfer(t *testing.T) {
 	expect.NoError(err)
 	expect.Len(strategy.TransferredDirectories, 2)
 }
+
 
 func TestDryRun(t *testing.T) {
 	expect := assert.New(t)

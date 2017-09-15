@@ -178,13 +178,7 @@ func (strategy *Strategy) Perform(strings []string) error {
 func (strategy *Strategy) DestinationFor(src string) string {
 	cleanedSrc := filesystem.CleanPath(strategy.SourcePattern.Fs, src)
 
-
-
-	srcPatternPathLen := len(strategy.SourcePattern.Path)
-	if strategy.SourcePattern.Path == "." {
-		srcPatternPathLen = 0
-	}
-
+	sep := string(os.PathSeparator)
 
 	if strategy.SourcePattern.IsFile() {
 		if strategy.DestinationPattern.IsFile() {
@@ -192,24 +186,28 @@ func (strategy *Strategy) DestinationFor(src string) string {
 		}
 
 		if strategy.DestinationPattern.Pattern == "" {
-			return strategy.DestinationPattern.Path + string(os.PathSeparator) + filepath.Base(cleanedSrc)
+			return strategy.DestinationPattern.Path + filepath.Base(cleanedSrc)
 		}
 
 		l:=len(strategy.DestinationPattern.Pattern)
-		if !os.IsPathSeparator(strategy.DestinationPattern.Pattern[l-1]) {
-			return strategy.DestinationPattern.Path + string(os.PathSeparator) + strategy.DestinationPattern.Pattern
+		if l > 0 && !os.IsPathSeparator(strategy.DestinationPattern.Pattern[l-1]) {
+			return strategy.DestinationPattern.Path + strategy.DestinationPattern.Pattern
 		}
 		cleanedPattern := strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/")
-		return strategy.DestinationPattern.Path+string(os.PathSeparator)+cleanedPattern+string(os.PathSeparator)+filepath.Base(cleanedSrc)
+		return strategy.DestinationPattern.Path+cleanedPattern+sep+filepath.Base(cleanedSrc)
 	}
 
-
+	srcPatternPath := strings.TrimRight(strategy.SourcePattern.Path, "\\/")
+	srcPatternPathLen := len(srcPatternPath)
+	if strategy.SourcePattern.Path == "." + sep {
+		srcPatternPathLen = 0
+	}
 
 	// source pattern points to an existing file or directory
 	if strategy.SourcePattern.Pattern == "" {
-		sourceParentDir := filepath.Dir(strategy.SourcePattern.Path)
+		sourceParentDir := filepath.Dir(srcPatternPath)
 		destinationPathParts := []string{
-			strategy.DestinationPattern.Path,
+			strings.TrimRight(strategy.DestinationPattern.Path, sep),
 		}
 
 		if strategy.DestinationPattern.Pattern != "" {
@@ -219,12 +217,12 @@ func (strategy *Strategy) DestinationFor(src string) string {
 		sourcePartAppendToDestination := strings.Trim(strings.TrimPrefix(cleanedSrc, sourceParentDir), "\\/")
 		destinationPathParts = append(destinationPathParts, sourcePartAppendToDestination)
 
-		return strings.Join(destinationPathParts, string(os.PathSeparator))
+		return strings.Join(destinationPathParts, sep)
 	}
 
 	// destination pattern points to an existing file or directory
 	if strategy.DestinationPattern.Pattern == "" {
-		return strings.TrimRight(strategy.DestinationPattern.Path + string(os.PathSeparator) + strings.TrimLeft(cleanedSrc[srcPatternPathLen:], "\\/"), "\\/")
+		return strings.TrimRight(strategy.DestinationPattern.Path + strings.TrimLeft(cleanedSrc[srcPatternPathLen:], "\\/"), "\\/")
 	}
 
 	toSlashSrc := filepath.ToSlash(cleanedSrc)
