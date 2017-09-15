@@ -9,6 +9,7 @@ import (
 	"github.com/sandreas/graft/matcher"
 	"github.com/sandreas/graft/pattern"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -40,7 +41,9 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 		return
 	}
 
-	filesystem.Walk(t.Src.Fs, t.Src.Path, func(innerPath string, info os.FileInfo, err error) error {
+	walkPath := strings.TrimSuffix(t.Src.Path , string(os.PathSeparator))
+
+	filesystem.Walk(t.Src.Fs, walkPath, func(innerPath string, info os.FileInfo, err error) error {
 		if innerPath == "." || innerPath == ".." {
 			return nil
 		}
@@ -54,7 +57,7 @@ func (t *Locator) Find(matcher *matcher.CompositeMatcher) {
 		normalizedInnerPath := filesystem.CleanPath(t.Src.Fs, innerPath)
 
 		// skip direct path matches (data/* should not match data/ itself)
-		if normalizedInnerPath == t.Src.Path && t.Src.Pattern != "" {
+		if normalizedInnerPath == walkPath && t.Src.Pattern != "" {
 			return nil
 		}
 
