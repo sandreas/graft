@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"os"
+
 	"github.com/sandreas/graft/bitflag"
 	"github.com/spf13/afero"
 )
@@ -59,6 +61,12 @@ func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 	if !p.caseSensitive {
 		regexPath = "(?i)" + regexPath
 	}
+
+	// replace double path separator with single slash
+	r := regexp.MustCompile(regexp.QuoteMeta(string(os.PathSeparator)) + "{2,}")
+	regexPattern = r.ReplaceAllStringFunc(regexPattern, func(m string) string {
+		return "/"
+	})
 
 	suffix := "$"
 	compiledPattern, err := regexp.Compile(regexPath + regexPattern + suffix)
