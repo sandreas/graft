@@ -135,4 +135,9 @@ func TestCompileGlob(t *testing.T) {
 	} else {
 		expect.Equal("(?i)(.*)/global/(.*)$", compiled.String())
 	}
+
+	sourcePattern = pattern.NewSourcePattern(mockFs, "(*)//global//(*)")
+	compiled, _ = sourcePattern.Compile()
+	expect.Equal("(?i)(.*)/global/(.*)$", compiled.String())
+
 }
