@@ -32,30 +32,42 @@ func NewBasePattern(fs afero.Fs, patternString string) *BasePattern {
 }
 
 func (p *BasePattern) parse(patternString string) {
+
+	sep := string(os.PathSeparator)
+	patternString = strings.TrimPrefix(patternString, "./")
 	pathPart := patternString
 	for {
 		if fi, err := p.Fs.Stat(pathPart); err == nil {
-			p.Path = strings.TrimRight(filesystem.CleanPath(p.Fs, pathPart), string(os.PathSeparator))
+			p.Path = filesystem.CleanPath(p.Fs, pathPart)
 			p.isDirectory = fi == nil || fi.IsDir()
+			if p.isDirectory && !os.IsPathSeparator(p.Path[len(p.Path)-1]) {
+				p.Path += sep
+			}
 			break
 		}
 		parent := filepath.Dir(pathPart)
-		if parent == pathPart {
-			p.Path = "."
+		if parent == pathPart || parent == "." {
+			p.Path = ""
 			p.Pattern = pathPart
 			break
 		}
 		pathPart = parent
 	}
 
-	if pathPart != patternString {
-		if pathPart == "." && !strings.HasPrefix(patternString, ".") {
-			p.Path = "."
-			p.Pattern = patternString
-		} else {
-			p.Pattern = patternString[len(p.Path)+1:]
-		}
+	if len(patternString) > 0 && pathPart != patternString {
+		p.Pattern = patternString[len(p.Path):]
 	}
+	if p.Path == "" || p.Path == "." {
+		p.Path = "." + sep
+	}
+	//if pathPart != patternString {
+	//	if pathPart == "." && !strings.HasPrefix(patternString, ".") {
+	//		p.Path = "."
+	//		p.Pattern = patternString
+	//	} else {
+	//		p.Pattern = patternString[len(p.Path)+1:]
+	//	}
+	//}
 
 }
 

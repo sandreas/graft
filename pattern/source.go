@@ -8,6 +8,7 @@ import (
 
 	"github.com/sandreas/graft/bitflag"
 	"github.com/spf13/afero"
+	"strings"
 )
 
 const (
@@ -44,11 +45,7 @@ func (p *SourcePattern) Compile() (*regexp.Regexp, error) {
 	}
 
 	// path handling
-	regexPath := p.Path
-
-	if regexPath == "." {
-		regexPath = ""
-	}
+	regexPath := strings.TrimPrefix(p.Path, "." + string(os.PathSeparator))
 
 	if regexPath != "" {
 		regexPath = filepath.ToSlash(p.Path)

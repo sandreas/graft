@@ -31,14 +31,15 @@ func TestBase(t *testing.T) {
 	})
 
 	var basePattern *pattern.BasePattern
+
 	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/*")
-	expect.Equal("fixtures"+sep+"global", basePattern.Path)
+	expect.Equal("fixtures"+sep+"global"+sep, basePattern.Path)
 	expect.Equal("*", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/(.*)")
-	expect.Equal("fixtures"+sep+"global", basePattern.Path)
+	expect.Equal("fixtures"+sep+"global"+sep, basePattern.Path)
 	expect.Equal("(.*)", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
@@ -50,43 +51,44 @@ func TestBase(t *testing.T) {
 	expect.True(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, "fixtures/global/")
-	expect.Equal("fixtures"+sep+"global", basePattern.Path)
+	expect.Equal("fixtures"+sep+"global"+sep, basePattern.Path)
 	expect.Equal("", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, "fixtures/non-existing/*.*")
-	expect.Equal("fixtures", basePattern.Path)
+	expect.Equal("fixtures"+sep, basePattern.Path)
 	expect.Equal("non-existing/*.*", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, "*")
-	expect.Equal(".", basePattern.Path)
+	expect.Equal("."+sep, basePattern.Path)
 	expect.Equal("*", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, "")
-	expect.Equal(".", basePattern.Path)
+	expect.Equal("."+sep, basePattern.Path)
 	expect.Equal("", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, "./*")
-	expect.Equal(".", basePattern.Path)
+	expect.Equal("."+sep, basePattern.Path)
 	expect.Equal("*", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, ".")
-	expect.Equal(".", basePattern.Path)
+	expect.Equal("."+sep, basePattern.Path)
 	expect.Equal("", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
+
 	basePattern = pattern.NewBasePattern(mockFs, "./")
-	expect.Equal(".", basePattern.Path)
+	expect.Equal("."+sep, basePattern.Path)
 	expect.Equal("", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
@@ -97,13 +99,13 @@ func TestBase(t *testing.T) {
 	expect.False(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, "C:/TestMissingDir/")
-	expect.Equal("C:", basePattern.Path)
+	expect.Equal("C:"+sep, basePattern.Path)
 	expect.Equal("TestMissingDir/", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
 	basePattern = pattern.NewBasePattern(mockFs, "(*)fi(*).txt")
-	expect.Equal(".", basePattern.Path)
+	expect.Equal("."+sep, basePattern.Path)
 	expect.Equal("(*)fi(*).txt", basePattern.Pattern)
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
@@ -135,10 +137,10 @@ func TestBase(t *testing.T) {
 		expect.True(basePattern.IsFile())
 	}
 
-	//basePattern = pattern.NewBasePattern(mockFs, "/")
-	//expect.Equal("/", basePattern.Path)
-	//expect.Equal("", basePattern.Pattern)
-	//expect.True(basePattern.IsDir())
-	//expect.False(basePattern.IsFile())
+	basePattern = pattern.NewBasePattern(mockFs, "/")
+	expect.Equal(sep, basePattern.Path)
+	expect.Equal("", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 
 }
