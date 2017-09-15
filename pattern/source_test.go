@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"github.com/sandreas/graft/pattern"
 	"os"
+	"runtime"
 )
 var sep = string(os.PathSeparator)
 
@@ -125,4 +126,13 @@ func TestCompileGlob(t *testing.T) {
 	sourcePattern = pattern.NewSourcePattern(mockFs, "./")
 	compiled, _ = sourcePattern.Compile()
 	expect.Equal("(?i)(.*)$", compiled.String())
+
+
+	sourcePattern = pattern.NewSourcePattern(mockFs, "(*)\\\\global\\\\(*)")
+	compiled, _ = sourcePattern.Compile()
+	if runtime.GOOS != "windows" {
+		expect.Equal("(?i)(.*)\\\\global\\\\(.*)$", compiled.String())
+	} else {
+		expect.Equal("(?i)(.*)/global/(.*)$", compiled.String())
+	}
 }
