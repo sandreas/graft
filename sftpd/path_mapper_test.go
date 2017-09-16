@@ -2,10 +2,12 @@ package sftpd_test
 
 import (
 	"testing"
-	"github.com/stretchr/testify/assert"
-	"path/filepath"
+
 	"os"
+	"path/filepath"
+
 	"github.com/sandreas/graft/sftpd"
+	"github.com/stretchr/testify/assert"
 )
 
 var files = []string{
@@ -84,8 +86,12 @@ var filesSpecial = []string{
 	"data/fixtures/global/documents (2010)/document (2010).txt",
 }
 
-var singleFile = []string {
+var singleFile = []string{
 	"./test.txt",
+}
+
+var singleFileServe = []string{
+	"../data/fixtures/file/AreFilesEqual/equal2.txt",
 }
 
 func TestFiles(t *testing.T) {
@@ -166,7 +172,6 @@ func TestFilesSpecial(t *testing.T) {
 
 }
 
-
 func TestPathTo(t *testing.T) {
 	expect := assert.New(t)
 
@@ -185,7 +190,6 @@ func TestPathTo(t *testing.T) {
 	expect.Nil(err)
 }
 
-
 func TestPathToSingleFile(t *testing.T) {
 	expect := assert.New(t)
 
@@ -194,16 +198,44 @@ func TestPathToSingleFile(t *testing.T) {
 	want := "test.txt"
 	expect.NoError(ok)
 	expect.Equal(want, result)
+}
 
+func TestPathToSingleFileDirectory(t *testing.T) {
+	expect := assert.New(t)
+
+	mapper := sftpd.NewPathMapper(singleFile, ".")
+	result, ok := mapper.PathTo("/")
+	want := "."
+	expect.NoError(ok)
+	expect.Equal(want, result)
 }
 
 func TestStat(t *testing.T) {
 	expect := assert.New(t)
 
 	mapper := sftpd.NewPathMapper(filesWithDot, "../data/fixtures")
-	_, err := mapper.Stat("global")
+	stat, err := mapper.Stat("global")
 	expect.Nil(err)
+	expect.True(stat.IsDir())
 
-	_, err = mapper.Stat("non-existing")
+	stat, err = mapper.Stat("/")
+	expect.Nil(err)
+	expect.True(stat.IsDir())
+
+	stat, err = mapper.Stat("non-existing")
 	expect.Error(err)
+	expect.Nil(stat)
+}
+
+func TestStatForServeFileOnly(t *testing.T) {
+	expect := assert.New(t)
+
+	mapper := sftpd.NewPathMapper(singleFileServe, "../data/fixtures/file/AreFilesEqual")
+	stat, err := mapper.Stat("/")
+	expect.Nil(err)
+	expect.True(stat.IsDir())
+
+	stat, err = mapper.Stat("/equal2.txt")
+	expect.Nil(err)
+	expect.False(stat.IsDir())
 }

@@ -1,11 +1,11 @@
 package sftpd
 
 import (
+	"errors"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-	"errors"
-	"os"
 )
 
 type PathMapper struct {
@@ -77,7 +77,6 @@ func (mapper *PathMapper) buildTree(matchingPaths []string) {
 		normalizedPath := mapper.normalizePath(path)
 		key := mapper.slashify(strings.TrimPrefix(normalizedPath, mapper.basePath))
 		for {
-
 
 			mapper.tree[key] = []string{}
 			idx := strings.LastIndex(key, "/")

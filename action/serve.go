@@ -4,19 +4,20 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
 
 	"os/signal"
 	"syscall"
 
 	"strconv"
 
+	"crypto/rand"
+	"fmt"
+	"path/filepath"
+
 	"github.com/grandcat/zeroconf"
 	"github.com/sandreas/graft/apputils"
 	"github.com/sandreas/graft/sftpd"
 	"github.com/urfave/cli"
-	"fmt"
-	"crypto/rand"
 )
 
 type ServeAction struct {
@@ -68,19 +69,19 @@ func (action *ServeAction) ServeFoundFiles() error {
 	}
 	basePath := action.sourcePattern.Path
 	if fi.Mode().IsRegular() {
-		basePath = strings.TrimSuffix(basePath, "/"+fi.Name())
-		if basePath == fi.Name() {
-			basePath = "."
-		}
+		basePath = filepath.Dir(basePath)
 	}
 	pathMapper := sftpd.NewPathMapper(action.locator.SourceFiles, basePath)
 	listenAddress := "0.0.0.0"
+	outboundIp := "localhost"
 	if action.CliContext.String("host") != "" {
 		listenAddress = action.CliContext.String("host")
-	}
-	outboundIp, err := apputils.GetOutboundIpAsString("localhost", net.Dial)
-	if err != nil {
-		log.Printf("Error on GetOutboundIpAsString: %v", err)
+		outboundIp = listenAddress
+	} else {
+		outboundIp, err = apputils.GetOutboundIpAsString("localhost", net.Dial)
+		if err != nil {
+			log.Printf("Error on GetOutboundIpAsString: %v", err)
+		}
 	}
 
 	username := action.CliContext.String("username")
