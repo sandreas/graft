@@ -9,11 +9,22 @@ builds:
 - goos:
   - linux
   - darwin
+  - freebsd
+  - windows
   goarch:
   - amd64
   - "386"
+  - arm
+  - arm64
   goarm:
-  - "6"
+  - 6
+  - 7
+  ignore:
+    - goos: darwin
+      goarch: 386
+    - goos: linux
+      goarch: arm
+      goarm: 7
   main: .
   ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   binary: graft
