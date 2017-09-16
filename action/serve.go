@@ -53,7 +53,6 @@ func pseudoUuid() (uuid string) {
 func (action *ServeAction) ServeFoundFiles() error {
 	var err error
 	var homeDir string
-	var fi os.FileInfo
 
 	if len(action.locator.SourceFiles) == 0 && !action.CliParameters.Force {
 		action.suppressablePrintf("\nNo matching files found, server does not need to be started - use force to start server anyway\n")
@@ -64,13 +63,11 @@ func (action *ServeAction) ServeFoundFiles() error {
 		return err
 	}
 
-	if fi, err = action.sourceFs.Stat(action.sourcePattern.Path); err != nil {
+	if _, err = action.sourceFs.Stat(action.sourcePattern.Path); err != nil {
 		return err
 	}
-	basePath := action.sourcePattern.Path
-	if fi.Mode().IsRegular() {
-		basePath = filepath.Dir(basePath)
-	}
+
+	basePath := filepath.Dir(action.sourcePattern.Path)
 	pathMapper := sftpd.NewPathMapper(action.locator.SourceFiles, basePath)
 	listenAddress := "0.0.0.0"
 	outboundIp := "localhost"
