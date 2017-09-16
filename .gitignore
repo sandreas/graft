@@ -23,7 +23,6 @@ _testmain.go
 *.test
 *.prof
 
-
 /.idea
 /_old
 /data/tmp
