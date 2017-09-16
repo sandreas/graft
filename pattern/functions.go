@@ -114,7 +114,7 @@ func StrToSize(sizeString string) (int64, error) {
 
 	lower := strings.ToLower(sizeString)
 
-	factor := 1
+	factor := int64(1)
 	if strings.HasSuffix(lower, "k") {
 		factor = 1024
 		lower = strings.TrimSuffix(lower, "k")
@@ -131,7 +131,7 @@ func StrToSize(sizeString string) (int64, error) {
 
 	ret, err := strconv.Atoi(lower)
 
-	return int64(ret * factor), err
+	return int64(ret) * factor, err
 }
 
 func BuildMatchList(sourcePattern *regexp.Regexp, subject string) []string {
