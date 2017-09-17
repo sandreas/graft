@@ -59,7 +59,7 @@ func main() {
 		},
 		{
 			Name: "serve", Aliases: []string{"s"}, Action: action.NewActionFactory("serve").Execute,
-			Usage: "serve files",
+			Usage: "serve files via sftp server",
 			Flags: mergeFlags(globalFlags, networkFlags, serveFlags),
 		},
 		{

@@ -32,8 +32,8 @@ const (
 	ErrorCopyFiles                         = 5
 	ErrorMoveFiles                         = 6
 	ErrorPrepareDestination                = 7
-	ErrorNoGraftServerAvailable            = 8
-	ErrorFailedToInitializeResolver        = 9
+	//ErrorNoGraftServerAvailable            = 8
+	//ErrorFailedToInitializeResolver        = 9
 	ErrorDeleteFiles                       = 10
 )
 
@@ -253,7 +253,7 @@ func (action *AbstractAction) prepareLocator() error {
 	locator.RegisterObserver(file.NewWalkObserver(action.suppressablePrintf))
 
 	if action.compiledRegex, err = action.sourcePattern.Compile(); err != nil {
-		return err
+		return errors.New(`Could not compile source pattern - did you quote all special chars with backslash? (special chars: \ . + * ? ( ) | [ ] { } ^ $, error: ` + err.Error() + `)`)
 	}
 
 	if action.CliParameters.FilesFrom != "" {

@@ -3,8 +3,11 @@
 - switch mdns library to https://github.com/grandcat/zeroconf
 
 - global
+    - implement --show-matches for copy, move and receive
     - choose a release strategy (https://github.com/goreleaser/goreleaser)
     - update documentation
+    - Improve performance
+    - Show a note if regex does not compile
     - graft archive command
     - find a device id to ensure that "move" is safe to do / otherwise use copy and delete afterwards
     - replace pathmapper with file_tree
