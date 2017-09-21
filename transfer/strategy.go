@@ -194,7 +194,7 @@ func (strategy *Strategy) DestinationFor(src string) string {
 			return strategy.DestinationPattern.Path + strategy.DestinationPattern.Pattern
 		}
 		cleanedPattern := strings.TrimRight(strategy.DestinationPattern.Pattern, "\\/")
-		return strategy.DestinationPattern.Path+cleanedPattern+sep+filepath.Base(cleanedSrc)
+		return filesystem.CleanPath(strategy.DestinationPattern.Fs, strategy.DestinationPattern.Path+cleanedPattern+sep+filepath.Base(cleanedSrc))
 	}
 
 	srcPatternPath := strings.TrimRight(strategy.SourcePattern.Path, "\\/")
@@ -217,18 +217,18 @@ func (strategy *Strategy) DestinationFor(src string) string {
 		sourcePartAppendToDestination := strings.Trim(strings.TrimPrefix(cleanedSrc, sourceParentDir), "\\/")
 		destinationPathParts = append(destinationPathParts, sourcePartAppendToDestination)
 
-		return strings.Join(destinationPathParts, sep)
+		return filesystem.CleanPath(strategy.DestinationPattern.Fs, strings.Join(destinationPathParts, sep))
 	}
 
 	// destination pattern points to an existing file or directory
 	if strategy.DestinationPattern.Pattern == "" {
-		return strings.TrimRight(strategy.DestinationPattern.Path + strings.TrimLeft(cleanedSrc[srcPatternPathLen:], "\\/"), "\\/")
+		return filesystem.CleanPath(strategy.DestinationPattern.Fs, strings.TrimRight(strategy.DestinationPattern.Path + strings.TrimLeft(cleanedSrc[srcPatternPathLen:], "\\/"), "\\/"))
 	}
 
 	toSlashSrc := filepath.ToSlash(cleanedSrc)
 	toSlashDst := filepath.ToSlash(strategy.DestinationPattern.Path)+"/"+strings.TrimLeft(strategy.DestinationPattern.Pattern, "\\/")
 	result := strategy.CompiledSourcePattern.ReplaceAllString(toSlashSrc, toSlashDst)
-	return filepath.FromSlash(result)
+	return filesystem.CleanPath(strategy.DestinationPattern.Fs, result)
 }
 
 func (strategy *Strategy) PerformSingleTransfer(src string) error {
@@ -265,7 +265,7 @@ func (strategy *Strategy) EnsureDirectoryOfFileExists(src, dst string) error {
 	_, err := strategy.DestinationPattern.Fs.Stat(dst)
 	if os.IsNotExist(err) || strategy.KeepTimes {
 		srcDirName := filepath.Dir(src)
-		srcDirStat, err := strategy.DestinationPattern.Fs.Stat(srcDirName)
+		srcDirStat, err := strategy.SourcePattern.Fs.Stat(srcDirName)
 		if err != nil {
 			log.Printf("Could not stat directory %s of file %s", srcDirName, src)
 			return err
