@@ -27,6 +27,8 @@ If you use a platform without a release, you can try to build graft on your own.
 go get github.com/sandreas/graft
 ```
 
+After this you can use `graft` from the command line.
+
 ### Update build
 
 To force an update of the graft sources, simply add the `-u` flag
