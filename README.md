@@ -9,19 +9,27 @@ graft is a command line utility to search and transfer files. It started as a le
 - Exporting and importing file lists
 - Providing and receive files over network via sftp server
 
-## Setup
-**graft** should support Windows, MacOS and Linux, although the usage instructions might be different for each operating system. The easiest way to setup graft is to use the go package manager. See [installing go](https://golang.org/doc/install).
+## Download and Setup
+**graft** should support Windows, MacOS and Linux, although the usage instructions might be different for each operating system.
 
-### First install
-After [installing go](https://golang.org/doc/install) and adding the go binary to your Path, you can  now install graft with following command:
+### Binary releases
+
+**graft** is released as a single binary for all major platforms. Download the binary for the specific platform:
+
+
+#### [Download graft ⇩](https://github.com/sandreas/graft/releases)
+
+
+### Build graft
+If you use a platform without a release, you can try to build graft on your own. After [installing go](https://golang.org/doc/install) and adding the go binary to your Path, you can  now install graft with following command:
 
 ```
 go get github.com/sandreas/graft
 ```
 
-### Update
+### Update build
 
-To update graft, simply use the `-u` flag
+To force an update of the graft sources, simply add the `-u` flag
 ```
 go get -u github.com/sandreas/graft
 ```
