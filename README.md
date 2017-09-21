@@ -20,8 +20,8 @@ graft is a command line utility to search and transfer files. It started as a le
 #### [Download graft ⇩](https://github.com/sandreas/graft/releases)
 
 
-### Build graft
-If you use a platform without a release, you can try to build graft on your own. After [installing go](https://golang.org/doc/install) and adding the go binary to your Path, you can  now install graft with following command:
+### go get graft
+If you use a platform without a release or prefer the go package manager, you can try to build graft on your own. After [installing go](https://golang.org/doc/install) and adding the go binary to your Path, you can  now install graft with following command:
 
 ```
 go get github.com/sandreas/graft
@@ -29,7 +29,7 @@ go get github.com/sandreas/graft
 
 After this you can use `graft` from the command line.
 
-### Update build
+### Update via go get
 
 To force an update of the graft sources, simply add the `-u` flag
 ```
