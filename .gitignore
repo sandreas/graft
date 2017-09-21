@@ -23,8 +23,9 @@ _testmain.go
 *.test
 *.prof
 
-/dist
 /.idea
+/.ghtoken
+/dist
 /_old
 /data/tmp
 !/data/tmp/.gitkeep

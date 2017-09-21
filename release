@@ -1,0 +1,27 @@
+#!/bin/sh
+
+RELEASE_TAG="$1"
+RELEASE_COMMENT="$2"
+
+if [ "$RELEASE_TAG" == "" ]; then
+    echo "release version is missing!"
+    echo "Usage:"
+    echo "    ./release v0.2.0"
+    exit 1
+fi
+
+if [ "$RELEASE_COMMENT" == "" ]; then
+    RELEASE_COMMENT="release $RELEASE_TAG"
+
+fi
+
+TOKEN_FILE=".ghtoken"
+if ! [ -f "$TOKEN_FILE" ]; then
+    echo "Please store your github token to $TOKEN_FILE to perform a release"
+    exit 2
+fi
+export GITHUB_TOKEN=$(cat $TOKEN_FILE)
+
+git tag -a "$RELEASE_TAG" -m "$RELEASE_COMMENT"
+git push origin "$RELEASE_TAG"
+goreleaser
