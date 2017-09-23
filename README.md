@@ -14,20 +14,30 @@ graft is a command line utility to search and transfer files. It started as a le
 
 ### Binary releases
 
-**graft** is released as a single binary for all major platforms. Download the binary for the specific platform:
+**graft** is released as a single binary for all major platforms:
 
 
-#### [Download graft ⇩](https://github.com/sandreas/graft/releases)
+#### [💾 Windows Download](https://github.com/sandreas/graft/releases/download/v0.2.0/graft_0.2.0_windows_64bit.zip)
 
+#### [💾 MacOS Download](https://github.com/sandreas/graft/releases/download/v0.2.0/graft_0.2.0_macOS_64bit.tar.gz)
+
+#### [💾 Linux Download](https://github.com/sandreas/graft/releases/download/v0.2.0/graft_0.2.0_linux_64bit.tar.gz)
+
+#### [Other releases on the release page](https://github.com/sandreas/graft/releases)
+
+<script>
+console.log('experiment');
+</script>
 
 ### go get graft
-If you use a platform without a release or prefer the go package manager, you can try to build graft on your own. After [installing go](https://golang.org/doc/install) and adding the go binary to your Path, you can  now install graft with following command:
+If you would like to use **graft** on an unsupported platform, you can try the go package manager. 
+After [installing go](https://golang.org/doc/install) and adding the go binary to your PATH, install graft with following command:
 
 ```
 go get github.com/sandreas/graft
 ```
 
-After this you can use `graft` from the command line.
+If compilation succeeds, you can use `graft` from the command line.
 
 ### Update via go get
 
@@ -40,7 +50,7 @@ go get -u github.com/sandreas/graft
 
 ### Important notes: 
 - Every action is performed recursively by default, so all subdirectories are concerned in every action
-- For file transfer commands, it usually is a good idea to use the `--dry-run` option, to see what graft is going to do
+- For file transfer commands, it usually is a good idea to use the `--dry-run` option, to see what **graft** is going to do
 - Special chars `\ . + * ? ( ) | [ ] { } ^ $` have to be quoted with backslash in patterns (e.g `graft find '/tmp/video*\(2016\)'`)
 - **Linux and Unix:** Use single quotes (') to encapsulate patterns to prevent shell expansion
 - **Windows:** Use double quotes (") to encapsulate patterns, since single quotes are treated as chars
@@ -77,21 +87,24 @@ graft receive --host=192.168.0.150 --password=graft
 ```
 
 ### Network transfer
-**graft** is designed to easily but securely transfer files from a host to another. To achieve this, you can use `graft serve` and `graft receive` together.
+**graft** is designed for easy transferring files from one host to another. To achieve this, you can use `graft serve` and `graft receive`.
 
-To transfer all jpg files in `/tmp` from host A to host B, all you have to do is the following:
+To transfer all jpg files in `/tmp` from **host A** to **host B**, all you have to do is the following:
 
 Host A:
 ```
 graft serve '/tmp/*.jpg'
 ```
 
-Following defaults are used:
-- Port 2022
-- Username graft
-- Listen address is 0.0.0.0
+**graft** will prompt for a password, run an sftp server and promote it via zeroconf. 
 
-**graft** will prompt for a password, run an sftp server and promote it via zeroconf. To receive all files, all you have to do is:
+The sftp server uses following defaults:
+- Port: 2022
+- Username: graft
+- Listen address: 0.0.0.0
+
+
+To receive all files, all you have to do is:
 
 ```
 graft receive
@@ -107,7 +120,7 @@ in the destination directory on any other host within the same network and type 
 
 ### ***find***
 
-The find command is used to find files. In this mode **graft** recursively lists all matching files and directories in all subdirectories, so it can also be used as a file search tool like `find` on unix systems.
+The find command is used to find files. In this mode **graft** recursively lists all matching files and directories in all subdirectories, so it can also be used as a search tool like `find` on unix systems.
 
 #### Examples
 
@@ -116,7 +129,7 @@ Recursive listing of all jpg files in /tmp directory using a simple glob pattern
 graft find '/tmp/*.jpg'
 ```
 
-Using some regex-magic to find jpeg files, too:
+Using some regex-logic to find jpeg files, too:
 ```
 graft find '/tmp/*.jp[e]?g'
 ```
@@ -131,11 +144,13 @@ Finding all files that are between 3 and 5 days old:
 graft find '/tmp/*.jpg' --min-age=3d --max-age=5d
 ```
 
+See **[Option reference](#option-reference)** for more info.
+
 ### ***serve***
 
 The serve command is used to provide files via sftp. Similar to find, all matching files are provided via sftp. You can now use a sftp client like `Filezilla` or `WinSCP` to download files from the serving host.
 
-Additionally, graft tries to use mdns/zeroconf to announce the sftp server within the current network, so that `graft receive` finds the server automatically and downloads all provided files.
+Additionally, graft uses mdns/zeroconf by default to announce the sftp server within the current network, so that `graft receive` finds the graft server automatically and downloads all provided files.
 
 Provide all jpg files in /tmp:
 ```
@@ -151,7 +166,7 @@ graft serve
 graft serve .
 ```
 
-To login via FileZilla, you have to use correct protocol and port, e.g.:
+To login with `FileZilla, you have to use the correct protocol and port, e.g.:
 
 - Server: sftp://192.168.0.150
 - Username: graft (if you did not change the defaults)
@@ -162,16 +177,26 @@ See **[Option reference](#option-reference)** for more info.
 
 
 ### ***receive***
-**graft** can receive files from a graft server. It should find its pairing host automatically with zeroconf, but you can also specify the host to receive from.
+**graft** can receive files from a graft server. It should find its pairing host automatically via zeroconf, but you can also specify the host to receive from.
 
 Lookup host via zeroconf and receive files to current directory:
+
 ```
 graft receive
 ```
 
 Specify host and port:
+
 ```
 graft receive --host=192.168.1.111 --port=2023
+```
+
+You can also specify a receive pattern and a destination pattern, to receive only matching files.
+
+Receive only jpg files and put them into /tmp/jpgs/ (directory structure is preserved):
+
+```
+graft receive '*.jpg' '/tmp/jpgs/'
 ```
 
 See **[Option reference](#option-reference)** for more info.
@@ -179,17 +204,18 @@ See **[Option reference](#option-reference)** for more info.
 
 ### ***delete***
 
-You can also delete files - be careful... graft takes no prisoners and offers no apologies. By default you have to confirm the process.
+You can also delete files. Be careful with this command. **graft** takes no prisoners and offers no apologies. 
+Because of this, by default you have to confirm the deletion process. With `--force` the confirmation is skipped.
+
 ```
 graft delete '/tmp/*.jpg' --min-age=3d --max-age=5d
 ```
 
+
 See **[Option reference](#option-reference)** for more info.
 
-
-
 ### ***copy***
-**graft** can copy files recursively and resumes partially transferred files by default. 
+**graft** is a powerful copy tool. It can copy files recursively and resumes partially transferred files by default. 
 
 Recursive copy every jpg file from `tmp` to `/home/johndoe/pictures` (dry-run)
 
@@ -211,6 +237,7 @@ will copy following source files to their destination:
 /tmp/test.jpeg          => /home/johndoe/pictures/test_new.jpeg
 /tmp/subdir/other.jpeg  => /home/johndoe/pictures/subdir/other_new.jpeg
 ```
+
 If you do not specify a submatch using `()`, the whole pattern is treated as submatch.
 
 ```
@@ -219,11 +246,6 @@ graft copy '/tmp/*.jpg' '/tmp/copy/'
 # is same as
 
 graft copy '/tmp/(*.jpg)' '/tmp/copy/'
-```
-
-If you would like to match on of these chars `\ . + * ? ( ) | [ ] { } ^ $` in patterns, they have to be quoted via backslash:
-```
-graft copy '/tmp/*\(2016\)' '/home/johndoe/'
 ```
 
 You can also use pipes to match multiple variants of char combinations:
@@ -237,9 +259,21 @@ This will copy following source files to their destination:
 /tmp/subdir/other.PNG  => /home/johndoe/pictures/subdir/other_new.PNG
 ```
 
+If you would like to match on of these chars `\ . + * ? ( ) | [ ] { } ^ $` in patterns, they have to be quoted via backslash:
+```
+graft copy '/tmp/*\(2016\)' '/home/johndoe/'
+```
+
+This means that on windows, you have to escape backslashes, when using patterns:
+```
+graft copy "folder\*example*\\*.jpg" "otherfolder\$1"
+```
+Will copy all jpg files of every subdirectory matching `example` to `otherfolder`. In existing directory names, backslashes need not to be escaped.
+Since **graft** also works with slashes on windows, it is recommended to use slashes to prevent unexpected behaviour.
+
 
 ### ***move***
-**graft** can also move files recursively. It should work exactly like copy except of moving files to its destination, instead of copy
+**graft** can also move files recursively. It works exactly like copy except of moving files to its destination, instead of making a copy.
 
 ### Reference
 
@@ -338,7 +372,7 @@ The parameters `--min-size` and `--max-size` take size in bytes or size strings.
 
 # development
 
-***graft*** is developed in go and uses the default go build command
+***graft*** is developed in go and you can use the default `go build` command to create a working binary:
 
 ```
 git clone https://github.com/sandreas/graft.git
@@ -350,7 +384,7 @@ go build
 If the build is successful, the directory should contain a binary named `graft` or `graft.exe` on windows systems
 
 
-If you prefer to do a full release for all plattforms, you can use goreleaser:
+If you prefer to do a full release for all supported plattforms, use goreleaser:
 
 ```
 git clone https://github.com/sandreas/graft.git
@@ -363,3 +397,5 @@ goreleaser
 # for current branch releases
 goreleaser --snapshot
 ```
+
+Your release files are placed in `dist`.

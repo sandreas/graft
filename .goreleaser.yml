@@ -9,11 +9,9 @@ builds:
 - goos:
   - linux
   - darwin
-  - freebsd
   - windows
   goarch:
   - amd64
-  - "386"
   - arm
   - arm64
   goarm:
@@ -33,15 +31,16 @@ archive:
   name_template: '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{
     .Arm }}{{ end }}'
   files:
-  - licence*
   - LICENCE*
-  - license*
-  - LICENSE*
-  - readme*
   - README*
-  - changelog*
   - CHANGELOG*
+  format_overrides:
+    - goos: windows
+      format: zip
+  replacements:
+    amd64: 64bit
+    darwin: macOS
 snapshot:
   name_template: SNAPSHOT-{{ .Commit }}
 checksum:
-  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  name_template: '{{ .ProjectName }}_{{ .Version }}_sha256_checksums.txt'
