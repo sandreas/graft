@@ -214,7 +214,7 @@ See **[Option reference](#option-reference)** for more info.
 ### ***copy***
 **graft** is a powerful copy tool. It can copy files recursively and resumes partially transferred files by default. 
 
-Recursive copy every jpg file from `tmp` to `/home/johndoe/pictures` (dry-run)
+Recursive copy every jpg file from `/tmp` to `/home/johndoe/pictures` (dry-run)
 
 ```
 graft copy '/tmp/*.jpg' '/home/johndoe/pictures/$1' --dry-run
@@ -362,9 +362,10 @@ The parameters `--min-size` and `--max-size` take size in bytes or size strings.
 
 ```
 1   => 1 byte
-2M  => 2 MiB
-3G  => 3 GiB
-4T  => 4 TiB
+2K  => 2 KiB
+3M  => 3 MiB
+4G  => 4 GiB
+5G  => 5 TiB
 ```
 
 # development
