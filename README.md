@@ -365,7 +365,7 @@ The parameters `--min-size` and `--max-size` take size in bytes or size strings.
 2K  => 2 KiB
 3M  => 3 MiB
 4G  => 4 GiB
-5G  => 5 TiB
+5T  => 5 TiB
 ```
 
 # development
