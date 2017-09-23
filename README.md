@@ -25,7 +25,6 @@ graft is a command line utility to search and transfer files. It started as a le
 
 #### [Other releases on the release page](https://github.com/sandreas/graft/releases)
 
-<script src="readme.js"></script>
 
 ### go get graft
 If you would like to use **graft** on an unsupported platform, you can try the go package manager. 
