@@ -48,7 +48,7 @@ go get -u github.com/sandreas/graft
 ### Important notes: 
 - Every action is performed recursively by default, so all subdirectories are concerned in every action
 - For file transfer commands, it usually is a good idea to use the `--dry-run` option, to see what **graft** is going to do
-- Special chars `\ . + * ? ( ) | [ ] { } ^ $` have to be quoted with backslash in patterns (e.g `graft find '/tmp/video*\(2016\)'`)
+- Special chars `\ + * ? ( ) | [ ] { } ^ $` have to be quoted with backslash in patterns (e.g `graft find '/tmp/video*\(2016\)'`)
 - **Linux and Unix:** Use single quotes (') to encapsulate patterns to prevent shell expansion
 - **Windows:** Use double quotes (") to encapsulate patterns, since single quotes are treated as chars
 
@@ -256,7 +256,7 @@ This will copy following source files to their destination:
 /tmp/subdir/other.PNG  => /home/johndoe/pictures/subdir/other.PNG
 ```
 
-If you would like to match on of these chars `\ . + * ? ( ) | [ ] { } ^ $` in patterns, they have to be quoted via backslash:
+If you would like to match on of these chars `\ + * ? ( ) | [ ] { } ^ $` in patterns, they have to be quoted via backslash:
 ```
 graft copy '/tmp/*\(2016\)' '/home/johndoe/'
 ```
