@@ -159,15 +159,15 @@ By default graft serve will provide all files in the current directory:
 graft serve
 
 # is same as
-
+`
 graft serve .
 ```
 
-To login with `FileZilla, you have to use the correct protocol and port, e.g.:
+To login with `FileZilla`, you have to use the correct protocol and port, e.g.:
 
 - Server: sftp://192.168.0.150
 - Username: graft (if you did not change the defaults)
-- Password: <your password>
+- Password: \<your password\>
 - Port: 2022 (if you did not change the defaults)
 
 See **[Option reference](#option-reference)** for more info.
