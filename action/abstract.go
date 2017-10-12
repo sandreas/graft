@@ -139,7 +139,7 @@ func (action *AbstractAction) ParseCliContext(c *cli.Context) {
 		MinAge:    c.String("min-age"),
 		MaxAge:    c.String("max-age"),
 		MinSize:   c.String("min-size"),
-		MaxSize:   c.String("min-size"),
+		MaxSize:   c.String("max-size"),
 		Client:    c.IsSet("client") && c.Bool("client"),
 	}
 
@@ -295,7 +295,7 @@ func (action *AbstractAction) prepareLocator() error {
 
 		if action.CliParameters.MaxSize != "" {
 			if maxSize, err = pattern.StrToSize(action.CliParameters.MaxSize); err != nil {
-
+				return err
 			}
 		}
 
