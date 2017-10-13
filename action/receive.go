@@ -152,6 +152,8 @@ func (action *ReceiveAction) chooseServerAndReceive() error {
 		}
 	}
 
+	selectedServer.Host = strings.TrimSuffix(selectedServer.Host, ".")
+
 	action.suppressablePrintf("selected server %s:%d\n", selectedServer.Host, selectedServer.Port)
 
 	addr, err := net.LookupIP(selectedServer.Host)

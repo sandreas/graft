@@ -23,7 +23,10 @@ graft is a command line utility to search and transfer files. It started as a le
 
 #### [💾 Linux Download](https://github.com/sandreas/graft/releases/download/v0.2.0/graft_0.2.0_linux_64bit.tar.gz)
 
-#### [Other releases on the release page](https://github.com/sandreas/graft/releases)
+#### [☑️ Checksums](https://github.com/sandreas/graft/releases/download/v0.2.0/graft_0.2.0_sha256_checksums.txt)
+
+#### [All releases](https://github.com/sandreas/graft/releases/latest)
+
 
 
 ### go get graft
@@ -367,12 +370,6 @@ The parameters `--min-size` and `--max-size` take size in bytes or size strings.
 4G  => 4 GiB
 5T  => 5 TiB
 ```
-
-f7a5f1fa0c87dd16f09f3cc4f221c9c002de1d198979a5514622c7ad424cdf7e  graft_0.2.0_linux_arm64.tar.gz
-31b6171d7188f652c5f775ff5e8322a7164fcb5c2caff6b61491d250c0c31ec2  graft_0.2.0_macOS_64bit.tar.gz
-2e34eefb6e9f805e2f8b0b7d9f857c4d874be51b5a6aeaefcdc1a8971cd623be  graft_0.2.0_linux_64bit.tar.gz
-814c8e15e2a424e75b0b66906a15dd591b2bb5c51000533497294cd8f46549ce  graft_0.2.0_windows_64bit.zip
-8eef73c80e9a0e68fbbc6ebaa38e7bc9d3680894a2be089cb07df9e99eece594  graft_0.2.0_linux_armv6.tar.gz
 
 
 # development

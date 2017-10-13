@@ -4,7 +4,8 @@
 
 - global
     - implement --show-matches for copy, move and receive
-    - choose a release strategy (https://github.com/goreleaser/goreleaser)
+    - Improve logging
+    - Add --exec to find command
     - update documentation
     - Improve performance
     - Show a note if regex does not compile
@@ -21,7 +22,6 @@
 
 - copy
     - support copy strategy:  ResumeSkipDifferent=default, ResumeReplaceDifferent (ReplaceAll, ReplaceExisting, SkipExisting)
-    - support file compare stitching (reading first, last and middle bytes)
     - compare-strategy: quick, hash, full
 
 - serve
