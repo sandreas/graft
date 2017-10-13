@@ -146,12 +146,11 @@ func (action *ReceiveAction) chooseServerAndReceive() error {
 
 	action.suppressablePrintf("selected server %s:%d\n", selectedServer.HostName, selectedServer.Port)
 
+	lookupSuccess := false
 	addr, err := net.LookupIP(selectedServer.HostName)
 	if err != nil {
 		log.Printf("Could not lookup host %s\n", selectedServer.HostName)
-		action.CliParameters.Host = selectedServer.HostName
 	} else {
-		lookupSuccess := false
 		for _, ip := range addr {
 			if resolvedIp := action.resolveIpConnection(ip, selectedServer.Port); resolvedIp != "" {
 				action.CliParameters.Host = resolvedIp
@@ -159,33 +158,34 @@ func (action *ReceiveAction) chooseServerAndReceive() error {
 				break
 			}
 		}
+	}
 
-		if !lookupSuccess {
-			log.Printf("Initial lookup for host %s failed\n", selectedServer.HostName)
-			for _, ip := range selectedServer.AddrIPv4 {
-				if resolvedIp := action.resolveIpConnection(ip, selectedServer.Port); resolvedIp != "" {
-					action.CliParameters.Host = resolvedIp
-					lookupSuccess = true
-					break
-				}
+	if !lookupSuccess {
+		log.Printf("Initial lookup for host %s failed\n", selectedServer.HostName)
+		for _, ip := range selectedServer.AddrIPv4 {
+			if resolvedIp := action.resolveIpConnection(ip, selectedServer.Port); resolvedIp != "" {
+				action.CliParameters.Host = resolvedIp
+				lookupSuccess = true
+				break
 			}
 		}
-		if !lookupSuccess {
-			log.Printf("IPv4 lookup for host %s failed\n", selectedServer.HostName)
-			for _, ip := range selectedServer.AddrIPv6 {
-				if resolvedIp := action.resolveIpConnection(ip, selectedServer.Port); resolvedIp != "" {
-					action.CliParameters.Host = resolvedIp
-					lookupSuccess = true
-					break
-				}
+	}
+	if !lookupSuccess {
+		log.Printf("IPv4 lookup for host %s failed\n", selectedServer.HostName)
+		for _, ip := range selectedServer.AddrIPv6 {
+			if resolvedIp := action.resolveIpConnection(ip, selectedServer.Port); resolvedIp != "" {
+				action.CliParameters.Host = resolvedIp
+				lookupSuccess = true
+				break
 			}
 		}
+	}
 
-		if lookupSuccess {
-			log.Printf("Lookup for host %s successful: %s\n", selectedServer.HostName, action.CliParameters.Host)
-		} else {
-			log.Printf("Lookup for host %s failed", selectedServer.HostName)
-		}
+	if lookupSuccess {
+		log.Printf("Lookup for host %s successful: %s\n", selectedServer.HostName, action.CliParameters.Host)
+	} else {
+		log.Printf("Lookup for host %s failed, using hostname instead", selectedServer.HostName)
+		action.CliParameters.Host = selectedServer.HostName
 	}
 
 	action.CliParameters.Port = selectedServer.Port
