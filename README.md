@@ -17,13 +17,13 @@ graft is a command line utility to search and transfer files. It started as a le
 **graft** is released as a single binary for all major platforms:
 
 
-#### [💾 Windows Download](https://github.com/sandreas/graft/releases/download/v0.2.0/graft_0.2.0_windows_64bit.zip)
+#### [💾 Windows Download](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_windows_64bit.zip)
 
-#### [💾 MacOS Download](https://github.com/sandreas/graft/releases/download/v0.2.0/graft_0.2.0_macOS_64bit.tar.gz)
+#### [💾 MacOS Download](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_macOS_64bit.tar.gz)
 
-#### [💾 Linux Download](https://github.com/sandreas/graft/releases/download/v0.2.0/graft_0.2.0_linux_64bit.tar.gz)
+#### [💾 Linux Download](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_linux_64bit.tar.gz)
 
-#### [☑️ Checksums](https://github.com/sandreas/graft/releases/download/v0.2.0/graft_0.2.0_sha256_checksums.txt)
+#### [☑️ Checksums](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_sha256_checksums.txt)
 
 #### [All releases](https://github.com/sandreas/graft/releases/latest)
 
