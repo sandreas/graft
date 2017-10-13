@@ -37,14 +37,7 @@ func (OsFs) Mkdir(name string, perm os.FileMode) error {
 }
 
 func (OsFs) MkdirAll(path string, perm os.FileMode) error {
-	abs := makeAbsolute(path)
-
-	// mkdirall fails on absolute paths, that do not exist, e.g. abs := "\\\\?\\D:\\test"
-	// see https://github.com/golang/go/issues/22230
-	if err:=os.Mkdir(abs, perm); err == nil {
-		return err
-	}
-	return os.MkdirAll(abs, perm)
+	return os.MkdirAll(makeAbsolute(path), perm)
 }
 
 func (OsFs) Open(name string) (afero.File, error) {
@@ -104,7 +97,10 @@ func makeAbsolute(name string) string {
 			return strings.Replace(absolutePath, `\\`, `\\?\UNC\`, 1)
 		}
 
-		return `\\?\` + absolutePath
+		// os.MkdirAll fails on absolute paths, that do not exist, e.g. abs := "\\\\?\\D:\\test"
+		// see https://github.com/golang/go/issues/22230
+		// return `\\?\` + absolutePath
+		return absolutePath
 	}
 	return name
 }
