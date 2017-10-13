@@ -17,19 +17,19 @@ graft is a command line utility to search and transfer files. It started as a le
 **graft** is released as a single binary for all major platforms:
 
 
-#### [💾 Windows Download](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_windows_64bit.zip)
+#### [💾 Windows](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_windows_64bit.zip)
 
-#### [💾 MacOS Download](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_macOS_64bit.tar.gz)
+#### [💾 MacOS](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_macOS_64bit.tar.gz)
 
-#### [💾 Linux Download](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_linux_64bit.tar.gz)
+#### [💾 Linux](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_linux_64bit.tar.gz)
 
 #### [☑️ Checksums](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_sha256_checksums.txt)
 
-#### [All releases](https://github.com/sandreas/graft/releases/latest)
+#### [📋 Show all releases](https://github.com/sandreas/graft/releases/latest)
 
 
 
-### go get graft
+### No release for your platform - go get graft
 If you would like to use **graft** on an unsupported platform, you can try the go package manager. 
 After [installing go](https://golang.org/doc/install) and adding the go binary to your PATH, install graft with following command:
 
@@ -46,11 +46,11 @@ To force an update of the graft sources, simply add the `-u` flag
 go get -u github.com/sandreas/graft
 ```
 
-## Quickstart
+## Quickstart`
 
 ### Important notes: 
-- Every action is performed recursively by default, so all subdirectories are concerned in every action
-- For file transfer commands, it usually is a good idea to use the `--dry-run` option, to see what **graft** is going to do
+- Every action is performed recursively by default, so you do not need to provide any flags for this (e.g. `-R`)
+- For file transfer commands, it usually is a good idea to use the `--dry-run` option, to see what `graft` is going to do
 - Special chars `\ + * ? ( ) | [ ] { } ^ $` have to be quoted with backslash in patterns (e.g `graft find '/tmp/video*\(2016\)'`)
 - **Linux and Unix:** Use single quotes (') to encapsulate patterns to prevent shell expansion
 - **Windows:** Use double quotes (") to encapsulate patterns, since single quotes are treated as chars
