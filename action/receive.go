@@ -12,26 +12,22 @@ import (
 
 	"fmt"
 
-	"github.com/grandcat/zeroconf"
 	"bufio"
-	"os"
-	"strings"
-	"strconv"
 	"net"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/grandcat/zeroconf"
 )
 
 type ReceiveAction struct {
 	AbstractTransferAction
-	serverEntries []*MdnsServerEntry
-}
-
-type MdnsServerEntry struct {
-	Host string
-	Port int
+	serverEntries []*zeroconf.ServiceEntry
 }
 
 func (action *ReceiveAction) Execute(c *cli.Context) error {
-	action.serverEntries = []*MdnsServerEntry{}
+	action.serverEntries = []*zeroconf.ServiceEntry{}
 	if err := action.PrepareExecution(c, 2, "*", "."); err != nil {
 		return err
 	}
@@ -98,12 +94,8 @@ func (action *ReceiveAction) lookupServiceAndReceive() error {
 	entries := make(chan *zeroconf.ServiceEntry)
 	go func(results <-chan *zeroconf.ServiceEntry) {
 		for entry := range results {
-			server := &MdnsServerEntry{
-				Host: entry.HostName,
-				Port: entry.Port,
-			}
-			action.serverEntries = append(action.serverEntries, server)
-			println("found new server: " + fmt.Sprintf("%s:%d", server.Host, server.Port))
+			action.serverEntries = append(action.serverEntries, entry)
+			println("found new server: " + fmt.Sprintf("%s:%d", entry.HostName, entry.Port))
 		}
 	}(entries)
 
@@ -127,14 +119,14 @@ func (action *ReceiveAction) chooseServerAndReceive() error {
 	if serverCount == 0 {
 		return errors.New("graft did not find a server instance to receive from")
 	}
-	var selectedServer *MdnsServerEntry
+	var selectedServer *zeroconf.ServiceEntry
 	if serverCount == 1 {
 		selectedServer = action.serverEntries[0]
 	} else {
 		action.suppressablePrintf("found %d servers, choose the one to receive from:\n", serverCount)
 
 		for i := 0; i < serverCount; i++ {
-			fmt.Printf("%d.) %s:%d\n", i+1, action.serverEntries[i].Host, action.serverEntries[i].Port)
+			fmt.Printf("%d.) %s:%d\n", i+1, action.serverEntries[i].HostName, action.serverEntries[i].Port)
 		}
 
 		for {
@@ -152,37 +144,72 @@ func (action *ReceiveAction) chooseServerAndReceive() error {
 		}
 	}
 
-	selectedServer.Host = strings.TrimSuffix(selectedServer.Host, ".")
+	action.suppressablePrintf("selected server %s:%d\n", selectedServer.HostName, selectedServer.Port)
 
-	action.suppressablePrintf("selected server %s:%d\n", selectedServer.Host, selectedServer.Port)
-
-	addr, err := net.LookupIP(selectedServer.Host)
+	addr, err := net.LookupIP(selectedServer.HostName)
 	if err != nil {
-		log.Printf("Could not lookup host %s\n", selectedServer.Host)
-		action.CliParameters.Host = selectedServer.Host
+		log.Printf("Could not lookup host %s\n", selectedServer.HostName)
+		action.CliParameters.Host = selectedServer.HostName
 	} else {
+		lookupSuccess := false
 		for _, ip := range addr {
-			ip := ip.To4()
-			if ip == nil {
-				ip = ip.To16()
+			if resolvedIp := action.resolveIpConnection(ip, selectedServer.Port); resolvedIp != "" {
+				action.CliParameters.Host = resolvedIp
+				lookupSuccess = true
+				break
 			}
-			if ip == nil {
-				continue
-			}
-
-			log.Printf("Host lookup resolved to %s\n", ip)
-			action.CliParameters.Host = ip.String()
-			break
 		}
 
+		if !lookupSuccess {
+			log.Printf("Initial lookup for host %s failed\n", selectedServer.HostName)
+			for _, ip := range selectedServer.AddrIPv4 {
+				if resolvedIp := action.resolveIpConnection(ip, selectedServer.Port); resolvedIp != "" {
+					action.CliParameters.Host = resolvedIp
+					lookupSuccess = true
+					break
+				}
+			}
+		}
+		if !lookupSuccess {
+			log.Printf("IPv4 lookup for host %s failed\n", selectedServer.HostName)
+			for _, ip := range selectedServer.AddrIPv6 {
+				if resolvedIp := action.resolveIpConnection(ip, selectedServer.Port); resolvedIp != "" {
+					action.CliParameters.Host = resolvedIp
+					lookupSuccess = true
+					break
+				}
+			}
+		}
+
+		if lookupSuccess {
+			log.Printf("Lookup for host %s successful: %s\n", selectedServer.HostName, action.CliParameters.Host)
+		} else {
+			log.Printf("Lookup for host %s failed", selectedServer.HostName)
+		}
 	}
 
 	action.CliParameters.Port = selectedServer.Port
 
 	action.suppressablePrintf("connecting to %s:%d\n", action.CliParameters.Host, selectedServer.Port)
 
-
 	action.receive()
 	return nil
 
+}
+
+func (action *ReceiveAction) resolveIpConnection(netIp net.IP, port int) string {
+	ip := netIp.To4()
+	if ip == nil {
+		ip = netIp.To16()
+	}
+	if ip == nil {
+		return ""
+	}
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", ip.String(), port))
+	if err != nil {
+		return ""
+	}
+	defer conn.Close()
+	return ip.String()
 }
