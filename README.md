@@ -161,8 +161,8 @@ By default graft serve will provide all files in the current directory:
 ```
 graft serve
 
-# is same as
-`
+# is the same as
+
 graft serve .
 ```
 
