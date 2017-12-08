@@ -1,33 +1,42 @@
 # graft
-graft is a command line utility to search and transfer files. It started as a learning project and it still is, so much of the code could be vastly improved, but for now it already is a useful tool. 
-
-## Features
-- Finding and transferring files via glob like patterns (`data/*.jp*g`) 
-- Finding and transferring files via real regular expressions (`data/\.*\.jpe?g`)
-- Provide additional filters like --max-age=2d (files older than 2 days are skipped)
-- Copy and resume partially transferred files
-- Exporting and importing file lists
-- Providing and receive files over network via sftp server
+graft is a command line utility to search and transfer files including an adhoc sftp server.
 
 ## Download and Setup
-**graft** should support Windows, MacOS and Linux, although the usage instructions might be different for each operating system.
+**graft** supports Windows, MacOS and Linux, although the usage instructions might be different on each operating system.
 
 ### Binary releases
 
-**graft** is released as a single binary for all major platforms:
 
+<table width="100%">
+  <thead>
+     <tr>
+       <th>Windows Download</th>
+       <th>MacOS Download</th>
+       <th>Linux Download</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><a href="https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_windows_64bit.zip"><img src="https://upload.wikimedia.org/wikipedia/commons/5/5f/Windows_logo_-_2012.svg" width="100" height="100" alt="Windows Download"></a></td>
+      <td align="center"><a href="https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_macOS_64bit.tar.gz"><img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" width="100" height="100" alt="MacOS Download"></a></td>
+      <td align="center"><a href="https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_linux_64bit.tar.gz"><img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" width="100" height="100" alt="Linux Download"></a></td>
+    </tr>
+  </tbody>
+</table>
+  
+               
 
-#### [💾 Windows](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_windows_64bit.zip)
-
-#### [💾 MacOS](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_macOS_64bit.tar.gz)
-
-#### [💾 Linux](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_linux_64bit.tar.gz)
-
-#### [☑️ Checksums](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_sha256_checksums.txt)
+#### [☑️ Checksums](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_sha256_checksums.txt) 
 
 #### [📋 Show all releases](https://github.com/sandreas/graft/releases/latest)
 
-
+### Features
+- Finding and transferring files via glob like patterns (`graft find data/*.jp*g`) 
+- Finding and transferring files via real regular expressions (full regular expressions: `graft find data/\.*\.jpe?g --regex`)
+- Provide additional filters (e.g. skip files olter than 2 days: `graft find * --max-age=2d`)
+- Copy and resume partially transferred files
+- Exporting and importing file lists
+- Providing and receive files over network via sftp server (`graft serve *.jpg`)
 
 ### No release for your platform - go get graft
 If you would like to use **graft** on an unsupported platform, you can try the go package manager. 
@@ -46,7 +55,7 @@ To force an update of the graft sources, simply add the `-u` flag
 go get -u github.com/sandreas/graft
 ```
 
-## Quickstart`
+## Quickstart
 
 ### Important notes: 
 - Every action is performed recursively by default, so you do not need to provide any flags for this (e.g. `-R`)
