@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"strings"
+	"github.com/spf13/afero"
 )
 
 func TestBase(t *testing.T) {
@@ -86,7 +87,6 @@ func TestBase(t *testing.T) {
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
-
 	basePattern = pattern.NewBasePattern(mockFs, "./")
 	expect.Equal("."+sep, basePattern.Path)
 	expect.Equal("", basePattern.Pattern)
@@ -143,4 +143,14 @@ func TestBase(t *testing.T) {
 	expect.True(basePattern.IsDir())
 	expect.False(basePattern.IsFile())
 
+}
+
+func TestBaseOsFs(t *testing.T) {
+	expect := assert.New(t)
+
+	basePattern := pattern.NewBasePattern(afero.OsFs{}, "")
+	expect.Equal(".\\", basePattern.Path)
+	expect.Equal("", basePattern.Pattern)
+	expect.True(basePattern.IsDir())
+	expect.False(basePattern.IsFile())
 }
