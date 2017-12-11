@@ -32,9 +32,9 @@ const (
 	ErrorCopyFiles                         = 5
 	ErrorMoveFiles                         = 6
 	ErrorPrepareDestination                = 7
+	ErrorDeleteFiles                       = 10
 	//ErrorNoGraftServerAvailable            = 8
 	//ErrorFailedToInitializeResolver        = 9
-	ErrorDeleteFiles                       = 10
 )
 
 func NewActionFactory(action string) CliActionInterface {
@@ -66,6 +66,7 @@ type CliParameters struct {
 	MinAge        string `arg:"--min-age,help:minimum age (e.g. 2d / 8w / 2016-12-24 / etc. )"`
 	MaxSize       string `arg:"--max-size,help:maximum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
 	MinSize       string `arg:"--min-size,help:minimum size in bytes or format string (e.g. 2G / 8M / 1000K etc. )"`
+	Type          string `arg:"--type,help:only match items with given type (--type=f for files, --type=d for directories)"`
 	ExportTo      string `arg:"--export-to,help:export found matches to a text file - one line per item"`
 	FilesFrom     string `arg:"--files-from,help:import found matches from file - one line per item"`
 
@@ -140,10 +141,11 @@ func (action *AbstractAction) ParseCliContext(c *cli.Context) {
 		MaxAge:    c.String("max-age"),
 		MinSize:   c.String("min-size"),
 		MaxSize:   c.String("max-size"),
+		Type:      c.String("type"),
 		Client:    c.IsSet("client") && c.Bool("client"),
 	}
 
-	for _,name := range c.FlagNames() {
+	for _, name := range c.FlagNames() {
 		if name == "host" {
 			action.CliParameters.Host = c.String("host")
 		}
@@ -301,6 +303,14 @@ func (action *AbstractAction) prepareLocator() error {
 
 		if minSize > -1 || maxSize > -1 {
 			compositeMatcher.Add(matcher.NewFileSizeMatcher(minSize, maxSize))
+		}
+
+		if action.CliParameters.Type != "" {
+			if action.CliParameters.Type != matcher.TypeFile && action.CliParameters.Type != matcher.TypeDirectory {
+				return errors.New("invalid value for parameter --type specified")
+			}
+
+			compositeMatcher.Add(matcher.NewFileTypeMatcher(action.CliParameters.Type))
 		}
 
 		locator.Find(compositeMatcher)
