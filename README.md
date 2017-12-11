@@ -2,10 +2,7 @@
 graft is a command line utility to search and transfer files including an adhoc sftp server.
 
 ## Download and Setup
-**graft** supports Windows, MacOS and Linux, although the usage instructions might be different on each operating system.
-
 ### Binary releases
-
 
 <table width="100%">
   <thead>
@@ -23,8 +20,6 @@ graft is a command line utility to search and transfer files including an adhoc 
     </tr>
   </tbody>
 </table>
-  
-               
 
 #### [☑️ Checksums](https://github.com/sandreas/graft/releases/download/v0.2.1/graft_0.2.1_sha256_checksums.txt) 
 
@@ -32,10 +27,10 @@ graft is a command line utility to search and transfer files including an adhoc 
 
 ### Features
 - Finding and transferring files via glob like patterns (`graft find data/*.jp*g`) 
-- Finding and transferring files via real regular expressions (full regular expressions: `graft find data/\.*\.jpe?g --regex`)
-- Provide additional filters (e.g. skip files olter than 2 days: `graft find * --max-age=2d`)
-- Copy and resume partially transferred files
-- Exporting and importing file lists
+- Finding and transferring files via real regular expressions (`graft find data/\.*\.jpe?g --regex`)
+- Provide additional filters, e.g. skip files olter than 2 days (`graft find * --max-age=2d`)
+- Copy and resume partially transferred files automatically with no parameters needed (`graft copy src/*.jp*g dst/`)
+- Exporting and importing file lists (`graft find data/*.jp*g --export=listing.txt`) 
 - Providing and receive files over network via sftp server (`graft serve *.jpg`)
 
 ### No release for your platform - go get graft
@@ -58,11 +53,11 @@ go get -u github.com/sandreas/graft
 ## Quickstart
 
 ### Important notes: 
-- Every action is performed recursively by default, so you do not need to provide any flags for this (e.g. `-R`)
+- Every action is performed **recursively by default**, so you **do NOT** need to provide any flags for this (e.g. `-R`)
 - For file transfer commands, it usually is a good idea to use the `--dry-run` option, to see what `graft` is going to do
 - Special chars `\ + * ? ( ) | [ ] { } ^ $` have to be quoted with backslash in patterns (e.g `graft find '/tmp/video*\(2016\)'`)
-- **Linux and Unix:** Use single quotes (') to encapsulate patterns to prevent shell expansion
-- **Windows:** Use double quotes (") to encapsulate patterns, since single quotes are treated as chars
+- **Linux and Unix:** Use **single quotes (')** to encapsulate patterns to prevent shell expansion
+- **Windows:** Use **double quotes (")** to encapsulate patterns, since single quotes are treated as chars
 
 ### Examples
 ```
