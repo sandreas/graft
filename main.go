@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/sandreas/afero"
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
@@ -10,10 +11,20 @@ import (
 func main() {
 
 	app := &cli.App{
-		Name:  "boom",
-		Usage: "make an explosive entrance",
+		Name:  "walk",
+		Usage: "walk",
 		Action: func(c *cli.Context) error {
-			fmt.Println("boom! I say!")
+			path := c.Args().Get(1)
+			fmt.Printf("walk over <%s>", path)
+			fs := afero.NewOsFs()
+			err := afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
+				fmt.Println(path)
+				return nil
+			})
+
+			if err != nil {
+				fmt.Printf("error: %s", err)
+			}
 			return nil
 		},
 	}

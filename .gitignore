@@ -30,3 +30,4 @@ _testmain.go
 /_old
 /data/tmp
 !/data/tmp/.gitkeep
+dist/
